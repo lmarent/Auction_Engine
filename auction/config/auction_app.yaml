@@ -1,0 +1,9 @@
+# polls.yaml
+postgres:
+  database: auctiondb
+  user: auction_user
+  password: auction_pass
+  host: localhost
+  port: 5432
+  minsize: 1
+  maxsize: 5
