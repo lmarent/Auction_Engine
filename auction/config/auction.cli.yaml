@@ -1,0 +1,15 @@
+# auction_cli.yaml
+postgres:
+  database: auctiondb
+  user: auction_user
+  password: auction_pass
+  host: localhost
+  port: 5432
+  minsize: 1
+  maxsize: 5
+
+ResourceRequestFile: example_resource_request1.xml
+DefaultDestinAddr: 192.168.3.3
+DefaultDestinPort: 80
+DefaultSourcePort: 12248
+TimeFormat: "%Y%m%d %H%M%S"
