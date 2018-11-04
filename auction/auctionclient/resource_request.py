@@ -1,12 +1,15 @@
 #resource_request.py
 import datetime
+from  foundation.auctioning_object import AuctioningObject
+from .interval import Interval
 
-class ResourceRequest():
+class ResourceRequest(AuctioningObject):
     """
     This class repreesents resouce request from users to be purchsed in the market.
     """
     
     def __init__(self, time_format, quantity=0, unit_budget=0, max_value=0, dst_id=None, dst_port=0):
+        super(ResourceRequest, self).__init__()
         self.quantity = quantity
         self.unit_budget = unit_budget
         self.max_value = max_value
@@ -16,6 +19,9 @@ class ResourceRequest():
         self.time_format = time_format
 
     def add_interval(self, intervaL):
+        """
+        Adds an interval to the resource request
+        """
         self.interval.append(interval)
 
 
@@ -93,8 +99,7 @@ class ResourceRequest():
             start = now
 
         interval, align = self.parse_interval_align(sinterval, salign)
-        new_interval = { 'start': start, 'stop' : stop, 'duration' : duration, 
-                    'interval' : interval, 'align' : align } 
+        new_interval = Interval( start, stop, duration, interval, align ) 
         return start, new_interval
 
 
@@ -127,7 +132,7 @@ class ResourceRequest():
         Returns the interval with start time equals to start
         """
         for interval in self.intervals:
-            if interval['start'] == start:
+            if interval.start == start:
                 return interval
         return None
 
@@ -138,6 +143,12 @@ class ResourceRequest():
 
         """
         for interval in self.intervals:
-            if interval['start'] == start:
+            if interval.stop == end:
                 return interval
         return None
+
+    def get_intervals(self):
+        """
+        Returns all intervals associated with the resource request
+        """
+        return self.intervals

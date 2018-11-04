@@ -1,43 +1,4 @@
-import asyncio
-import functools
-from .resource_request import ResourceRequest
- 
-def event_handler(loop, stop=False):
-    print('Event handler called')
-    if stop:
-        print('stopping the loop')
-        loop.stop()
-
-
-def handle_add_resource_request(app, filename):
-    resource_request = ResourceRequest(app['config']['TimeFormat'])
-    resource_request.from_xml(filename)
-
-
-# def handle_remove_resource_request_interval():
-
-# def handle_activate_resource_request_interval():
-
-# def handle_push_execution();
-
-# def handle_remove_push_execution():
-
-# def handle_add_generate_bidding_objects():
-
-# def handle_activate_bidding_objects():
-
-# def hdnale_remove_bidding_objects():
-
-# def handle_transmite_bidding_objects():
-
-# def handle_add_actions():
-
-# def handle_activate_auctions():
-
-# def handle_remove_auctions():
-
-def hndle_stop(loop):
-    loop.stop()
+from auction_client_handler import 
 
 
 if __name__ == '__main__':

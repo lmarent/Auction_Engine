@@ -8,31 +8,6 @@ def event_handler(loop, stop=False):
         loop.stop()
 
 
-# def handle_add_resource_request():
-
-# def handle_remove_resource_request_interval():
-
-# def handle_activate_resource_request_interval():
-
-# def handle_push_execution();
-
-# def handle_remove_push_execution():
-
-# def handle_add_generate_bidding_objects():
-
-# def handle_activate_bidding_objects():
-
-# def hdnale_remove_bidding_objects():
-
-# def handle_transmite_bidding_objects():
-
-# def handle_add_actions():
-
-# def handle_activate_auctions():
-
-# def handle_remove_auctions():
-
-
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     try:
