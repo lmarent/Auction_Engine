@@ -1,0 +1,6 @@
+# field_values.yaml
+
+field_vals:
+  srcip:
+    Type: IpAddr
+    Value: 190.0.0.1

@@ -1,0 +1,314 @@
+#field_definitions.yaml
+
+field_def:
+  quantity:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 33
+    Name: Quantity
+  unitprice:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 2
+    Name: UnitPrice
+  unitbudget:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 3
+    Name: UnitBudget
+  totalbudget:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 4
+    Name: TotalBudget
+  # Maximum Valuation fields
+  maxvalue:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 1
+    Name: MaxValue
+  maxvalue01:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 58
+    Name: MaxValue01
+  maxvalue02:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 59
+    Name: MaxValue02
+  maxvalue03:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 60
+    Name: MaxValue03
+  maxvalue04:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 61
+    Name: MaxValue04
+  maxvalue05:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 62
+    Name: MaxValue05
+  # Fields for auction duration.
+  auctionduration:
+    Length: 4
+    Type: UInt32
+    Eno: 0
+    Ftype: 5
+    Name: AuctionDuration
+  # Auction related Fields
+  auctionid:
+    Type: String
+    Eno: 0
+    Ftype: 24
+    Name: AuctionID
+  biddingobjectid:
+    Type: String
+    Eno: 0
+    Ftype: 25
+    Name: BiddingObjectID
+  refbiddingobjectid:
+    Type: String
+    Eno: 0
+    Ftype: 26
+    Name: RefBiddingObjectID
+  refbiddingobjectid:
+    Type: String
+    Eno: 0
+    Ftype: 52
+    Name: RefBiddingObjectID
+  biddingobjecttype:
+    Length: 1
+    Type: UInt32
+    Eno: 0
+    Ftype: 26
+    Name: BiddingObjectType
+  recordid:
+    Type: String
+    Eno: 0
+    Ftype: 32
+    Name: RecordID
+  resourceid:
+    Type: String
+    Eno: 0
+    Ftype: 40
+    Name: ResourceID
+  start:
+    Length: 8
+    Type: UInt64
+    Eno: 0
+    Ftype: 27
+    Name: Start
+  stop:
+    Length: 8
+    Type: UInt64
+    Eno: 0
+    Ftype: 27
+    Name: Stop
+  interval:
+    Length: 8
+    Type: UInt64
+    Eno: 0
+    Ftype: 34
+    Name: Interval
+  biddingduration:
+    Length: 8
+    Type: UInt32
+    Eno: 0
+    Ftype: 43
+    Name: BiddingDuration
+  status:
+    Length: 2
+    Type: UInt16
+    Eno: 0
+    Ftype: 50
+    Name: Status
+  srcip:
+    Type: IpAddr
+    Eno: 0
+    Ftype: 10
+    Name: SrcIP
+  dstip:
+    Type: IpAddr
+    Eno: 0
+    Ftype: 12
+    Name: DstIP
+  srcipv6:
+    Type: Ip6Addr
+    Eno: 0
+    Ftype: 14
+    Name: SrcIPV6
+  dstipv6:
+    Type: Ip6Addr
+    Eno: 0
+    Ftype: 15
+    Name: DstIPV6
+  srcport:
+    Length: 2
+    Type: UInt16
+    Eno: 0
+    Ftype: 41
+    Name: SrcPort
+  dstport:
+    Length: 2    
+    Type: UInt16
+    Eno: 0
+    Ftype: 42
+    Name: DstPort
+  srcauctionport:
+    Length: 2    
+    Type: UInt16
+    Eno: 0
+    Ftype: 47
+    Name: SrcAuctionPort
+  dstauctionport:
+    Length: 2    
+    Type: UInt16
+    Eno: 0
+    Ftype: 48
+    Name: DstAuctionPort
+  ipversion:
+    Length: 1
+    Type: Uint8
+    Eno: 0
+    Ftype: 48
+    Name: IpVesion
+  # Bandwidth Fields.
+  bandwidth:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 38
+    Name: Bandwidth
+  bandwidth01:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 63
+    Name: Bandwidth01
+  bandwidth02:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 64
+    Name: Bandwidth02
+  bandwidth03:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 65
+    Name: Bandwidth03
+  bandwidth04:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 66
+    Name: Bandwidth04
+  bandwidth05:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 67
+    Name: Bandwidth05
+  # Reserve prices.
+  reserveprice:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 39
+    Name: ReservePrice
+  reserveprice01:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 53
+    Name: ReservePrice01
+  reserveprice02:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 54
+    Name: ReservePrice02
+  reserveprice03:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 55
+    Name: ReservePrice03
+  reserveprice04:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 56
+    Name: ReservePrice04
+  reserveprice05:
+    Length: 8
+    Type: Double
+    Eno: 0
+    Ftype: 57
+    Name: ReservePrice05
+  # Subsidy Fields.
+  subsidy:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 68
+    Name: Subsidy
+  subsidy01:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 69
+    Name: Subsidy01
+  subsidy02:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 70
+    Name: Subsidy02
+  subsidy03:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 71
+    Name: Subsidy03
+  subsidy04:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 72
+    Name: Subsidy04
+  subsidy05:
+    Length: 4
+    Type: Float
+    Eno: 0
+    Ftype: 73
+    Name: Subsidy05
+  # Related to the Algorithm.
+  algoritmname:
+    Type: String
+    Eno: 0
+    Ftype: 31
+    Name: AlgorithmName
+  # Related to tepmpletes
+  templatelist:
+    Type: String
+    Eno: 0
+    Ftype: 51
+    Name: TemplateList
+
+
+
