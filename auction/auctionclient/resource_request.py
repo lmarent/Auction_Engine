@@ -1,7 +1,7 @@
 #resource_request.py
 import datetime
-from  foundation.auctioning_object import AuctioningObject
-from .interval import Interval
+from foundation.auctioning_object import AuctioningObject
+from foundation.interval import Interval
 
 class ResourceRequest(AuctioningObject):
     """
@@ -26,48 +26,7 @@ class ResourceRequest(AuctioningObject):
 
 
     @staticmethod
-    def parse_time(startatleast, stime):
-        """
-        Parse the start time field within the interval. 
-        Returns start datetime.
-        """
-
-        # parse tiem given 
-        if stime[0] == '+':
-            seconds = int(stime[1:])
-            time_val = datetime.datetime.now() + seconds
-        else:
-            time_val = datetime.strptime(stime, self.timeformat)
-
-        if time_val == 0:
-            raise ValueError("Invalid time {}".format(sstart)) 
-        if time_val < startatleast:
-            raise ValueError("Invalid time {0}, it should be greater than \
-                        previous interval stop {1}".format(stime, str(startatleast)))
-        return time_val
-
-    @staticmethod
-    def parse_interval_align(sinterval, salign):
-        """
-        Parse parameters interval and align within an interval.
-        """
-        inter = 0
-        inter = int(sinterval)
-        if salign:
-            align = 1
-        else:
-            align = 0
-
-        return inter, align
-
-
-    @staticmethod
     def parse_interval(interval, startatleast):
-        # stop = 0 indicates infinite running time
-        stop = 0
-
-        #duration = 0 indicates no duration set
-        duration = 0
 
         start = startatleast
         sstart = interval.getElementsByTagName('Start')[0]
@@ -76,31 +35,14 @@ class ResourceRequest(AuctioningObject):
         sinterval = interval.getElementsByTagName('Interval')[0]
         salign = interval.getElementsByTagName('Align')[0]
 
-        if sstart and sstop and sdurantion:
-            raise ValueError("illegal to specify: start+stop+duration time")
-        
-        if sstart:
-            start = self.parse_time(startatleast, sstart)
-        
-        if sstop:
-            stop = self.parse_time(startatleast, sstop)
-        
-        duration = int(sduration)
-        if duration > 0:
-            if stop:
-                start = stop - duration
-            else:
-                stop = start + duration
+        interval_dict = {
+            'start' : sstart, 'stop' : sstop, 'duration' : sduration, 
+            'interval' : sinterval, 'align' : salign 
+            } 
 
-        if stop != 0 and stop < now
-            raise ValueError('resource request running time is already over')
-
-        if start < now:
-            start = now
-
-        interval, align = self.parse_interval_align(sinterval, salign)
-        new_interval = Interval( start, stop, duration, interval, align ) 
-        return start, new_interval
+        new_interval = Interval() 
+        new_interval.parse_interval(interval_dict, startatleast)
+        return new_interval.start, new_interval
 
 
     def from_xml(self, filename):

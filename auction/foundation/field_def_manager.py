@@ -2,7 +2,15 @@
 import pathlib
 import yaml
 
-class FieldDefManager():
+class FieldDefManager:
+    __instance = None
+
+    @staticmethod
+    def getInstance(field_name_file=None, field_value_file=None):
+        if FieldDefManager.__instance == None:
+            FieldDefManager(field_name_file, field_value_file)
+        return FieldDefManager.__instance
+
     """
     Maintain field definitions and value definitions
     """
