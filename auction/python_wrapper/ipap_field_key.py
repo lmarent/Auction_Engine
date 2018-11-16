@@ -22,5 +22,8 @@ class IpapFieldKey:
     def get_ftype(self) -> int :
         return lib.ipap_field_key_get_ftype(self.obj)
 
+    def get_key(self) -> str:
+        return str(lib.ipap_field_key_get_eno(self.obj)) + '-' + str(lib.ipap_field_key_get_ftype(self.obj))
+
     def destroy(self):
         lib.ipap_field_key_destroy(self.obj)
