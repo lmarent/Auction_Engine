@@ -3,6 +3,8 @@ from datetime import datetime
 from foundation.auctioning_object import AuctioningObject
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.template_id_source import TemplateIdSource
+from foundation.field import Fieldefinition
+from foundation.interval import Interval
 
 from python_wrapper.ipap_field_container import IpApFieldContainer
 from python_wrapper.ipap_template import IpapTemplate
@@ -37,7 +39,7 @@ class Action:
 
 class AuctionTemplateField():
     def __init__(self, field=None,size=0):
-        self.field = field
+        self.field = field  # This is of type Fieldefinition
         self.size = size
         self.field_belong_to = list() # list of tuples (object type, template_type)
 
@@ -91,11 +93,12 @@ class Auction(AuctioningObject):
         self.sessions = set()
 
         self._build_interval()
-
-        # TODO: Complete the code
         self._build_templates(templ_fields, template_container)
 
     def _build_interval(self):
+        """
+        Builds intervals when the auction is going to be performed
+        """
         sstart = self.misc_dict['start']
         sstop = self.misc_dict['start']
         sduration = self.misc_dict['duration']
@@ -112,19 +115,37 @@ class Auction(AuctioningObject):
         self.interval.parse_interval(interval_dict, startatleast)
 
     def set_data_auction_template(self, tid: int):
+        """
+        Sets the data auction template
+        :param tid: template identifier
+        """
         self.template_data_id = tid
 
-
     def set_option_auction_template(self, tid :int):
+        """
+        Sets the option auction template
+        :param tid: template identifier
+        """
         self.template_option_id = tid
 
     def set_bidding_object_template(self, object_type : int, templ_type : int, template_id : int):
+        """
+        Sets a new bigging object template for the auction. Valid bidding objects includes bid, allocations.
+        :param object_type: object type (i.e., bid, allocation)
+        :param templ_type:  template's types (data, options)
+        :param template_id: template identifier
+        """
         if object_type not in self.bidding_object_templates:
             self.bidding_object_templates[object_type] = {}
         template_object = self.bidding_object_templates[object_type]
         template_object[templ_type] = template_id
 
     def _build_templates(self, templ_fields : dict, template_container : IpapTemplateContainer):
+        """
+        Build templates being used for the auction.
+        :param templ_fields:        fields to be used by the auction within each template
+        :param template_container:  Templte container where we maintain the templates created for the system.
+        """
         field_container = IpApFieldContainer()
         field_container.initialize_forward()
         field_container.initialize_reverse()
@@ -155,14 +176,19 @@ class Auction(AuctioningObject):
                 template_container.add_template(template)
 
     def add_template_field(self, template : IpapTemplate, ipap_field_container : IpApFieldContainer, eno : int, ftype: int ):
-
+        """
+        Adds a new field to a template
+        :param template:                Template where we are going to add the field
+        :param ipap_field_container:    field container where we maintain the possible fields
+        :param eno:                     enterprise number identifier
+        :param ftype:                   id of the field for the ipap_message
+        """
         # By default network encoding
         encodeNetwork = 1
 
         field = ipap_field_container.get_field(eno, type)
         size = field.get_length()
         template.add_field(size, KNOWN, encodeNetwork, field);
-
 
     def create_auction_template(self, field_container, template_type):
         """
@@ -172,7 +198,6 @@ class Auction(AuctioningObject):
         :param template_type:   Type of template to use.
         :return: template created.
         """
-
         template_source_id = TemplateIdSource()
 
         # Create the bid template associated with the auction
@@ -189,6 +214,14 @@ class Auction(AuctioningObject):
 
 
     def calculate_template_fields(object_type : int, templ_type : int, templ_fields : dict, mandatory_fields : list ) -> dict:
+        """
+        Creates the sets of fields to be used in a template. The set includes mandatory and those that have been chosen
+        by the user for the auction
+        :param templ_type:          Template type (data, options)
+        :param templ_fields:        Field to include given by the user
+        :param mandatory_fields:    Mandatory fields to include given by the template type
+        :return: dictionary with key and field key
+        """
 
         dict_return = {}
         # 1. insert the template mandatory fields.
@@ -208,7 +241,7 @@ class Auction(AuctioningObject):
             if include:
                 field_key = IpapFieldKey(field.get_eno(), field.get_ftype())
                 # Excludes field_keys already in the dictionary.
-                if field_key.get_key() not in dict_return.keys()
+                if field_key.get_key() not in dict_return.keys():
                     dict_return[field_key.get_key()] = field_key
 
         return dict_return
@@ -219,6 +252,15 @@ class Auction(AuctioningObject):
                                        mandatory_fields: list,
                                        object_type : int,
                                        templ_type : int ) -> IpapTemplate:
+        """
+        Create a bidding object template
+        :param templ_fields:        Fields to include given by the user
+        :param field_container:     Container with all possible fields defined in the ipap_message
+        :param mandatory_fields:    Mandatory fields to include given by the template type
+        :param object_type:         object type (i.e., bid, allocation)
+        :param templ_type:          template's types (data, options)
+        :return: a new template
+        """
         template_source_id = TemplateIdSource()
 
         field_keys = self.calculate_template_fields(object_type, templ_type, templ_fields, mandatory_fields)
@@ -235,23 +277,60 @@ class Auction(AuctioningObject):
 
         return template
 
-    def get_auction_data_template(self):
+    def get_auction_data_template(self) -> int:
+        """
+        Gets the identifier of the auction data template
+        :return: integer representing the auction data template
+        """
         return self.template_data_id
 
     def get_option_auction_template(self):
+        """
+        Gets the identifier of the auction option template
+        :return: integer representing the auction option template
+        """
         return self.template_option_id
 
     def get_bidding_object_template(self, object_type, templ_type):
+        """
+        Gets the identifier of a bidding object template
+        :param object_type: The object type (i.e., bid, allocation) for which we want to get the template
+        :param templ_type:  The template type for which we want to get the template.
+
+        :return: integer representing the template's identifier
+        """
+
         if object_type in self.bidding_object_templates:
-            if templ_type in self.bidding_object_templates[object_type]
+            if templ_type in self.bidding_object_templates[object_type]:
                 return self.bidding_object_templates[object_type][templ_type]
             else:
                 return 0
         return 0
 
-
     def add_session_reference(self, session_id : str):
+        """
+        Associates a new session as referencing this auction
+        :param session_id: session id referencing this auction
+        """
         self.sessions.add(session_id)
 
     def delete_session_reference(self, session_id : str):
+        """
+        Disassociates a session as referencing this auction
+        :param session_id: session id referencing this auction
+        """
         self.sessions.discard(session_id)
+
+    def get_start(self):
+        """
+        Gets the start datetime for the auction
+        :return:
+        """
+        return self.interval.start
+
+    def get_stop(self):
+        """
+        Gets the stop datetime for the auction
+        :return:
+        """
+        return self.interval.stop

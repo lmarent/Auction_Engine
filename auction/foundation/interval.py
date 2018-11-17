@@ -5,7 +5,7 @@ class Interval():
     """
     This class represents a request interval for auctioning.
     """
-	def __init__(self, start=None, stop=None, duration=0, interval=None, align=None):
+    def __init__(self, start=None, stop=None, duration=0, interval=None, align=None):
         self.start = start
         self.stop = stop
         self.duration = duration 
@@ -13,7 +13,7 @@ class Interval():
         self.align = align
         self.session = None
 
-    def set_session(session):
+    def set_session(self, session):
         """
         Sets the session assigned to the intervals for auctioning
         """
@@ -34,7 +34,7 @@ class Interval():
             time_val = datetime.strptime(stime, self.timeformat)
 
         if time_val == 0:
-            raise ValueError("Invalid time {}".format(sstart)) 
+            raise ValueError("Invalid time {}".format(stime))
         if time_val < startatleast:
             raise ValueError("Invalid time {0}, it should be greater than \
                         previous interval stop {1}".format(stime, str(startatleast)))
@@ -64,11 +64,11 @@ class Interval():
         start = startatleast
         sstart = interval_dict['Start']
         sstop = interval_dict['Stop']
-        sdurantion = interval_dict['Duration']
+        sduration = interval_dict['Duration']
         sinterval = interval_dict['Interval']
         salign = interval_dict['Align']
 
-        if sstart and sstop and sdurantion:
+        if sstart and sstop and sduration:
             raise ValueError("illegal to specify: start+stop+duration time")
         
         if sstart:

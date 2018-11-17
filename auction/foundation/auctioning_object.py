@@ -19,6 +19,7 @@ class AuctioningObjectType(Enum):
     """
     AUCTION = 0
     BID = 1
+    RESOURCE = 2
 
 class AuctioningObject():
     """

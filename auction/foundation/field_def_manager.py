@@ -1,15 +1,10 @@
 #field_def_manager.py 
 import pathlib
 import yaml
+from foundation.singleton import Singleton
 
-class FieldDefManager:
-    __instance = None
 
-    @staticmethod
-    def getInstance(field_name_file=None, field_value_file=None):
-        if FieldDefManager.__instance == None:
-            FieldDefManager(field_name_file, field_value_file)
-        return FieldDefManager.__instance
+class FieldDefManager(metaclass=Singleton):
 
     """
     Maintain field definitions and value definitions
@@ -111,3 +106,5 @@ class FieldDefManager:
 
         self._check_field_vals()
 
+    def get_field_defs(self):
+        return self.field_definitions

@@ -1,8 +1,8 @@
 # resource_request_manager.py
-from foundation.auction_manager import AuctionManager
+from foundation.auctioning_object_manager import AuctioningObjectManager
 from auction_client_handler import handle_activate_resource_request_interval
 
-class ResourceRequestManager(AuctionManager):
+class ResourceRequestManager(AuctioningObjectManager):
 
     def __init__(self):
         super(ResourceRequestManager, self).__init__()

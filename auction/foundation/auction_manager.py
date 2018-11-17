@@ -1,61 +1,90 @@
-#auction_manager.py
+from foundation.auctioning_object_manager import AuctioningObjectManager
+from foundation.auction import Auction
+from foundation.field_def_manager import FieldDefManager
+from python_wrapper.ipap_message import IpapMessage
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
-class AuctionManager():
+class AuctionManager(AuctioningObjectManager):
     """
-      The auctioningObjectManager class allows to add and remove Auction Objects 
-  		in the core system. Auctioning objects data are a set of ascii strings that are parsed
-  		and syntax checked by the auctioningObjectManager and then their respective
-  		settings are used to configure the other Core components. 
+    This class maintains the auction within the server and client.
     """
 
-	def __init__():
-		self.auctioning_objects = {}
-		self.auctioning_objects_done = {}
-	
-	def add_auctioning_object(self, auction_object):
-		"""
-		Adding new auction objects to the Auction system will parse and syntax
-        check the given auction object specifications. It lookup the database for
-        already installed auction objects and store the auction object into the database. 
-		""" 
-		key = auction_object.get_key()
-		if key in self.auctioning_objects.keys():
-			raise ValueError('Auctioning Object with this name is already installed')
-		self.auctioning_objects[key] = auction_object
+    def __init__(self, domain):
+        super(AuctionManager).__init__(domain)
+        self.time_idx = {}
 
-	def get_auctioning_object(self, key):
-		"""
-		lookup the database of auction objects for a specific auction object
-        """ 
-		if key in self.auctioning_objects.keys():
-			return self.auctioning_objects[key]
-		else:
-			raise ValueError('Auctioning Object {} does not exist'.format(key))
+    def add_auction(self, auction: Auction):
+        """
+        Adds an auction to the container
 
-	def get_auctioning_object_done(self, key):
-		"""
-		Get auction object with key from the stored mark as done.
-		""" 
-		if key in self.auctioning_objects_done.keys():
-			return self.auctioning_objects_done[key]
-		else:
-			raise ValueError('Auctioning Object {} does not exist'.format(key))
+        :param auction: auction to add
+        """
+        super.add_auctioning_object(auction)
 
-	def del_actioning_object(self, key):
-		"""
-		Deleting an auction object parses and syntax checks the
-        identification string, it tests the presence of the given auction object
-        in the database, and it removes the auction object from the database
-		""" 
-		if key in self.auctioning_objects.keys():
-			del self.auctioning_objects[key]
-		else:
-			raise ValueError('Auctioning Object {} does not exist'.format(key))
+    def delete_auction(self, auction_key : str):
+        """
+        Deletes an auction from the container
 
-	def store_auctioning_object_done(self, auction_object):
-		"""
-		Add the auctioning object to the list of finished bids
-		""" 
-		auction_object.set_state(AO_DONE)
-		key = auction_object.get_key()
-		self.auctioning_objects_done[key] = auction_object
+        :param auction_key: auction key to delete
+        :return:
+        """
+        super.del_actioning_object(auction_key)
+
+    def get_auction(self, auction_key:str) -> Auction:
+        """
+        gets a auction from the container
+
+        :param auction_key: key of the auction to get
+        :return: Auction or an exception when not found.
+        """
+        return super.get_auctioning_object(auction_key)
+
+    def parse_auction_from_file(self, file_name : str, template_container : IpapTemplateContainer):
+        """
+        parses a file in format XML and gets the registered definition of auctions
+        :param file_name: file name of the file to be parsed
+        :param template_container: container with all the registered templates
+        """
+        field_def_manager = FieldDefManager()
+        auction_file_parser = AuctionFileParser(super.get_domain(), file_name)
+        auctions = auction_file_parser.parse(field_def_manager.get_field_defs(), template_container)
+        return auctions
+
+    def parse_ipap_message(self, ipap_message: IpapMessage, template_container : IpapTemplateContainer):
+        """
+        parse auctions from an ipap_message
+
+        :param ipap_message: Message to parse
+        :param template_container: container with all the registered templates
+        """
+
+    def get_ipap_message(self, auctions : list, temaplate_container: IpapTemplateContainer, use_ipv6 : bool,
+                         saddress_ipv4 : str, saddress_ipv6 :str , port: int) -> IpapMessage:
+        """
+        get the ipap_message that contains all the auctions within the list given
+
+        :param auctions:
+        :param temaplate_container:
+        :param use_ipv6:
+        :param saddress_ipv4:
+        :param saddress_ipv6:
+        :param port:
+        :return:
+        """
+
+
+    def increment_references(self, auctions: list, session_id : str):
+        """
+        This methods adds for auctions in the list a reference to the session given as parameter
+
+        :param auctions: list of auctions to create a new reference
+        :param session_id: session id to be included
+        """
+
+    def decrement_references(self, auctions: list, session_id : str):
+        """
+        This methods removes for auctions in the list the reference to the session given as parameter
+        :param auctions: list of auctions to remove a reference
+        :param session_id: session id to be excluded
+        """
+
