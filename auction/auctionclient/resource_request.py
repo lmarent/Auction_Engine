@@ -2,10 +2,11 @@
 import datetime
 from foundation.auctioning_object import AuctioningObject
 from foundation.interval import Interval
+import xml
 
 class ResourceRequest(AuctioningObject):
     """
-    This class repreesents resouce request from users to be purchsed in the market.
+    This class represents resource request from users to be purchased in the market.
     """
     
     def __init__(self, time_format, quantity=0, unit_budget=0, max_value=0, dst_id=None, dst_port=0):

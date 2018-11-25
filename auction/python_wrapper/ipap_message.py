@@ -33,3 +33,9 @@ class IpapMessage:
 
     def delete_all_templates(self):
         lib.ipap_message_delete_all_templates(self.obj)
+
+    def get_template_list(self) -> list:
+        return lib.ipap_message_get_template_list(self.obj)
+
+    def get_template_object(self, templid : int):
+        return lib.ipap_mesage_get_template_object(self.obj, c_uint16(templid))

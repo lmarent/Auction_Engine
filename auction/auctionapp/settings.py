@@ -1,4 +1,4 @@
-# settings.py
+# config.py
 import pathlib
 import yaml
 

@@ -37,9 +37,9 @@ class Action:
         self.default_action = default_action
         self.config_dict = config_dict
 
-class AuctionTemplateField():
+class AuctionTemplateField:
     def __init__(self, field=None,size=0):
-        self.field = field  # This is of type Fieldefinition
+        self.field = field  # This is of type FieldDefinition
         self.size = size
         self.field_belong_to = list() # list of tuples (object type, template_type)
 

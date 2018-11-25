@@ -13,3 +13,9 @@ DefaultDestinAddr: 192.168.3.3
 DefaultDestinPort: 80
 DefaultSourcePort: 12248
 TimeFormat: "%Y%m%d %H%M%S"
+
+AUCTIONFILE_DTD: auctionfile.dtd
+DTD_ROOT_NODE: AUCTIONSET
+BIDFILE_DTD: bidfile.dtd
+DEFAULT_LOG_FILE: netaum.log
+

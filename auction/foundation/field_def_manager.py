@@ -107,4 +107,14 @@ class FieldDefManager(metaclass=Singleton):
         self._check_field_vals()
 
     def get_field_defs(self):
+        """
+        Gets all field definitions
+        :return:
+        """
         return self.field_definitions
+
+    def get_field(self, name : str):
+        if name in self.field_definitions:
+            return self.field_definitions[name]
+        else:
+            raise ValueError("The field name {0} is not found in the field definition".format(name))
