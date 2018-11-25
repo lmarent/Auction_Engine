@@ -4,8 +4,8 @@ from python_wrapper.ipap_message import IpapMessage
 
 class IpapMessageParser:
 
-    def __init__(self):
-        self.domain =
+    def __init__(self, domain):
+        self.domain = domain
 
     def parse_name(self, id : str) -> (str, str):
         """
@@ -104,12 +104,19 @@ class IpapMessageParser:
 
         return None
 
-    def read_data_record(self) -> IpapDataRecord:
+    def read_data_records(self, message : IpapMessage, templ_id : int) -> list:
         """
-        Redas a data record from a message
+        Reads the data record list from a message
 
-        :return:
+        :return: list fo data records within the message.
+        @:raises ValueError when a data record is not found.
         """
+        size = message.get_data_record_size()
+        list_return = []
+        for i in range(0,size):
+            data_record = message.get_data_record_at_pos(i)
+            list_return.append(data_record)
+        return list_return
 
     def find_value(self, eno : int, ftype : int ):
         """
@@ -127,7 +134,7 @@ class IpapMessageParser:
         :return:
         """
 
-    def parse_field_value(self):
+    def parse_field_value(self, field_val_list : list, value : str, field ):
         """
         parses a field value
 

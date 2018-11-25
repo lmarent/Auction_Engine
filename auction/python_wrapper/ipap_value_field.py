@@ -17,8 +17,11 @@ lib = cdll.LoadLibrary('libipap.so')
 
 class IpapValueField:
 
-    def __init__(self):
-        self.obj = lib.ipap_value_field_new()
+    def __init__(self, obj=None):
+        if obj:
+            self.obj = obj
+        else:
+            self.obj = lib.ipap_value_field_new()
 
     def set_value_uint8(self, value : int):
         lib.ipap_value_field_set_value_int8(self.obj, c_uint8(value))

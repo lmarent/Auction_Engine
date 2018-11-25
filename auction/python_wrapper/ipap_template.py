@@ -33,8 +33,11 @@ class object_type(Enum):
 
 class IpapTemplate:
 
-    def __init__(self):
-        self.obj = lib.ipap_template_new()
+    def __init__(self, obj=None):
+        if obj:
+            self.obj = obj
+        else:
+            self.obj = lib.ipap_template_new()
 
     def set_id(self, id : int):
         return lib.ipap_template_set_id(self.obj,c_uint16(id))
