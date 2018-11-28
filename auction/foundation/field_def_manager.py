@@ -2,6 +2,32 @@
 import pathlib
 import yaml
 from foundation.singleton import Singleton
+from enum import Enum
+
+
+class DataType(Enum):
+    """
+    Datatypes being used for fields.
+    """
+    INVALID = -1
+    EXPORTEND = 0
+    LIST = 2
+    LISTEND = 3
+    CHAR = 4
+    INT8 = 5
+    INT16 = 6
+    INT32 = 7
+    INT64 = 8
+    UINT8 = 9
+    UINT16 = 10
+    UINT32 = 11
+    UINT64 = 12
+    STRING = 13
+    BINARY = 14
+    IPV4ADDR = 15
+    IPV6ADDR = 16
+    FLOAT = 17
+    DOUBLE = 18
 
 
 class FieldDefManager(metaclass=Singleton):
@@ -21,18 +47,94 @@ class FieldDefManager(metaclass=Singleton):
         self.field_definitions = None
         self.field_values = None
 
-    def _check_field_defs(self) -> bool:
+        # Valid types are stored in lower cae
+        self.valid_types = {
+            'export_end' :DataType.EXPORTEND, 'list' : DataType.LIST,
+            'listend' : DataType.LISTEND, 'char' : DataType.CHAR, 'int8' : DataType.INT8,
+            'int16': DataType.INT16, 'int32' : DataType.INT32, 'int64' : DataType.INT64,
+            'uint8' : DataType.UINT8, 'uint16' : DataType.UINT16, 'uint32' : DataType.UINT32,
+            'uint64': DataType.UINT64, 'string' : DataType.STRING,
+            'binary': DataType.BINARY, 'IpAddr' : DataType.IPV4ADDR,
+            'Ip6Addr' : DataType.IPV6ADDR, 'float' :DataType.FLOAT,
+            'double' : DataType.DOUBLE
+            }
+        self.valid_lengths = {
+             DataType.CHAR : 1 ,  DataType.INT8 : 1,
+             DataType.INT16 : 2,  DataType.INT32 : 4,  DataType.INT64 : 8,
+             DataType.UINT8 : 1, DataType.UINT16 : 2, DataType.UINT32 : 4,
+             DataType.UINT64 : 8, DataType.BINARY : 1, DataType.FLOAT : 4 ,
+             DataType.DOUBLE : 8
+            }
+
+    def parse_field_type(self, field_type : str) -> DataType:
+
+        if field_type.lower() in self.valid_types:
+            return self.valid_types[field_type.lower()]
+        else:
+            raise ValueError("The field type given {0} is not a valid type".format(field_type))
+
+    @staticmethod
+    def _check_complete(self, field_definition):
+        """
+
+        :param field_definition: field definition to check
+        :except ValueError : the field definition is not complete
+        """
+        if 'Type' not in field_definition:
+            raise ValueError("The type was not provided for field")
+
+        if 'Eno' not in field_definition:
+            raise ValueError("The enterprise number was not provided for field")
+
+        if 'Ftype' not in field_definition:
+            raise ValueError("The field number was not provided for field")
+
+        if 'Name' not in field_definition:
+            raise ValueError("The name was not provided for field")
+
+    def _check_field_length(self, field_type: DataType, field_length : int) -> int:
+        """
+        Checks the length and the type of field.
+        :param field_type: field type (enumeration)
+        :param field_length: lenght in bytes.
+        :return: length in bytes to assign.
+        """
+        if field_type in self.valid_types:
+            if self.valid_types[field_type] != field_length:
+                raise ValueError("The field lenght {0} is not valid \
+                                 for the type:{1}".format(str(field_length), str(DataType))
+                                 )
+            else:
+                return self.valid_types[field_type]
+        else:
+            # 0 means varying length.
+            return 0
+
+    def _insert_field_defs(self, field_definitions):
         """
         Checks that field definitions are defined with the required structure
         """
-        for key in self.field_definitions:
-            # TODO: check the field definition is complete 
+        for key in field_definitions:
+            try:
+                # check a complete definition
+                self._check_complete(field_definitions[key])
 
-            # TODO: check valid type 
+                # Check data type
+                data_type = self.parse_field_type(self.field_definitions['Type'])
 
-            # TODO: Check type and length consistency
-            pass
-        return True
+                # Check type and length consistency
+                length = self._check_field_length(data_type, field_definitions[key]['Length'])
+
+                # Insert the field definition
+                self.field_definitions[key] = field_definitions[key]
+                self.field.definitions[key]['type'] = data_type
+                self.field.definitions[key]['eno'] = field_definitions[key]['Eno']
+                self.field.definitions[key]['ftype'] = field_definitions[key]['Ftype']
+                self.field.definitions[key]['name'] = field_definitions[key]['Name']
+                self.field.definitions[key]['lenght'] = length
+
+            except ValueError as e:
+                print("field {0} not included - error: {1}".format(key, str(e)))
 
     def _check_field_values(self) -> bool:
         """
@@ -74,9 +176,9 @@ class FieldDefManager(metaclass=Singleton):
         
         with open(field_name_file) as f:
             field_defs = yaml.load(f)
-            self.field_definitions = field_defs['field_def']
+            field_definitions = field_defs['field_def']
 
-        self._check_field_defs()
+        self._insert_field_defs(field_definitions)
 
     def _load_field_values(self, field_value_file=None):
         """

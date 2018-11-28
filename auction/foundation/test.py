@@ -2,6 +2,7 @@ import unittest
 from foundation.field_def_manager import FieldDefManager
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.field import Field
+from foundation.field_value import FieldValue
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import TemplateType
 
@@ -73,6 +74,29 @@ class FieldTest(unittest.TestCase):
         value = "Invalid"
         field.parse_field_value(value)
         self.assertEqual(field.cnt_values, 1)
+
+
+class FieldValueTest(unittest.TestCase):
+
+    def test_set_field_type(self):
+        field_value = FieldValue()
+        field_value.set_field_type("string")
+        self.assertEqual(field_value.field_type, "string")
+
+        field_value.set_field_type(5)
+
+
+    def test_set_length(self):
+        field_value = FieldValue()
+        field_value.set_length(8)
+        self.assertEqual(field_value.length, 8)
+
+        field_value.set_lenght(5)
+
+    def test_set_value(self):
+        field_value = FieldValue()
+        field_value.set_value("asdasd")
+        self.assertEqual(field_value.value, "asdasd")
 
 
 class IpapMessageParserTest(unittest.TestCase):
@@ -197,6 +221,24 @@ class IpapMessageParserTest(unittest.TestCase):
             field = self.ipap_message_parser.find_field_by_name("AlgoritmName")
 
     def test_parse_field_value(self):
-        # TODO: MAKE THE METHOD.
-        pass
+
+        field = Field()
+
+        value = "*"
+        self.ipap_message_parser.parse_field_value(value, field)
+        self.assertEqual(field.cnt_values, 1)
+
+        value = "10-50"
+        self.ipap_message_parser.parse_field_value(value, field)
+        self.assertEqual(field.cnt_values, 2)
+
+        value = "srcip,srcip,srcip,srcip,srcip,srcip"
+        self.ipap_message_parser.parse_field_value(value, field)
+        self.assertEqual(field.cnt_values, 6)
+        print('value', field.value[0].value)
+        self.assertEqual(field.value[0].value, "190.0.0.1")
+
+        value = "Invalid"
+        self.ipap_message_parser.parse_field_value(value, field)
+        self.assertEqual(field.cnt_values, 1)
 

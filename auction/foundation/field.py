@@ -1,30 +1,5 @@
-from enum import Enum
 from foundation.field_value import FieldValue
 
-class DataType(Enum):
-    """
-    Datatypes being used for fields.
-    """
-    INVALID1 = -1
-    EXPORTEND = 0
-    LIST = 2
-    LISTEND = 3
-    CHAR = 4
-    INT8 = 5
-    INT16 = 6
-    INT32 = 7
-    INT64 = 8
-    UINT8 = 9
-    UINT16 = 10
-    UINT32 = 11
-    UINT64 = 12
-    STRING = 13
-    BINARY = 14
-    IPV4ADDR = 15
-    IPV6ADDR = 16
-    FLOAT = 17
-    DOUBLE = 18
-    INVALID2 = 19
 
 class MatchFieldType(Enum):
     """
