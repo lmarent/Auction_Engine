@@ -16,10 +16,10 @@ class FieldDefManager(metaclass=Singleton):
         :param field_name_file file to open and read with teh field definitions
         :param field_value_file file to open and read with values defined.
         """
-        self.field_definitions = {}
-        self.field_values = {}
-        self._load_field_definitions(field_name_file)
-        self._load_field_values(field_value_file)
+        self.field_name_file = field_name_file
+        self.field_value_file = field_value_file
+        self.field_definitions = None
+        self.field_values = None
 
     def _check_field_defs(self):
         """
@@ -37,7 +37,7 @@ class FieldDefManager(metaclass=Singleton):
         """
         Checks that field values are defined with the required structure
         """
-        for field in field_values:
+        for field in self.field_values:
             #TODO: Checks whether the field exist as a field definition or not
 
             #TODO: Checks whether the type is as the one defined in the field definitio.
@@ -76,7 +76,6 @@ class FieldDefManager(metaclass=Singleton):
 
         self._check_field_defs()
 
-
     def _load_field_values(self, field_value_file=None):
         """
         Loads field values files. if not given as parameter, it reads the
@@ -106,15 +105,73 @@ class FieldDefManager(metaclass=Singleton):
 
         self._check_field_vals()
 
-    def get_field_defs(self):
+    def get_field_defs(self) -> dict:
         """
         Gets all field definitions
         :return:
         """
-        return self.field_definitions
+        if self.field_definitions == None:
+            self._load_field_definitions(self.field_name_file)
+        else:
+            return self.field_definitions
+
+    def get_field_vals (self)-> dict:
+        """
+        Gets all field values
+        :return:
+        """
+        if self.field_values == None:
+            self._load_field_values(self.field_value_file)
+        else:
+            return self.field_values
 
     def get_field(self, name : str):
+        """
+        Gets a particular field from the dictionary of fields.
+        :param name: name to get
+        :return:
+        """
+        if self.field_definitions == None:
+            self._load_field_definitions(self.field_name_file)
+
         if name in self.field_definitions:
             return self.field_definitions[name]
         else:
             raise ValueError("The field name {0} is not found in the field definition".format(name))
+
+    def get_field_by_code(self, eno: int, ftype : int):
+        """
+        Finds a field within fiel definitions by eno and ftype.
+        :param eno: enterprise no
+        :param ftype: field number
+        :return: field dictionary representing the field.
+        """
+        if self.field_definitions == None:
+            self._load_field_definitions(self.field_name_file)
+
+        for name in self.field_definitions:
+            if self.field_definitions[name]['Eno'] == eno \
+                    and self.field_definitions[name]['Ftype'] == ftype:
+                return self.field_definitions[name]
+
+        # Field not found
+        raise ValueError("The field with eno:{0} ftype:{1} was not \
+                         found in the field definition".format(str(eno), str(ftype)))
+
+    def get_field_value(self, field_type : str, value : str) -> str:
+        """
+        Gets a articular field value by name
+        :param field_type: field type of the value to get
+        :param value: field value name.
+        :return: field value
+        """
+        # Loads the field values if not did it before
+        if self.field_values == None:
+            self._load_field_values(self.field_value_file)
+
+        if value in self.field_values:
+            if self.field_values[value]['Type'] == field_type
+                return self.field_values[value]['Value']
+
+        # Value not found
+        return None

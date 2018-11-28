@@ -2,6 +2,11 @@ from python_wrapper.ipap_template import IpapTemplate, object_type, template_typ
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_message import IpapMessage
 
+from foundation.field import Field
+from foundation.field import MatchFieldType
+from foundation.field_value import FieldValue
+from foundation.field_def_manager import FieldDefManager
+
 class IpapMessageParser:
 
     def __init__(self, domain):
@@ -118,37 +123,73 @@ class IpapMessageParser:
             list_return.append(data_record)
         return list_return
 
-    def find_value(self, eno : int, ftype : int ):
+
+    def find_field(self, eno : int, ftype : int ):
         """
         Finds a field by eno and ftype within the list of fields.
 
         :return: field definition
         """
+        field_def_manager = FieldDefManager()
+        return field_def_manager.get_field_by_code(eno,ftype)
 
 
-
-    def find_value_by_name(self, name : str):
+    def find_field_by_name(self, name : str):
         """
         Find a field by name within the list of fields.
 
         :return:
         """
+        field_def_manager = FieldDefManager()
+        return field_def_manager.get_field(name)
 
-    def parse_field_value(self, field_val_list : list, value : str, field ):
+
+    def parse_field_value(self, value : str, field_type : str, field : Field ):
         """
-        parses a field value
+        parses a field value and let the alue parsed in field.
 
-        :return:
+        :return: Nothing
         """
+        field_def_manager = FieldDefManager()
 
+        field.cnt_values = 0
+        field.value.clear()
 
-    def lookup(self, field_val_list : list, field):
-        """
-        lookup field value
+        if value.__eq__("*"):
+            field.match_type = MatchFieldType.FT_WILD
+            field.cnt_values = 1
 
-        :return:
-        """
-        
+        elif "-" in value:
+            field.match_type = MatchFieldType.FT_RANGE
+            values = value.split("-")
+            if len(values) != 2:
+                raise ValueError("The value given must have a valid range format: value1-value2")
+            for val in values:
+                value_translated = field_def_manager.get_field_value(field.type,val)
+                if value_translated is not None:
+                    field.value.append(FieldValue(MatchFieldType.FT_WILD,value_translated))
+                else:
+                    field.value.append(FieldValue(MatchFieldType.FT_WILD, val))
+                field.cnt_values = field.cnt_values + 1
+
+        elif "," in value:
+            values = value.split(",")
+            for val in values:
+                value_translated = field_def_manager.get_field_value(field.type,val)
+                if value_translated is not None:
+                    field.value.append(FieldValue(MatchFieldType.FT_SET,value_translated))
+                else:
+                    field.value.append(FieldValue(MatchFieldType.FT_SET, val))
+                field.cnt_values = field.cnt_values + 1
+
+        else:
+            value_translated = field_def_manager.get_field_value(field.type, val)
+            if value_translated is not None:
+                field.value.append(FieldValue(MatchFieldType.FT_EXACT, self.lookup(field_val_list,value, field.type)))
+            else:
+                field.value.append(FieldValue(MatchFieldType.FT_EXACT,value))
+            field.cnt_values = 1
+
 
     def get_misc_val(self):
         """
@@ -156,15 +197,12 @@ class IpapMessageParser:
 
         :return:
         """
+        # TODO: To Implement.
+        pass
 
     def get_domain(self) -> int:
         """
         Get the domaid id used by the ipapmessage.The domain id corresponds to the agent identifier.
         :return: domain
         """
-
-    def is_field_included(self):
-        """
-
-        :return:
-        """
+        return self.domain

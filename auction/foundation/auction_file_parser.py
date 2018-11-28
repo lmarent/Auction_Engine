@@ -1,9 +1,13 @@
 from lxml import etree
 from foundation.auction import AuctionTemplateField
+from foundation.auction import Action
+from foundation.auction import Auction
 from foundation.parse_format import ParseFormats
 from foundation.field_def_manager import FieldDefManager
-from foundation.ipap_message_parser import
+from foundation.ipap_message_parser import IpapMessageParser
+from foundation.config import Config
 from python_wrapper.ipap_field_container import IpApFieldContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 class AuctionXmlFileParser(IpapMessageParser):
     """
@@ -17,8 +21,8 @@ class AuctionXmlFileParser(IpapMessageParser):
 
     """
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, domain : int):
+        super(AuctionXmlFileParser).__init__(domain)
 
     @staticmethod
     def _parse_config_item(self, item):
@@ -40,23 +44,50 @@ class AuctionXmlFileParser(IpapMessageParser):
             ParseFormats.parse_item(type, value)
         return (name, type, value)
 
-    def _parse_global_options(self, item):
+
+    def _parse_action(self, node ):
+
+        action_name = node.get("NAME").lower()
+
+        # Verifies that a name was given to the action.
+        if not action_name:
+            raise ValueError("Auction Parser Error: missing name at line {}", node.sourceline)
+
+        action = Action(action_name, False, dict())
+
+        for item in node.iterchildren():
+            if item.tag.lower() == "pref":
+                (name, type, value) = self._parse_config_item(item)
+                action.add_config_item(name, type, value)
+
+        return action
+
+
+    def _parse_global_options(self, item) -> (dict, dict):
         """
         Parse global options within the xml
         :param item: Global Tag
-        :return: list fo configuraion items.
+        :return: dictionary of configuration items.
+                list of actions.
         """
-        prefs = []
-        for subitem in item.iterchildren():
-            if subitem.tag.lower() == "pref":
-                pref = self._parse_pref(subitem)
-                prefs.append(pref)
-        return prefs
+        global_misc = {}
+        global_actions = {}
 
-    def parse_object_type(self, object_type_str : str):
+        for sub_item in item.iterchildren():
+            if sub_item.tag.lower() == "pref":
+                (name, type, value) = self._parse_config_item(item)
+                global_misc[name] = (name, type, value)
 
-    def parse_template_type(self, object_type, template_type_str : str):
+            if sub_item.tag.lower() == "action":
+                action = self._parse_action(sub_item)
+                default = sub_item.get("DEFAULT")
+                if not default:
+                    raise ValueError("Auction Parser Error: missing name at line {0}",)
+                else:
+                    action.default_action = ParseFormats.parse_bool(default)
+                global_actions[action.name] = action
 
+        return (global_misc, global_actions)
 
 
     def _parse_field(self, node, field_container : IpApFieldContainer):
@@ -73,15 +104,65 @@ class AuctionXmlFileParser(IpapMessageParser):
         belogs_to = []
         for item in node.iterchildren():
             if item.tag == "TEMPLATE_FIELD":
-                object_type = parse_object_type(item.get("OBJECT_TYPE"))
-                template_type = parse_template_type(object_type, item.get("TEMPLATE_TYPE"))
+                object_type = super.parse_object_type(item.get("OBJECT_TYPE"))
+                template_type = super.parse_template_type(object_type, item.get("TEMPLATE_TYPE"))
                 belogs_to.append((object_type, template_type))
 
         auction_template_field.field_belong_to = belogs_to
         return auction_template_field
 
 
-    def _parse_auctions(self, item)
+    def _parse_auction(self, node, global_set :str, global_misc_config : dict,
+                       global_actions :dict,  field_container : IpApFieldContainer):
+        """
+
+        :param global_set:global set
+        :param node:
+        :return:
+        """
+        # get the Id property
+        # deep copy global dictionaries, so we can overide them
+        misc_config = global_misc_config.deepcopy()
+        actions = global_actions.deepcopy()
+
+        auction_id = node.get("ID").lower()
+        (set_name, name ) = super.parse_name(auction_id)
+        if not set_name:
+            if global_set.isnumeric():
+                set_name = global_set
+            else:
+                set_name = str(self.domain)
+
+        # Get Resource set and resource Id
+        resurce_set = node.get("RESOURCE_SET").lower()
+        resource_id = node.get("RESOURCE_ID").lower()
+
+        templ_fields = []
+
+        # Iterates over children nodes
+        for subitem in node.iterchildren():
+            if subitem.tag.lower() == "PREF":
+                (name, type, value) = self._parse_config_item(subitem)
+                misc_config[name] = (name, type, value)
+
+            elif subitem.tag.lower() == "FIELD":
+                templ_fields.append(self._parse_field(subitem,field_container))
+
+            elif subitem.tag.lower() == "ACTION":
+                action = self._parse_action(subitem)
+                action.default_action = True # This is the default action,
+                actions[action.name] = action
+
+        # get the default action
+        action_default = None
+        for action in actions:
+            if action.default_action:
+                action_default = action
+
+        auction_key = set_name + '.' + name
+        resource_key = resurce_set + '.' + resource_id
+        auction = Auction(auction_key, resource_key, action_default, misc_config, templ_fields)
+        return auction
 
 
     def parse(self, field_definitions : dict, file_name : str ) -> list:
@@ -91,8 +172,9 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         :return: list of auctions in the file
         """
-        the_dtd = self.config.AUCTIONFILE_DTD
-        root_node = self.config.DTD_ROOT_NODE
+        config = Config()
+        the_dtd = config.AUCTIONFILE_DTD
+        root_node = config.DTD_ROOT_NODE
 
         parser = etree.XMLParser(dtd_validation=True)
         dtd = etree.DTD(open(the_dtd))
@@ -105,11 +187,18 @@ class AuctionXmlFileParser(IpapMessageParser):
         root = tree.getroot()
         id = root.ID.lower()
 
+        ipap_field_container = IpApFieldContainer()
+        ipap_field_container.initialize_reverse()
+        ipap_field_container.initialize_forward()
+
+        auctions = []
         global_element = root.Element("GLOBAL")
         for item in root.iterchildren():
             if item.tag.lower() == "global":
-                self._parse_global_options(item)
+                (global_misc_config, global_actions)  = self._parse_global_options(item)
             elif item.tag.lower() == "auction":
-                self._parse_auctions(item)
+                auction = self._parse_auction(item, global_misc_config, global_actions, ipap_field_container)
+                auctions.append(auction)
 
+        return auctions
 

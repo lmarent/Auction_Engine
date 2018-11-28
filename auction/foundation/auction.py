@@ -5,6 +5,7 @@ from foundation.auctioning_object import AuctioningObjectType
 from foundation.template_id_source import TemplateIdSource
 from foundation.field import Fieldefinition
 from foundation.interval import Interval
+from foundation.templates import TemplateContainer
 
 from python_wrapper.ipap_field_container import IpApFieldContainer
 from python_wrapper.ipap_template import IpapTemplate
@@ -19,7 +20,7 @@ from python_wrapper.ipap_template import IPAP_MAX_OBJECT_TYPE
 
 class Action:
     """
-    Class for describingthe action to be perform everytime that the auction should be trrigered
+    Class for describing the action to be performed everytime that the auction should be triggered
 
     Attributes
     ----------
@@ -27,15 +28,36 @@ class Action:
     name: String
         Name of the procedure to be performed
     default_action: Boolean
-        defines whether or not this action is the defaut one for the auction
+        defines whether or not this action is the default one for the auction
     config_dict: dict 
-        configuration value pairs to be used to start the action. 
+        configuration tuple to be used to start the action.
     """
 
-    def __init__(self, name, default_action, config_dict):
+    def __init__(self, name : str, default_action : bool, config_dict : dict):
         self.name = name
         self.default_action = default_action
         self.config_dict = config_dict
+
+    def add_config_item(self, name : str, type : str, value : str):
+        """
+        Adds a configuration item to the action
+        :param name: name of the configuration item
+        :param type: type
+        :param value: value
+        """
+        self.config_dict[name]= (name, type, value)
+
+    def get_config_item(self, name : str) -> (str, str, str):
+        """
+        Gets a configuration item
+        :param name: name of the confoguration item to find.
+        :return: tuple (name, type, and value )
+        """
+        if name in self.config_dict:
+            return self.config_dict[name]
+        else:
+            ValueError("Name {0} was not found in the configuration dictionary".format(name))
+
 
 class AuctionTemplateField:
     def __init__(self, field=None,size=0):
@@ -81,7 +103,7 @@ class Auction(AuctioningObject):
 
 
     def __init__(self, key, resource_key, action, misc_dict,
-                    templ_fields: dict, template_container : IpapTemplateContainer):
+                    templ_fields: dict):
         
         super(Auction).__init__(key, AuctioningObjectType.AUCTION)
         self.resource_key = resource_key
@@ -93,7 +115,7 @@ class Auction(AuctioningObject):
         self.sessions = set()
 
         self._build_interval()
-        self._build_templates(templ_fields, template_container)
+        self._build_templates(templ_fields)
 
     def _build_interval(self):
         """
@@ -140,15 +162,16 @@ class Auction(AuctioningObject):
         template_object = self.bidding_object_templates[object_type]
         template_object[templ_type] = template_id
 
-    def _build_templates(self, templ_fields : dict, template_container : IpapTemplateContainer):
+    def _build_templates(self, templ_fields : dict):
         """
         Build templates being used for the auction.
         :param templ_fields:        fields to be used by the auction within each template
-        :param template_container:  Templte container where we maintain the templates created for the system.
         """
         field_container = IpApFieldContainer()
         field_container.initialize_forward()
         field_container.initialize_reverse()
+
+        template_container = TemplateContainer().get_template_container()
 
         # Creates the auction data template
         auctTemplate = self.create_auction_template(field_container, IPAP_SETID_AUCTION_TEMPLATE)

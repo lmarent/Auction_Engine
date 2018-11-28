@@ -56,7 +56,8 @@ class Fieldefinition:
         :param ftype:   field identifier used in the ipap_message.
         """
         self.name = name
-        self.type = length
+        self.type = type
+        self.length = length
         self.eno = eno
         self.ftype = ftype
 
