@@ -1,5 +1,6 @@
 import unittest
 from foundation.field_def_manager import FieldDefManager
+from foundation.field_def_manager import DataType
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.field import Field
 from foundation.field_value import FieldValue
@@ -23,7 +24,7 @@ class DefFileManagerTest(unittest.TestCase):
     def test_get_field(self):
         # Field found
         field_found = self.def_file_manager.get_field("templatelist")
-        self.assertEqual(field_found['Type'], "String")
+        self.assertEqual(field_found['type'], DataType.STRING)
 
         # Field not found
         with self.assertRaises(ValueError):
@@ -31,7 +32,7 @@ class DefFileManagerTest(unittest.TestCase):
 
     def test_get_field_by_code(self):
         field_found = self.def_file_manager.get_field_by_code(0,31)
-        self.assertEqual(field_found['Name'], "AlgorithmName")
+        self.assertEqual(field_found['name'], "AlgorithmName")
 
         # Field not found
         with self.assertRaises(ValueError):
@@ -61,7 +62,7 @@ class FieldTest(unittest.TestCase):
 
         value = "*"
         field.parse_field_value(value)
-        self.assertEqual(field.cnt_values, 1)
+        self.assertEqual(field.cnt_values, 0)
 
         value = "10-50"
         field.parse_field_value(value)
@@ -84,14 +85,6 @@ class FieldValueTest(unittest.TestCase):
         self.assertEqual(field_value.field_type, "string")
 
         field_value.set_field_type(5)
-
-
-    def test_set_length(self):
-        field_value = FieldValue()
-        field_value.set_length(8)
-        self.assertEqual(field_value.length, 8)
-
-        field_value.set_lenght(5)
 
     def test_set_value(self):
         field_value = FieldValue()
@@ -205,7 +198,7 @@ class IpapMessageParserTest(unittest.TestCase):
 
     def test_find_field(self):
         field = self.ipap_message_parser.find_field(0,31)
-        self.assertEqual(field['Name'], "AlgorithmName")
+        self.assertEqual(field['name'], "AlgorithmName")
 
         with self.assertRaises(ValueError):
             field = self.ipap_message_parser.find_field(1, 31)
@@ -215,7 +208,7 @@ class IpapMessageParserTest(unittest.TestCase):
 
     def test_find_field_by_name(self):
         field = self.ipap_message_parser.find_field_by_name("algoritmname")
-        self.assertEqual(field['Ftype'], 31)
+        self.assertEqual(field['ftype'], 31)
 
         with self.assertRaises(ValueError):
             field = self.ipap_message_parser.find_field_by_name("AlgoritmName")
@@ -226,17 +219,26 @@ class IpapMessageParserTest(unittest.TestCase):
 
         value = "*"
         self.ipap_message_parser.parse_field_value(value, field)
-        self.assertEqual(field.cnt_values, 1)
+        self.assertEqual(field.cnt_values, 0)
 
         value = "10-50"
         self.ipap_message_parser.parse_field_value(value, field)
         self.assertEqual(field.cnt_values, 2)
 
+        field = Field()
+        field.type = "IpAddr"
+
         value = "srcip,srcip,srcip,srcip,srcip,srcip"
         self.ipap_message_parser.parse_field_value(value, field)
         self.assertEqual(field.cnt_values, 6)
-        print('value', field.value[0].value)
         self.assertEqual(field.value[0].value, "190.0.0.1")
+
+        field = Field()
+        value = "srcip,srcip,srcip,srcip,srcip,srcip"
+        self.ipap_message_parser.parse_field_value(value, field)
+        self.assertEqual(field.cnt_values, 6)
+        self.assertEqual(field.value[0].value, "srcip")
+
 
         value = "Invalid"
         self.ipap_message_parser.parse_field_value(value, field)

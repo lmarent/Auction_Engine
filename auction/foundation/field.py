@@ -1,4 +1,5 @@
 from foundation.field_value import FieldValue
+from enum import Enum
 
 
 class MatchFieldType(Enum):
@@ -18,7 +19,7 @@ class MatchFieldType(Enum):
 
 class Fieldefinition:
     """
-    Field definition for relating a field of the auctio system with a field
+    Field definition for relating a field of the auction system with a field
     in an Ipap Message
     """
     def __init__(self, name : str, type :str, length : int, eno :int , ftype: int ):
@@ -67,7 +68,7 @@ class Field:
 
         if value.__eq__("*"):
             self.match_type = MatchFieldType.FT_WILD
-            self.cnt_values = 1
+            self.cnt_values = 0
 
         elif "-" in value:
             self.match_type = MatchFieldType.FT_RANGE
@@ -75,15 +76,15 @@ class Field:
             if len(values) != 2:
                 raise ValueError("The value given must have a valid range format: value1-value2")
             for val in values:
-                self.value.append(FieldValue(MatchFieldType.FT_WILD,val))
+                self.value.append(FieldValue(self.type, val))
                 self.cnt_values = self.cnt_values + 1
 
         elif "," in value:
             values = value.split(",")
             for val in values:
-                self.value.append(FieldValue(MatchFieldType.FT_SET,val))
+                self.value.append(FieldValue(self.type, val))
                 self.cnt_values = self.cnt_values + 1
 
         else:
-            self.value.append(FieldValue(MatchFieldType.FT_EXACT, value))
+            self.value.append(FieldValue(self.type, value))
             self.cnt_values = 1

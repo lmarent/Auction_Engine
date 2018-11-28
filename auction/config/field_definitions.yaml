@@ -91,7 +91,7 @@ field_def:
     Ftype: 52
     Name: RefBiddingObjectID
   biddingobjecttype:
-    Length: 1
+    Length: 4
     Type: UInt32
     Eno: 0
     Ftype: 26
@@ -125,7 +125,7 @@ field_def:
     Ftype: 34
     Name: Interval
   biddingduration:
-    Length: 8
+    Length: 4
     Type: UInt32
     Eno: 0
     Ftype: 43
