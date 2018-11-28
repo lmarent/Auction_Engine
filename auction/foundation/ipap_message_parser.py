@@ -1,4 +1,4 @@
-from python_wrapper.ipap_template import IpapTemplate, object_type, TemplateType
+from python_wrapper.ipap_template import IpapTemplate, ObjectType, TemplateType
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_message import IpapMessage
 
@@ -43,7 +43,7 @@ class IpapMessageParser:
             raise ValueError("malformed identifier {0}, use <identifier> or <set>.<identifier> ".format(id_auction))
 
     @staticmethod
-    def parse_object_type(s_type: str) -> object_type:
+    def parse_object_type(s_type: str) -> ObjectType:
         """
         Parses the type of bidding object
 
@@ -51,26 +51,26 @@ class IpapMessageParser:
         :return:
         """
         if (s_type == "auction") or (s_type == "0"):
-            obj_type = object_type.IPAP_AUCTION
+            obj_type = ObjectType.IPAP_AUCTION
             return obj_type
 
         elif (s_type == "bid") or (s_type == "1"):
-            obj_type = object_type.IPAP_BID
+            obj_type = ObjectType.IPAP_BID
             return obj_type
 
         elif (s_type == "ask") or (s_type == "2"):
-            obj_type = object_type.IPAP_ASK
+            obj_type = ObjectType.IPAP_ASK
             return obj_type
 
         elif (s_type == "allocation") or (s_type == "3"):
-            obj_type = object_type.IPAP_ALLOCATION
+            obj_type = ObjectType.IPAP_ALLOCATION
             return obj_type
 
         else:
             raise ValueError("Bidding Object Parser Error: invalid bidding object type {0}".format(s_type))
 
     @staticmethod
-    def parse_template_type(obj_type: object_type, templ_type: str) -> TemplateType:
+    def parse_template_type(obj_type: ObjectType, templ_type: str) -> TemplateType:
         """
         Parses a template type
 
@@ -78,19 +78,25 @@ class IpapMessageParser:
         :param templ_type: template type represented as string
         :return: template type
         """
-        if obj_type == object_type.IPAP_BID:
+        if obj_type == ObjectType.IPAP_AUCTION:
+            if templ_type == "data":
+                return TemplateType.IPAP_SETID_AUCTION_TEMPLATE
+            elif templ_type == "option":
+                return TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE
+
+        elif obj_type == ObjectType.IPAP_BID:
             if templ_type == "data":
                 return TemplateType.IPAP_SETID_BID_OBJECT_TEMPLATE
             elif templ_type == "option":
                 return TemplateType.IPAP_OPTNS_BID_OBJECT_TEMPLATE
 
-        elif obj_type == object_type.IPAP_ASK:
+        elif obj_type == ObjectType.IPAP_ASK:
             if templ_type == "data":
                 return TemplateType.IPAP_SETID_ASK_OBJECT_TEMPLATE
             elif templ_type == "option":
                 return TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE
 
-        elif obj_type == object_type.IPAP_ALLOCATION:
+        elif obj_type == ObjectType.IPAP_ALLOCATION:
             if templ_type == "data":
                 return TemplateType.IPAP_SETID_ALLOC_OBJECT_TEMPLATE
             elif templ_type == "option":
@@ -139,7 +145,7 @@ class IpapMessageParser:
 
     def find_field_by_name(self, name: str):
         """
-        Finds a field by name within the list of fields.
+        Finds a field by name within the list of fields. Field names are case sensitive.
 
         :return:
         """

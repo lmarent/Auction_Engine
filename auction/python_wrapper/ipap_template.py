@@ -24,7 +24,7 @@ class TemplateType(Enum):
   UNKNOWN
   ) = (0,1)
 
-class object_type(Enum):
+class ObjectType(Enum):
     IPAP_INVALID = -1
     IPAP_AUCTION = 0
     IPAP_BID = 1

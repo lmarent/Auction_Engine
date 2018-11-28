@@ -76,7 +76,7 @@ class Field:
 
     def __init__(self, name=None, type=None, match_type=MatchFieldType.FT_WILD, length=0, cnt_values=0):
         self.name = name
-        self.type
+        self.type = type
         self.match_type = match_type
         self.length = length
         self.cnt_values = cnt_values
