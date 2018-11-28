@@ -9,7 +9,8 @@ from enum import Enum
 
 lib = cdll.LoadLibrary('libipap.so')
 
-class template_type(Enum):
+
+class TemplateType(Enum):
     IPAP_SETID_AUCTION_TEMPLATE = 0
     IPAP_OPTNS_AUCTION_TEMPLATE = 1
     IPAP_SETID_BID_OBJECT_TEMPLATE = 2
@@ -71,11 +72,11 @@ class IpapTemplate:
     def set_max_fields(self, max_fields : int):
         lib.ipap_template_set_maxfields(self.obj, max_fields)
 
-    def set_type(self, type :int):
-        lib.ipap_template_set_type(self.obj, c_int(type))
-
     def add_field(self,field_size : int, encodeNetwork : int, field : IpapField):
         lib.ipap_template_add_field(self.obj, c_uint16(field_size), c_uint8(KNOWN), c_int(encodeNetwork), field.obj)
+
+    def get_type(self) -> TemplateType:
+        return lib.ipap_template_get_type(self.obj)
 
     def _get_object_template_types_size(self, object_type : int):
         lib.ipap_template_get_object_template_types_size(self.obj, c_uint8(object_type))

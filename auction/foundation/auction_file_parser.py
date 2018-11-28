@@ -51,7 +51,7 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         # Verifies that a name was given to the action.
         if not action_name:
-            raise ValueError("Auction Parser Error: missing name at line {}", node.sourceline)
+            raise ValueError("Auction Parser Error: missing name at line {0}".format(str(node.sourceline)))
 
         action = Action(action_name, False, dict())
 
@@ -82,7 +82,7 @@ class AuctionXmlFileParser(IpapMessageParser):
                 action = self._parse_action(sub_item)
                 default = sub_item.get("DEFAULT")
                 if not default:
-                    raise ValueError("Auction Parser Error: missing name at line {0}",)
+                    raise ValueError("Auction Parser Error: missing name at line {0}".format(str(sub_item.sourceline)))
                 else:
                     action.default_action = ParseFormats.parse_bool(default)
                 global_actions[action.name] = action

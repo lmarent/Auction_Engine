@@ -21,7 +21,7 @@ class FieldDefManager(metaclass=Singleton):
         self.field_definitions = None
         self.field_values = None
 
-    def _check_field_defs(self):
+    def _check_field_defs(self) -> bool:
         """
         Checks that field definitions are defined with the required structure
         """
@@ -30,19 +30,21 @@ class FieldDefManager(metaclass=Singleton):
 
             # TODO: check valid type 
 
-            # TODO: Check type and lenght consistency
+            # TODO: Check type and length consistency
             pass
+        return True
 
-    def _check_field_values(self):
+    def _check_field_values(self) -> bool:
         """
         Checks that field values are defined with the required structure
         """
         for field in self.field_values:
             #TODO: Checks whether the field exist as a field definition or not
 
-            #TODO: Checks whether the type is as the one defined in the field definitio.
+            #TODO: Checks whether the type is as the one defined in the field definition.
 
             pass
+        return True
 
     def _load_field_definitions(self, field_name_file=None):
         """
@@ -66,9 +68,9 @@ class FieldDefManager(metaclass=Singleton):
 
         """ 
         if not field_name_file:
-            # use the default file for field definicions
-            BASE_DIR = pathlib.Path(__file__).parent.parent
-            field_name_file = BASE_DIR / 'config' / 'field_definitions.yaml'
+            # use the default file for field definitions
+            base_dir = pathlib.Path(__file__).parent.parent
+            field_name_file = base_dir / 'config' / 'field_definitions.yaml'
         
         with open(field_name_file) as f:
             field_defs = yaml.load(f)
@@ -96,42 +98,42 @@ class FieldDefManager(metaclass=Singleton):
         """
         if not field_value_file:
             # use the default file for field definitions
-            BASE_DIR = pathlib.Path(__file__).parent.parent
-            field_value_file = BASE_DIR / 'config' / 'field_values.yaml'
+            base_dir = pathlib.Path(__file__).parent.parent
+            field_value_file = base_dir / 'config' / 'field_values.yaml'
         
         with open(field_value_file) as f:
             field_values = yaml.load(f)
             self.field_values = field_values['field_vals']
 
-        self._check_field_vals()
+        self._check_field_values()
 
     def get_field_defs(self) -> dict:
         """
         Gets all field definitions
         :return:
         """
-        if self.field_definitions == None:
+        if self.field_definitions is None:
             self._load_field_definitions(self.field_name_file)
-        else:
-            return self.field_definitions
 
-    def get_field_vals (self)-> dict:
+        return self.field_definitions
+
+    def get_field_vals(self)-> dict:
         """
         Gets all field values
         :return:
         """
-        if self.field_values == None:
+        if self.field_values is None:
             self._load_field_values(self.field_value_file)
-        else:
-            return self.field_values
 
-    def get_field(self, name : str):
+        return self.field_values
+
+    def get_field(self, name: str) -> dict:
         """
         Gets a particular field from the dictionary of fields.
         :param name: name to get
         :return:
         """
-        if self.field_definitions == None:
+        if self.field_definitions is None:
             self._load_field_definitions(self.field_name_file)
 
         if name in self.field_definitions:
@@ -139,14 +141,14 @@ class FieldDefManager(metaclass=Singleton):
         else:
             raise ValueError("The field name {0} is not found in the field definition".format(name))
 
-    def get_field_by_code(self, eno: int, ftype : int):
+    def get_field_by_code(self, eno: int, ftype: int):
         """
         Finds a field within fiel definitions by eno and ftype.
         :param eno: enterprise no
         :param ftype: field number
         :return: field dictionary representing the field.
         """
-        if self.field_definitions == None:
+        if self.field_definitions is None:
             self._load_field_definitions(self.field_name_file)
 
         for name in self.field_definitions:
@@ -158,7 +160,7 @@ class FieldDefManager(metaclass=Singleton):
         raise ValueError("The field with eno:{0} ftype:{1} was not \
                          found in the field definition".format(str(eno), str(ftype)))
 
-    def get_field_value(self, field_type : str, value : str) -> str:
+    def get_field_value(self, field_type: str, value: str) -> str:
         """
         Gets a articular field value by name
         :param field_type: field type of the value to get
@@ -166,12 +168,13 @@ class FieldDefManager(metaclass=Singleton):
         :return: field value
         """
         # Loads the field values if not did it before
-        if self.field_values == None:
+        if self.field_values is None:
             self._load_field_values(self.field_value_file)
 
         if value in self.field_values:
-            if self.field_values[value]['Type'] == field_type
+            if self.field_values[value]['Type'] == field_type:
                 return self.field_values[value]['Value']
 
         # Value not found
-        return None
+        raise ValueError("The field value with field type:{0} and value:{1} was not \
+                         found in the field value definition".format(str(field_type), str(value)))
