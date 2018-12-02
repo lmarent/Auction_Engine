@@ -3,9 +3,9 @@ from datetime import datetime
 from foundation.auctioning_object import AuctioningObject
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.template_id_source import TemplateIdSource
-from foundation.field_value import FieldDefinition
 from foundation.interval import Interval
 from foundation.templates import TemplateContainer
+from foundation.config_param import ConfigParam
 
 from python_wrapper.ipap_field_container import IpapFieldContainer
 from python_wrapper.ipap_template import IpapTemplate
@@ -36,16 +36,15 @@ class Action:
         self.default_action = default_action
         self.config_dict = config_dict
 
-    def add_config_item(self, name: str, type: str, value: str):
+    def add_config_item(self, config_param: ConfigParam):
         """
         Adds a configuration item to the action
-        :param name: name of the configuration item
-        :param type: type
-        :param value: value
-        """
-        self.config_dict[name] = (name, type, value)
 
-    def get_config_item(self, name: str) -> (str, str, str):
+        :param config_param: configuration parameter to add
+        """
+        self.config_dict[config_param.name] = config_param
+
+    def get_config_item(self, name: str) -> ConfigParam:
         """
         Gets a configuration item
         :param name: name of the confoguration item to find.
@@ -99,10 +98,7 @@ class Auction(AuctioningObject):
     misc_dict: dict
         miscelaneous pairs including start, stop, duration, interval, align
 	"""
-
-    def __init__(self, key: str, resource_key: str, action: Action, misc_dict: dict,
-                 templ_fields: dict):
-
+    def __init__(self, key: str, resource_key: str, action: Action, misc_dict: dict, templ_fields: dict):
         super(Auction, self).__init__(key, AuctioningObjectType.AUCTION)
         self.resource_key = resource_key
         self.action = action
@@ -111,19 +107,36 @@ class Auction(AuctioningObject):
         self.template_data_id = -1
         self.template_option_id = -1
         self.sessions = set()
-
         self._build_interval()
         self._build_templates(templ_fields)
+
+    @staticmethod
+    def get_misc_value(misc_item: ConfigParam):
+
+        if misc_item is None:
+            return None
+        else:
+            return misc_item.value
 
     def _build_interval(self):
         """
         Builds intervals when the auction is going to be performed
         """
-        sstart = self.misc_dict.get('start', None)
-        sstop = self.misc_dict.get('stop', None)
-        sduration = self.misc_dict.get('duration',None)
-        sinterval = self.misc_dict.get('interval', None)
-        salign = self.misc_dict.get('align', None)
+        # A miscelaneous item is a tuple of three components, name, type and value
+        misc_start = self.misc_dict.get('start', None)
+        sstart = self.get_misc_value(misc_start)
+
+        misc_stop = self.misc_dict.get('stop', None)
+        sstop = self.get_misc_value(misc_stop)
+
+        misc_duration = self.misc_dict.get('duration', None)
+        sduration = self.get_misc_value(misc_duration)
+
+        misc_interval = self.misc_dict.get('interval', None)
+        sinterval = self.get_misc_value(misc_interval)
+
+        misc_align = self.misc_dict.get('align', None)
+        salign = self.get_misc_value(misc_align)
 
         interval_dict = {
             'start': sstart, 'stop': sstop, 'duration': sduration,
@@ -169,25 +182,25 @@ class Auction(AuctioningObject):
         field_container.initialize_forward()
         field_container.initialize_reverse()
 
-        template_container = TemplateContainer().get_template_container()
+        template_container: IpapTemplateContainer = TemplateContainer().get_template_container()
 
         # Creates the auction data template
-        auctTemplate = self.create_auction_template(field_container, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        self.set_data_auction_template(auctTemplate.get_template_id())
-        template_container.add_template(auctTemplate)
+        auct_template = self.create_auction_template(field_container, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        self.set_data_auction_template(auct_template.get_template_id())
+        template_container.add_template(auct_template)
 
         # Creates the option auction template
-        optAuctTemplate = self.create_auction_template(field_container, TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
-        self.set_option_auction_template(optAuctTemplate.get_template_id())
-        template_container.add_template(optAuctTemplate)
+        opt_auct_template = self.create_auction_template(field_container, TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
+        self.set_option_auction_template(opt_auct_template.get_template_id())
+        template_container.add_template(opt_auct_template)
 
         # Insert other templates related to bidding objects.
-        for object_type in range(1, ObjectType.IPAP_MAX_OBJECT_TYPE):
-            templ_type_list = auctTemplate.get_object_template_types(object_type)
+        for object_type in range(1, ObjectType.IPAP_MAX_OBJECT_TYPE.value):
+            templ_type_list = auct_template.get_object_template_types(ObjectType(object_type))
             for templ_type in templ_type_list:
-                mandatory_fields = auctTemplate.get_template_type_mandatory_field(templ_type)
+                mandatory_fields = auct_template.get_template_type_mandatory_field(templ_type)
                 template = self.create_bidding_object_template(templ_fields, field_container,
-                                                               mandatory_fields, object_type, templ_type
+                                                               mandatory_fields, ObjectType(object_type), templ_type
                                                                )
 
                 # Add a local reference to the template.
@@ -196,7 +209,8 @@ class Auction(AuctioningObject):
                 # Insert the template in the general container.
                 template_container.add_template(template)
 
-    def add_template_field(self, template: IpapTemplate, ipap_field_container: IpapFieldContainer, eno: int,
+    @staticmethod
+    def add_template_field(template: IpapTemplate, ipap_field_container: IpapFieldContainer, eno: int,
                            ftype: int):
         """
         Adds a new field to a template
@@ -206,16 +220,17 @@ class Auction(AuctioningObject):
         :param ftype:                   id of the field for the ipap_message
         """
         # By default network encoding
-        encodeNetwork = 1
+        encode_network = True
 
-        field = ipap_field_container.get_field(eno, type)
+        field = ipap_field_container.get_field(eno, ftype)
         size = field.get_length()
-        template.add_field(size, UnknownField.KNOWN, encodeNetwork, field);
+        template.add_field(size, UnknownField.KNOWN, encode_network, field)
 
-    def create_auction_template(self, field_container, template_type):
+    def create_auction_template(self, field_container, template_type: TemplateType) -> IpapTemplate:
         """
         Create an auction template based on its mandatory fields
 
+        :rtype: IpapTemplate
         :param field_container: container with all possible fields defined
         :param template_type:   Type of template to use.
         :return: template created.
@@ -224,7 +239,7 @@ class Auction(AuctioningObject):
 
         # Create the bid template associated with the auction
         template = IpapTemplate()
-        list_fields = template.get_template_type_mandatory_field(1)
+        list_fields = template.get_template_type_mandatory_field(template_type)
         template.set_id(template_source_id.new_id())
         template.set_max_fields(len(list_fields))
         template.set_type(template_type)
@@ -234,11 +249,13 @@ class Auction(AuctioningObject):
 
         return template
 
-    def calculate_template_fields(object_type: int, templ_type: int, templ_fields: dict,
+    @staticmethod
+    def calculate_template_fields(object_type: ObjectType, templ_type: TemplateType, templ_fields: dict,
                                   mandatory_fields: list) -> dict:
         """
         Creates the sets of fields to be used in a template. The set includes mandatory and those that have been chosen
         by the user for the auction
+        :param object_type          Object type 
         :param templ_type:          Template type (data, options)
         :param templ_fields:        Field to include given by the user
         :param mandatory_fields:    Mandatory fields to include given by the template type
@@ -271,8 +288,8 @@ class Auction(AuctioningObject):
     def create_bidding_object_template(self, templ_fields: dict,
                                        field_container: IpapFieldContainer,
                                        mandatory_fields: list,
-                                       object_type: int,
-                                       templ_type: int) -> IpapTemplate:
+                                       object_type: ObjectType,
+                                       templ_type: TemplateType) -> IpapTemplate:
         """
         Create a bidding object template
         :param templ_fields:        Fields to include given by the user
@@ -289,7 +306,7 @@ class Auction(AuctioningObject):
         # Create the bid template associated with the auction
         template = IpapTemplate()
         template.set_id(template_source_id.new_id())
-        template.set_maxfields(len(field_keys))
+        template.set_max_fields(len(field_keys))
         template.set_type(templ_type)
 
         for key in field_keys:

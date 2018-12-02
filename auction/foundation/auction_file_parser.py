@@ -3,12 +3,12 @@ from lxml.etree import Element
 from foundation.auction import AuctionTemplateField
 from foundation.auction import Action
 from foundation.auction import Auction
-from foundation.parse_format import ParseFormats
 from foundation.field_def_manager import FieldDefManager
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.config import Config
+from foundation.config_param import ConfigParam
+from foundation.parse_format import ParseFormats
 from python_wrapper.ipap_field_container import IpapFieldContainer
-from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 import pathlib
 import os
@@ -44,8 +44,9 @@ class AuctionXmlFileParser(IpapMessageParser):
         for item in node.iterchildren():
             if isinstance(item.tag, str):
                 if item.tag.lower() == "pref":
-                    (name, type, value) = _parse_config_item(item)
-                    action.add_config_item(name, type, value)
+                    config_param = ConfigParam()
+                    config_param.parse_config_item(item)
+                    action.add_config_item(config_param)
 
         return action
 
@@ -62,8 +63,9 @@ class AuctionXmlFileParser(IpapMessageParser):
         for sub_item in item.iterchildren():
             if isinstance(sub_item.tag, str):
                 if sub_item.tag.lower() == "pref":
-                    (c_name, c_type, c_value) = parse_config_item(sub_item)
-                    global_misc[c_name] = (c_name, c_type, c_value)
+                    config_param = ConfigParam()
+                    config_param.parse_config_item(sub_item)
+                    global_misc[config_param.name] = config_param
 
                 if sub_item.tag.lower() == "action":
                     action = self._parse_action(sub_item)
@@ -77,8 +79,7 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         return global_misc, global_actions
 
-    @staticmethod
-    def _parse_field(node: Element, field_container: IpapFieldContainer):
+    def _parse_field(self, node: Element):
         """
         Parse a field from the auction xml
 
@@ -88,13 +89,13 @@ class AuctionXmlFileParser(IpapMessageParser):
         field_name = node.get("NAME")
         field_def_manager = FieldDefManager()
         field_def = field_def_manager.get_field(field_name)
-        auction_template_field = AuctionTemplateField(field_def, field_def.Length)
+        auction_template_field = AuctionTemplateField(field_def, field_def['lenght'])
         belogs_to = []
         for item in node.iterchildren():
             if isinstance(item.tag, str):
                 if item.tag == "TEMPLATE_FIELD":
-                    object_type = super.parse_object_type(item.get("OBJECT_TYPE"))
-                    template_type = super.parse_template_type(object_type, item.get("TEMPLATE_TYPE"))
+                    object_type = self.parse_object_type(item.get("OBJECT_TYPE"))
+                    template_type = self.parse_template_type(object_type, item.get("TEMPLATE_TYPE"))
                     belogs_to.append((object_type, template_type))
 
         auction_template_field.field_belong_to = belogs_to
@@ -118,7 +119,7 @@ class AuctionXmlFileParser(IpapMessageParser):
         actions = deepcopy(global_actions)
 
         auction_id = node.get("ID").lower()
-        (set_name, name) = IpapMessageParser.parse_name(auction_id)
+        (set_name, name) = self.parse_name(auction_id)
         if not set_name:
             if global_set.isnumeric():
                 set_name = global_set
@@ -135,8 +136,9 @@ class AuctionXmlFileParser(IpapMessageParser):
         for subitem in node.iterchildren():
             if isinstance(subitem.tag, str):
                 if subitem.tag.lower() == "PREF":
-                    (name, type, value) = parse_config_item(subitem)
-                    misc_config[name] = (name, type, value)
+                    config_param = ConfigParam()
+                    config_param.parse_config_item(subitem)
+                    misc_config[name] = config_param
 
                 elif subitem.tag.lower() == "FIELD":
                     templ_fields.append(self._parse_field(subitem, field_container))
@@ -203,33 +205,6 @@ class AuctionXmlFileParser(IpapMessageParser):
                         auctions.append(auction)
 
             return auctions
-
-
-def parse_config_item(item: Element) -> (str, str, str):
-    """
-    Parse a configuration item.
-
-    :param item: item to be parsed.
-    :return
-    """
-    c_name = item.get("NAME")
-    c_value = item.text
-    if not c_name:
-        raise ValueError("The xml has a preference with no name")
-
-    if not c_value:
-        raise ValueError("The xml has a preference with no value")
-
-    c_name = c_name.lower()
-
-    c_type = item.get("TYPE")
-    if c_type:
-        c_type = c_type.lower()
-    else:
-        c_type = "string"  # default type is string.
-
-    ParseFormats.parse_item(c_type, c_value)
-    return c_name, c_type, c_value
 
 
 if __name__ == "__main__":

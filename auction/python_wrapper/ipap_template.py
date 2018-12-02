@@ -46,6 +46,9 @@ class IpapTemplate:
     def set_id(self, id : int):
         return lib.ipap_template_set_id(self.obj,c_uint16(id))
 
+    def get_template_id(self) -> int:
+        return lib.ipap_template_get_template_id(self.obj)
+
     def set_max_fields(self, max_fields : int):
         lib.ipap_template_set_maxfields(self.obj,c_int(max_fields))
 
@@ -69,9 +72,14 @@ class IpapTemplate:
                 raise ValueError('Field key not found')
         return list_return
 
-    def add_field(self,field_size : int, encodeNetwork : UnknownField, field : IpapField):
+    def add_field(self, field_size: int, unknow_field: UnknownField, encode_network: bool, field: IpapField):
+        if encode_network:
+            i_encode_network = 1
+        else:
+            i_encode_network = 0
+
         lib.ipap_template_add_field(self.obj, c_uint16(field_size),
-                                    c_uint8(encodeNetwork.value), c_int(encodeNetwork.value), field.obj)
+                                    c_uint8(unknow_field.value), c_int(i_encode_network), field.obj)
 
     def get_type(self) -> TemplateType:
         return TemplateType(lib.ipap_template_get_type(self.obj))
