@@ -2,9 +2,6 @@ from python_wrapper.ipap_template import IpapTemplate, ObjectType, TemplateType
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_message import IpapMessage
 
-from foundation.field import Field
-from foundation.field import MatchFieldType
-from foundation.field_value import FieldValue
 from foundation.field_def_manager import FieldDefManager
 
 
@@ -135,104 +132,6 @@ class IpapMessageParser:
                 list_return.append(data_record)
         return list_return
 
-    def find_field(self, eno: int, ftype: int):
-        """
-        Finds a field by eno and ftype within the list of fields.
-
-        :return: field definition
-        """
-        return self.field_def_manager.get_field_by_code(eno, ftype)
-
-    def find_field_by_name(self, name: str):
-        """
-        Finds a field by name within the list of fields. Field names are case sensitive.
-
-        :return:
-        """
-        return self.field_def_manager.get_field(name)
-
-    def _parse_field_value_exact(self, value: str, field: Field):
-        """
-        Parsers the value when it is only one value
-        :param value: value to be parsed
-        :param field: field where the values area going to be assigned.
-        """
-        try:
-            value_translated = self.field_def_manager.get_field_value(field.type, value)
-            field.value.append(FieldValue(field.type,value_translated))
-        except ValueError:
-            field.value.append(FieldValue(field.type, value))
-
-        field.cnt_values = 1
-
-    def _parse_field_value_range(self, value: str, field: Field):
-        """
-        Parses the value when it is range.
-
-        :param value: value to parse.
-        :param field: field where the values area going to be assigned.
-        :return:
-        """
-        field.match_type = MatchFieldType.FT_RANGE
-        values = value.split("-")
-        if len(values) != 2:
-            raise ValueError("The value given must have a valid range format: value1-value2")
-        for val in values:
-            try:
-                value_translated = self.field_def_manager.get_field_value(field.type, val)
-                field.value.append(FieldValue(field.type, self.field_def_manager.value_translated))
-            except ValueError:
-                field.value.append(FieldValue(field.type,val))
-
-            field.cnt_values = field.cnt_values + 1
-
-    def _parse_field_value_list(self, value: str, field: Field):
-        """
-        Parsers a value when the string correspond to a list
-        :param value: string value to parse
-        :param field: field where the values area going to be assigned.
-        """
-        values = value.split(",")
-        for val in values:
-            try:
-                value_translated = self.field_def_manager.get_field_value(field.type, val)
-                field.value.append(FieldValue(field.type,value_translated))
-            except ValueError:
-                field.value.append(FieldValue(field.type, val))
-
-            field.cnt_values = field.cnt_values + 1
-
-    def parse_field_value(self, value: str, field: Field):
-        """
-        parses a field value and let the value parsed in field.
-
-        :param value string to parse
-        :param field: field where the values area going to be assigned.
-        :return: Nothing
-        """
-        field.cnt_values = 0
-        field.value.clear()
-
-        if value.__eq__("*"):
-            field.match_type = MatchFieldType.FT_WILD
-            field.cnt_values = 0
-
-        elif "-" in value:
-            self._parse_field_value_range(value, field)
-
-        elif "," in value:
-            self._parse_field_value_list(value, field)
-        else:
-            self._parse_field_value_exact(value, field)
-
-    def get_misc_val(self):
-        """
-        Gets a value by name from the misc rule attributes
-
-        :return:
-        """
-        # TODO: To Implement.
-        pass
 
     def get_domain(self) -> int:
         """

@@ -3,7 +3,7 @@ from datetime import datetime
 from foundation.auctioning_object import AuctioningObject
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.template_id_source import TemplateIdSource
-from foundation.field import Fieldefinition
+from foundation.field_value import FieldDefinition
 from foundation.interval import Interval
 from foundation.templates import TemplateContainer
 

@@ -2,8 +2,8 @@ import unittest
 from foundation.field_def_manager import FieldDefManager
 from foundation.field_def_manager import DataType
 from foundation.ipap_message_parser import IpapMessageParser
-from foundation.field import Field
 from foundation.field_value import FieldValue
+from foundation.specific_field_value import SpecificFieldValue
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import TemplateType
 
@@ -56,38 +56,39 @@ class DefFileManagerTest(unittest.TestCase):
 
 
 class FieldTest(unittest.TestCase):
+
     def test_parse_field_value(self):
 
-        field = Field()
+        field_value = FieldValue()
 
         value = "*"
-        field.parse_field_value(value)
-        self.assertEqual(field.cnt_values, 0)
+        field_value.parse_field_value(value)
+        self.assertEqual(field_value.cnt_values, 0)
 
         value = "10-50"
-        field.parse_field_value(value)
-        self.assertEqual(field.cnt_values, 2)
+        field_value.parse_field_value(value)
+        self.assertEqual(field_value.cnt_values, 2)
 
         value = "1,2,3,4,5,67"
-        field.parse_field_value(value)
-        self.assertEqual(field.cnt_values, 6)
+        field_value.parse_field_value(value)
+        self.assertEqual(field_value.cnt_values, 6)
 
         value = "Invalid"
-        field.parse_field_value(value)
-        self.assertEqual(field.cnt_values, 1)
+        field_value.parse_field_value(value)
+        self.assertEqual(field_value.cnt_values, 1)
 
 
-class FieldValueTest(unittest.TestCase):
+class SpecificFieldValueTest(unittest.TestCase):
 
     def test_set_field_type(self):
-        field_value = FieldValue()
+        field_value = SpecificFieldValue()
         field_value.set_field_type("string")
         self.assertEqual(field_value.field_type, "string")
 
         field_value.set_field_type(5)
 
     def test_set_value(self):
-        field_value = FieldValue()
+        field_value = SpecificFieldValue()
         field_value.set_value("asdasd")
         self.assertEqual(field_value.value, "asdasd")
 
@@ -196,51 +197,6 @@ class IpapMessageParserTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             ret = self.ipap_message_parser.parse_template_type(ObjectType.IPAP_ALLOCATION, templ_type)
 
-    def test_find_field(self):
-        field = self.ipap_message_parser.find_field(0,31)
-        self.assertEqual(field['name'], "AlgorithmName")
-
-        with self.assertRaises(ValueError):
-            field = self.ipap_message_parser.find_field(1, 31)
-
-        with self.assertRaises(ValueError):
-            field = self.ipap_message_parser.find_field(0, 310)
-
-    def test_find_field_by_name(self):
-        field = self.ipap_message_parser.find_field_by_name("algoritmname")
-        self.assertEqual(field['ftype'], 31)
-
-        with self.assertRaises(ValueError):
-            field = self.ipap_message_parser.find_field_by_name("AlgoritmName")
-
-    def test_parse_field_value(self):
-
-        field = Field()
-
-        value = "*"
-        self.ipap_message_parser.parse_field_value(value, field)
-        self.assertEqual(field.cnt_values, 0)
-
-        value = "10-50"
-        self.ipap_message_parser.parse_field_value(value, field)
-        self.assertEqual(field.cnt_values, 2)
-
-        field = Field()
-        field.type = "IpAddr"
-
-        value = "srcip,srcip,srcip,srcip,srcip,srcip"
-        self.ipap_message_parser.parse_field_value(value, field)
-        self.assertEqual(field.cnt_values, 6)
-        self.assertEqual(field.value[0].value, "190.0.0.1")
-
-        field = Field()
-        value = "srcip,srcip,srcip,srcip,srcip,srcip"
-        self.ipap_message_parser.parse_field_value(value, field)
-        self.assertEqual(field.cnt_values, 6)
-        self.assertEqual(field.value[0].value, "srcip")
-
-
-        value = "Invalid"
-        self.ipap_message_parser.parse_field_value(value, field)
-        self.assertEqual(field.cnt_values, 1)
-
+    def test_get_domain(self):
+        domain = self.ipap_message_parser.get_domain()
+        self.assertEqual(domain, 10)

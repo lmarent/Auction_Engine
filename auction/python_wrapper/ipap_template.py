@@ -20,9 +20,11 @@ class TemplateType(Enum):
     IPAP_SETID_ALLOC_OBJECT_TEMPLATE = 6
     IPAP_OPTNS_ALLOC_OBJECT_TEMPLATE = 7
 
-( KNOWN,
-  UNKNOWN
-  ) = (0,1)
+
+class UnknownField(Enum):
+    KNOWN = 0
+    UNKNOWN = 1
+
 
 class ObjectType(Enum):
     IPAP_INVALID = -1
@@ -31,6 +33,7 @@ class ObjectType(Enum):
     IPAP_ASK = 2
     IPAP_ALLOCATION = 3
     IPAP_MAX_OBJECT_TYPE = 4
+
 
 class IpapTemplate:
 
@@ -46,18 +49,18 @@ class IpapTemplate:
     def set_max_fields(self, max_fields : int):
         lib.ipap_template_set_maxfields(self.obj,c_int(max_fields))
 
-    def set_type(self, type: int):
-        lib.ipap_template_set_type(self.obj, c_int(type))
+    def set_type(self, type: TemplateType):
+        lib.ipap_template_set_type(self.obj, c_int(type.value))
 
-    def _get_template_type_mandatory_field_size(self, temp_type : int) -> int:
-        return lib.ipap_template_get_template_type_mandatory_field_size(self.obj, c_int(temp_type))
+    def _get_template_type_mandatory_field_size(self, temp_type : TemplateType) -> int:
+        return lib.ipap_template_get_template_type_mandatory_field_size(self.obj, c_int(temp_type.value))
 
-    def get_template_type_mandatory_field(self, temp_type : int) -> list:
+    def get_template_type_mandatory_field(self, temp_type : TemplateType) -> list:
         size = self._get_template_type_mandatory_field_size(temp_type)
         list_return = []
 
         for i in range(0,size):
-            obj = lib.ipap_template_get_template_type_mandatory_field(self.obj, c_int(temp_type), c_int(i))
+            obj = lib.ipap_template_get_template_type_mandatory_field(self.obj, c_int(temp_type.value), c_int(i))
 
             if obj: # not null
                 field_key = IpapFieldKey(obj)
@@ -66,27 +69,28 @@ class IpapTemplate:
                 raise ValueError('Field key not found')
         return list_return
 
-    def set_id(self, id : int):
-        lib.ipap_template_set_id(self.obj, c_uint16(id))
-
-    def set_max_fields(self, max_fields : int):
-        lib.ipap_template_set_maxfields(self.obj, max_fields)
-
-    def add_field(self,field_size : int, encodeNetwork : int, field : IpapField):
-        lib.ipap_template_add_field(self.obj, c_uint16(field_size), c_uint8(KNOWN), c_int(encodeNetwork), field.obj)
+    def add_field(self,field_size : int, encodeNetwork : UnknownField, field : IpapField):
+        lib.ipap_template_add_field(self.obj, c_uint16(field_size),
+                                    c_uint8(encodeNetwork.value), c_int(encodeNetwork.value), field.obj)
 
     def get_type(self) -> TemplateType:
-        return lib.ipap_template_get_type(self.obj)
+        return TemplateType(lib.ipap_template_get_type(self.obj))
 
-    def _get_object_template_types_size(self, object_type : int):
-        lib.ipap_template_get_object_template_types_size(self.obj, c_uint8(object_type))
+    def _get_object_template_types_size(self, object_type : ObjectType) -> int:
+        if object_type == ObjectType.IPAP_INVALID:
+            return -1
+        else:
+            return lib.ipap_template_get_object_template_types_size(self.obj, c_uint8(object_type.value))
 
-    def get_object_template_types(self, object_type : int):
+    def get_object_template_types(self, object_type : ObjectType):
+        if object_type== ObjectType.IPAP_INVALID:
+            raise ValueError("Invalid object type")
+
         size = self._get_object_template_types_size(object_type)
         list_return = []
 
         for i in range(0,size):
-            templ_type = lib.ipap_template_get_object_template_types_at_pos(self.obj, c_int(object_type), c_int(i))
+            templ_type = lib.ipap_template_get_object_template_types_at_pos(self.obj, c_int(object_type.value), c_int(i))
 
             if templ_type == object_type.IPAP_INVALID:
                 raise ValueError('Object type requested but not found')
@@ -94,3 +98,7 @@ class IpapTemplate:
                 list_return.append(templ_type)
 
         return list_return
+
+    def __del__(self):
+        if self.obj: # not null
+            lib.ipap_template_destroy(self.obj)

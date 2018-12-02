@@ -57,10 +57,18 @@ class IpapValueField:
         return lib.ipap_value_field_get_value_int64(self.obj)
 
     def get_value_float(self):
-        return lib.ipap_value_field_get_value_float(self.obj)
+        get_value_float = lib.ipap_value_field_get_value_float
+        get_value_float.restype = c_float
+
+        value = lib.ipap_value_field_get_value_float(self.obj)
+        return value
 
     def get_value_double(self):
-        return lib.ipap_value_field_get_value_double(self.obj)
+        get_value_double = lib.ipap_value_field_get_value_double
+        get_value_double.restype = c_double
+
+        value = lib.ipap_value_field_get_value_double(self.obj)
+        return value
 
     def get_value_vchar(self):
         get_value_vchar = lib.ipap_value_field_get_value_vchar

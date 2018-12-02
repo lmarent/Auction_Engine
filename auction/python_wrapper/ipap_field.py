@@ -46,6 +46,10 @@ class IpapField:
 
         return lib.ipap_field_get_documentation(self.obj)
 
+    def __del__(self):
+        if self.obj: # not null
+            lib.ipap_field_destroy(self.obj)
+
     def destroy(self):
         lib.ipap_field_destroy(self.obj)
 
