@@ -1,6 +1,9 @@
 from python_wrapper.ipap_field_type import IpapFieldType
 from python_wrapper.ipap_field import IpapField
 from python_wrapper.ipap_value_field import IpapValueField
+from python_wrapper.ipap_field_key import IpapFieldKey
+from python_wrapper.ipap_field_container import IpapFieldContainer
+from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_template import UnknownField
@@ -12,7 +15,9 @@ import unittest
 
 
 class IpapFieldTypeTest(unittest.TestCase):
-
+    """
+    IpapFieldTypeTest
+    """
     def setUp(self):
         self.ftype = IpapFieldType()
 
@@ -25,7 +30,9 @@ class IpapFieldTypeTest(unittest.TestCase):
         self.documentation = b"casa"
 
 class IpapFieldTest(unittest.TestCase):
+    """
 
+    """
     def setUp(self):
         self.ipap_field = IpapField()
         self.ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
@@ -50,7 +57,9 @@ class IpapFieldTest(unittest.TestCase):
 
 
 class IpapValueFieldTest(unittest.TestCase):
+    """
 
+    """
     def setUp(self):
         self.ipap_field_value = IpapValueField()
 
@@ -98,6 +107,26 @@ class IpapValueFieldTest(unittest.TestCase):
         self.assertEqual(value, val)
 
 
+class IpapFieldKeyTest(unittest.TestCase):
+    """
+    IpapFieldKeyTest
+    """
+    def setUp(self):
+        self.ipap_field_key1 = IpapFieldKey(1, 30)
+
+    def test_get_eno(self):
+        val = self.ipap_field_key1.get_eno()
+        self.assertEqual(val, 1)
+
+    def test_get_ftype(self):
+        val = self.ipap_field_key1.get_ftype()
+        self.assertEqual(val, 30)
+
+    def test_get_key(self):
+        val = self.ipap_field_key1.get_key()
+        self.assertEqual(val, "1-30")
+
+
 class TemplateTest(unittest.TestCase):
 
     def setUp(self):
@@ -138,9 +167,11 @@ class TemplateTest(unittest.TestCase):
 class TemplateContainerTest(unittest.TestCase):
 
     def setUp(self):
+        print('in setUp')
         self.template_container = IpapTemplateContainer()
 
-    def test_add_template(self, template : IpapTemplate):
+    def test_add_template(self):
+        print('in test_add_template')
         ipap_field = IpapField()
         ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
 
@@ -153,9 +184,22 @@ class TemplateContainerTest(unittest.TestCase):
         self.template_container.add_template(template)
 
     def test_delete_all_templates(self):
-        self.template_container.delete_all_templates()
+        print('in test_delete_all_templates')
+        ipap_field = IpapField()
+        ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
 
-    def test_delete_template(self, templid : int):
+        _id = 12
+        template = IpapTemplate()
+        template.set_id(_id)
+        template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        template.add_field(8, UnknownField.KNOWN, ipap_field)
+
+        self.template_container.add_template(template)
+        self.template_container.delete_all_templates()
+        val = self.template_container.get_num_templates()
+        self.assertEqual(val, 0)
+
+    def test_delete_template(self):
         ipap_field = IpapField()
         ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
 
@@ -167,32 +211,76 @@ class TemplateContainerTest(unittest.TestCase):
 
         self.template_container.add_template(template)
         self.template_container.delete_template(_id)
-
-    def test_exists_template(self, templid : int):
-        ipap_field = IpapField()
-        ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
-
-        _id = 12
-        template = IpapTemplate()
-        template.set_id(_id)
-        template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        template.add_field(8, UnknownField.KNOWN, ipap_field)
-        self.template_container.add_template(template)
-        self.template_container.exists_template(_id)
-
-    def test_get_num_templates(self) -> int:
-        ipap_field = IpapField()
-        ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
-
-        _id = 12
-        template = IpapTemplate()
-        template.set_id(_id)
-        template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        template.add_field(8, UnknownField.KNOWN, ipap_field)
-        self.template_container.add_template(template)
         val = self.template_container.get_num_templates()
+        self.assertEqual(val, 0)
+
+    def test_exists_template(self):
+        ipap_field = IpapField()
+        ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
+
+        _id = 12
+        template = IpapTemplate()
+        template.set_id(_id)
+        template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        template.add_field(8, UnknownField.KNOWN, ipap_field)
+        self.template_container.add_template(template)
+
+        val = self.template_container.exists_template(_id)
+        self.assertEqual(val, True)
+
+        _id = 13
+        val = self.template_container.exists_template(_id)
+        self.assertEqual(val, False)
 
 
+class FieldContainerTest(unittest.TestCase):
+    """
+    FieldContainerTest
+    """
+    def setUp(self):
+        self.field_container = IpapFieldContainer()
+
+    def test_get_field(self):
+        self.field_container.initialize_forward()
+        field = self.field_container.get_field(0,30)
+        self.assertEqual(field.get_field_name(), b"endMilliSeconds")
+
+        with self.assertRaises(ValueError):
+            field2 = self.field_container.get_field(0,3000)
+
+    def test_not_initialized(self):
+        with self.assertRaises(ValueError):
+            field = self.field_container.get_field(0, 30)
 
 
+class IpapDataRecordTest(unittest.TestCase):
+    """
+    IpapDataRecordTest
+    """
+    def setUp(self):
+        self.ipap_data_record = IpapDataRecord(templ_id=2)
+
+    def test_get_template_id(self):
+        value = self.ipap_data_record.get_template_id()
+        self.assertEqual(value,2)
+
+    def test_insert_field(self):
+
+        ipap_field_value1 = IpapValueField()
+        value = 12
+        ipap_field_value1.set_value_uint8(value)
+
+        ipap_field_value2 = IpapValueField()
+        value = 13
+        ipap_field_value2.set_value_uint8(value)
+
+        # Replace the value
+        self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
+        self.ipap_data_record.insert_field(0, 30, ipap_field_value2)
+        num_fields = self.ipap_data_record.get_num_fields()
+        self.assertEqual(num_fields,1)
+
+        self.ipap_data_record.insert_field(0, 31, ipap_field_value2)
+        num_fields = self.ipap_data_record.get_num_fields()
+        self.assertEqual(num_fields,2)
 

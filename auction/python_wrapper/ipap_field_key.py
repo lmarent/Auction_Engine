@@ -4,17 +4,14 @@ lib = cdll.LoadLibrary('libipap.so')
 
 class IpapFieldKey:
 
-    def __init__(self, obj=None, eno=0 , ftype=0 ):
+    def __init__(self, eno=0 , ftype=0 ):
         """
 
         :param obj:  pointer to the object,otherwise we call the new object.
         :param eno:    enterprise number of type int
         :param ftype:  field type of type int.
         """
-        if obj:
-            self.obj = obj
-        else:
-            self.obj = lib.ipap_field_key_new(c_int(eno), c_int(ftype))
+        self.obj = lib.ipap_field_key_new(c_int(eno), c_int(ftype))
 
     def get_eno(self) -> int:
         return lib.ipap_field_key_get_eno(self.obj)

@@ -21,4 +21,7 @@ class IpapTemplateContainer:
         return lib.ipap_template_container_exists_template(self.obj, c_uint16(templid))
 
     def get_num_templates(self) -> int:
-        return lib.ipap_template_container_get_num_templates()
+        return lib.ipap_template_container_get_num_templates(self.obj)
+
+    def __del__(self):
+        lib.ipap_template_container_destroy(self.obj)

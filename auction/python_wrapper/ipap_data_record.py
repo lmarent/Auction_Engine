@@ -12,25 +12,24 @@ lib = cdll.LoadLibrary('libipap.so')
 class IpapDataRecord:
 
     def __init__(self, obj=None, templ_id=0):
-
         if obj:
             self.obj = obj
         else:
-            self.lib.ipap_data_record_new(c_uint16(templ_id))
+            self.obj = lib.ipap_data_record_new(c_uint16(templ_id))
 
-    def get_template_id(self) -> TemplateType:
+    def get_template_id(self) -> int:
         return lib.ipap_data_record_get_template_id(self.obj)
 
-    def insert_field(self, eno: int, ftype: int, field_value: IpapFieldKey):
+    def insert_field(self, eno: int, ftype: int, field_value: IpapValueField):
         lib.ipap_data_record_insert_field(self.obj, c_int(eno), c_int(ftype), field_value.obj)
 
     def get_num_fields(self) -> int:
         return lib.ipap_data_record_get_num_fields(self.obj)
 
     def get_field(self, eno: int, ftype: int):
-        obj = lib.ipap_data_record_get_num_fields(self.obj, c_int(eno), c_int(ftype))
+        obj = lib.ipap_data_record_get_field(self.obj, c_int(eno), c_int(ftype))
         if obj:
-            value = IpapValueField(obj)
+            value = IpapValueField(obj=obj)
         else:
             raise ValueError("Field {0}.{1} given was not found in data record".format(str(eno), str(ftype)))
 

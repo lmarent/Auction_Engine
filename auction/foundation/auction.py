@@ -7,7 +7,7 @@ from foundation.field_value import FieldDefinition
 from foundation.interval import Interval
 from foundation.templates import TemplateContainer
 
-from python_wrapper.ipap_field_container import IpApFieldContainer
+from python_wrapper.ipap_field_container import IpapFieldContainer
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 from python_wrapper.ipap_field_key import IpapFieldKey
@@ -167,7 +167,7 @@ class Auction(AuctioningObject):
         Build templates being used for the auction.
         :param templ_fields:        fields to be used by the auction within each template
         """
-        field_container = IpApFieldContainer()
+        field_container = IpapFieldContainer()
         field_container.initialize_forward()
         field_container.initialize_reverse()
 
@@ -198,7 +198,7 @@ class Auction(AuctioningObject):
                 # Insert the template in the general container.
                 template_container.add_template(template)
 
-    def add_template_field(self, template : IpapTemplate, ipap_field_container : IpApFieldContainer, eno : int, ftype: int ):
+    def add_template_field(self, template : IpapTemplate, ipap_field_container : IpapFieldContainer, eno : int, ftype: int):
         """
         Adds a new field to a template
         :param template:                Template where we are going to add the field
@@ -271,10 +271,10 @@ class Auction(AuctioningObject):
 
 
     def create_bidding_object_template(self, templ_fields : dict,
-                                       field_container : IpApFieldContainer,
+                                       field_container : IpapFieldContainer,
                                        mandatory_fields: list,
                                        object_type : int,
-                                       templ_type : int ) -> IpapTemplate:
+                                       templ_type : int) -> IpapTemplate:
         """
         Create a bidding object template
         :param templ_fields:        Fields to include given by the user

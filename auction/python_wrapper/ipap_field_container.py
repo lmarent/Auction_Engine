@@ -4,7 +4,7 @@ from ctypes import c_int
 lib = cdll.LoadLibrary('libipap.so')
 
 
-class IpApFieldContainer:
+class IpapFieldContainer:
 
     def __init__(self):
         self.obj = lib.ipap_field_container_new()
@@ -16,13 +16,12 @@ class IpApFieldContainer:
         lib.ipap_field_container_initialize_reverse(self.obj)
 
     def get_field(self, eno :int, type: int):
-        field = IpapField()
-        field.destroy()
         obj = lib.ipap_field_container_get_field_pointer(self.obj, c_int(eno), c_int(type))
 
         if obj: # not null
-            field.obj = obj
+            field = IpapField(obj)
+            return field
         else:
             raise ValueError('Field not found')
 
-        return field
+

@@ -6,7 +6,7 @@ from foundation.parse_format import ParseFormats
 from foundation.field_def_manager import FieldDefManager
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.config import Config
-from python_wrapper.ipap_field_container import IpApFieldContainer
+from python_wrapper.ipap_field_container import IpapFieldContainer
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 class AuctionXmlFileParser(IpapMessageParser):
@@ -90,7 +90,7 @@ class AuctionXmlFileParser(IpapMessageParser):
         return (global_misc, global_actions)
 
 
-    def _parse_field(self, node, field_container : IpApFieldContainer):
+    def _parse_field(self, node, field_container : IpapFieldContainer):
         """
         Parse a field from the auction xml
 
@@ -113,7 +113,7 @@ class AuctionXmlFileParser(IpapMessageParser):
 
 
     def _parse_auction(self, node, global_set :str, global_misc_config : dict,
-                       global_actions :dict,  field_container : IpApFieldContainer):
+                       global_actions :dict, field_container : IpapFieldContainer):
         """
 
         :param global_set:global set
@@ -187,7 +187,7 @@ class AuctionXmlFileParser(IpapMessageParser):
         root = tree.getroot()
         id = root.ID.lower()
 
-        ipap_field_container = IpApFieldContainer()
+        ipap_field_container = IpapFieldContainer()
         ipap_field_container.initialize_reverse()
         ipap_field_container.initialize_forward()
 

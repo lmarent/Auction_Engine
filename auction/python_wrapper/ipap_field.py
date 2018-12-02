@@ -10,8 +10,11 @@ lib = cdll.LoadLibrary('libipap.so')
 
 class IpapField:
 
-    def __init__(self):
-        self.obj = lib.ipap_field_new()
+    def __init__(self, obj:None):
+        if obj:
+            self.obj = obj
+        else:
+            self.obj = lib.ipap_field_new()
 
     def set_field_type(self, eno :int, ftype : int, lenght : int,  coding : int,
                        name :str, xml_name : str, documentation : str):
