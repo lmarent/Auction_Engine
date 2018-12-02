@@ -61,12 +61,14 @@ class Interval():
         #duration = 0 indicates no duration set
         self.duration = 0
 
+        print(interval_dict)
+
         start = startatleast
-        sstart = interval_dict['Start']
-        sstop = interval_dict['Stop']
-        sduration = interval_dict['Duration']
-        sinterval = interval_dict['Interval']
-        salign = interval_dict['Align']
+        sstart = interval_dict.get('Start',None)
+        sstop = interval_dict.get('Stop',None)
+        sduration = interval_dict.get('Duration',None)
+        sinterval = interval_dict.get('Interval', None)
+        salign = interval_dict.get('Align', None)
 
         if sstart and sstop and sduration:
             raise ValueError("illegal to specify: start+stop+duration time")

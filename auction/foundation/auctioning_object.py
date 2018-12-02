@@ -1,6 +1,7 @@
-#auctioning_object.py
+# auctioning_object.py
 
-from enum import Enum 
+from enum import Enum
+
 
 class AuctioningObjectState(Enum):
     """
@@ -13,6 +14,7 @@ class AuctioningObjectState(Enum):
     DONE = 4
     ERROR = 5
 
+
 class AuctioningObjectType(Enum):
     """
     Types for the auctioning objects"
@@ -21,7 +23,8 @@ class AuctioningObjectType(Enum):
     BID = 1
     RESOURCE = 2
 
-class AuctioningObject():
+
+class AuctioningObject:
     """
     Defines common attributes and methods used for auctioning object. An auctioning object
     represents an abtract class of all objects  being exchanged in the auction.
@@ -32,20 +35,20 @@ class AuctioningObject():
         self.auctioning_object_type = auctioning_object_type
         self.state = state
 
-    def set_state(self,state):
+    def set_state(self, state):
         """
         Change the object's state.
         """
         self.state = state
-    
+
     def get_state(self):
         """
         Return object's state.
-        """		
+        """
         return self.state
 
     def get_key(self):
         """
         Return object's key.
-        """     
+        """
         return self.key

@@ -249,7 +249,7 @@ class IpapMessageParserTest(unittest.TestCase):
 class AuctionXmlFileParserTest(unittest.TestCase):
 
     def setUp(self):
-        self.auction_xml_file_parser = AuctionXmlFileParser(domain=10)
+        self.auction_xml_file_parser = AuctionXmlFileParser(10)
 
-    #def test_parse(self):
-    #self.auction_xml_file_parser.parse("/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")
+    def test_parse(self):
+        self.auction_xml_file_parser.parse("/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")

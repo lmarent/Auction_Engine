@@ -14,8 +14,8 @@ DefaultDestinPort: 80
 DefaultSourcePort: 12248
 TimeFormat: "%Y%m%d %H%M%S"
 
-AUCTIONFILE_DTD: auctionfile.dtd
-DTD_ROOT_NODE: AUCTIONSET
-BIDFILE_DTD: bidfile.dtd
-DEFAULT_LOG_FILE: netaum.log
+AuctionfileDtd: auctionfile.dtd
+DtdRootNode: AUCTIONSET
+BidfileDtd: bidfile.dtd
+DefaultLogFile: netaum.log
 
