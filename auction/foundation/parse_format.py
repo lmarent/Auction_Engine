@@ -10,24 +10,24 @@ class ParseFormats:
     """
 
     @staticmethod
-    def parse_long(value : str) -> long:
+    def parse_long(value : str) -> int:
         """
         Parsers a string which has a long value
 
         :param value: string
         :return: long
         """
-        return long(value)
+        return int(value)
 
     @staticmethod
-    def parse_ulong(value : str) -> long:
+    def parse_ulong(value : str) -> int:
         """
         Parsers a string which has a long value
 
         :param value: string
         :return: long
         """
-        val = long(value)
+        val = int(value)
         if val < 0:
             raise ValueError("unsigned value can't be less than zero")
         else:

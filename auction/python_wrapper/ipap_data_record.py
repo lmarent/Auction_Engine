@@ -30,6 +30,7 @@ class IpapDataRecord:
         obj = lib.ipap_data_record_get_field(self.obj, c_int(eno), c_int(ftype))
         if obj:
             value = IpapValueField(obj=obj)
+            return value
         else:
             raise ValueError("Field {0}.{1} given was not found in data record".format(str(eno), str(ftype)))
 
@@ -38,3 +39,7 @@ class IpapDataRecord:
 
     def clear(self):
         lib.ipap_data_record_clear(self.obj)
+
+    def __del__(self):
+        if self.obj:
+            lib.ipap_data_record_destroy(self.obj)

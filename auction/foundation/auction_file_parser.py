@@ -21,8 +21,8 @@ class AuctionXmlFileParser(IpapMessageParser):
 
     """
 
-    def __init__(self, domain : int):
-        super(AuctionXmlFileParser).__init__(domain)
+    def __init__(self, domain: int):
+        super(AuctionXmlFileParser, self).__init__(domain)
 
     @staticmethod
     def _parse_config_item(self, item):
@@ -165,7 +165,7 @@ class AuctionXmlFileParser(IpapMessageParser):
         return auction
 
 
-    def parse(self, field_definitions : dict, file_name : str ) -> list:
+    def parse(self, file_name : str ) -> list:
         """
         parse the auction with the file given as parameter
         :param file_name file name including the absolute path of te file to parse.
@@ -193,6 +193,8 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         auctions = []
         global_element = root.Element("GLOBAL")
+
+        print("Here We are")
         for item in root.iterchildren():
             if item.tag.lower() == "global":
                 (global_misc_config, global_actions)  = self._parse_global_options(item)

@@ -10,6 +10,7 @@ from ctypes import POINTER
 lib = cdll.LoadLibrary('libipap.so')
 
 from python_wrapper.ipap_template import IpapTemplate
+from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_data_record import IpapDataRecord
 
 class IpapMessage:
@@ -17,18 +18,13 @@ class IpapMessage:
     def __init__(self, domain_id : int, ipap_version : int, _encode_network : bool):
         self.obj = lib.ipap_message_new(c_int(domain_id), c_int(ipap_version), c_bool(_encode_network))
 
-    # @classmethod
-    # def from_message(cls, param : POINTER(c_ubyte), message_length : c_size_t, _decode_network : bool):
-    #    return cls(lib.ipap_message_new_message(param, message_length, _decode_network))
-
-    def close(self):
-        lib.ipap_message_close(self.obj)
-
-    def new_data_template(self, nfields : int, template_type_id : int) -> c_uint16:
-        return lib.ipap_message_new_data_template(self.obj, c_int(nfields), c_int(template_type_id))
+    def new_data_template(self, nfields : int, template_type_id : TemplateType) -> c_uint16:
+        return lib.ipap_message_new_data_template(self.obj, c_int(nfields), c_int(template_type_id.value))
 
     def add_field(self, templid : int, eno : int, type : int):
-        lib.ipap_message_add_field(self.obj, c_uint16(templid), c_uint32(eno), c_uint16(type))
+        val = lib.ipap_message_add_field(self.obj, c_uint16(templid), c_uint32(eno), c_uint16(type))
+        if val < 0:
+            raise ValueError("Invalid argument. The field was not included")
 
     def delete_template(self, templid : int):
         lib.ipap_message_delete_template(self.obj, c_uint16(templid))
@@ -49,20 +45,27 @@ class IpapMessage:
                 raise ValueError('Template at position {0} was not found'.format(str(i)))
         return list_return
 
-    def get_template_object(self, templ_id : int) -> IpapTemplate:
-        obj = lib.ipap_mesage_get_template_object(self.obj, c_uint16(templ_id))
+    def get_template_object(self, templ_id: int) -> IpapTemplate:
+        obj = lib.ipap_message_get_template_object(self.obj, c_uint16(templ_id))
         if obj: # not null
             template = IpapTemplate(obj)
             return template
         else:
             raise ValueError("Template with id:{} was not found".format(str(templ_id)))
 
+    def include_data(self, template_id: int, ipap_data_record : IpapDataRecord):
+        lib.ipap_message_include_data(self.obj, template_id, ipap_data_record.obj)
+
     def get_data_record_size(self):
         return lib.ipap_message_get_data_record_size(self.obj)
 
-    def get_data_record_at_pos(self, pos : int ):
+    def get_data_record_at_pos(self, pos : int ) -> IpapDataRecord:
         obj = lib.ipap_message_get_data_record_at_pos(self.obj, c_int(pos))
         if obj: # not null
-            IpapDataRecord(obj=obj)
+            return IpapDataRecord(obj=obj)
         else:
             raise ValueError("Data record at pos {0} was not found".format(str(int)) )
+
+    def __del__(self):
+        if self.obj:
+            lib.ipap_message_destroy(self.obj)

@@ -84,7 +84,7 @@ class Interval():
             else:
                 self.stop = self.start + self.duration
 
-        if self.stop != 0 and self.stop < datetime.datetime.now()
+        if self.stop != 0 and self.stop < datetime.datetime.now():
             raise ValueError('resource request running time is already over')
 
         if self.start < datetime.datetime.now():

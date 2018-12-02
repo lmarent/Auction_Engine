@@ -11,10 +11,9 @@ from python_wrapper.ipap_field_container import IpapFieldContainer
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 from python_wrapper.ipap_field_key import IpapFieldKey
-from python_wrapper.ipap_template import IPAP_SETID_AUCTION_TEMPLATE
-from python_wrapper.ipap_template import IPAP_OPTNS_AUCTION_TEMPLATE
-from python_wrapper.ipap_template import KNOWN
-from python_wrapper.ipap_template import IPAP_MAX_OBJECT_TYPE
+from python_wrapper.ipap_template import TemplateType
+from python_wrapper.ipap_template import UnknownField
+from python_wrapper.ipap_template import ObjectType
 
 
 
@@ -174,17 +173,17 @@ class Auction(AuctioningObject):
         template_container = TemplateContainer().get_template_container()
 
         # Creates the auction data template
-        auctTemplate = self.create_auction_template(field_container, IPAP_SETID_AUCTION_TEMPLATE)
+        auctTemplate = self.create_auction_template(field_container, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.set_data_auction_template(auctTemplate.get_template_id())
         template_container.add_template(auctTemplate)
 
         # Creates the option auction template
-        optAuctTemplate = self.create_auction_template(field_container, IPAP_OPTNS_AUCTION_TEMPLATE)
+        optAuctTemplate = self.create_auction_template(field_container, TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
         self.set_option_auction_template(optAuctTemplate.get_template_id())
         template_container.add_template(optAuctTemplate)
 
         # Insert other templates related to bidding objects.
-        for object_type in range (1, IPAP_MAX_OBJECT_TYPE):
+        for object_type in range (1, ObjectType.IPAP_MAX_OBJECT_TYPE):
             templ_type_list = auctTemplate.get_object_template_types(object_type)
             for templ_type in templ_type_list:
                 mandatory_fields = auctTemplate.get_template_type_mandatory_field(templ_type)
@@ -211,7 +210,7 @@ class Auction(AuctioningObject):
 
         field = ipap_field_container.get_field(eno, type)
         size = field.get_length()
-        template.add_field(size, KNOWN, encodeNetwork, field);
+        template.add_field(size, UnknownField.KNOWN, encodeNetwork, field);
 
     def create_auction_template(self, field_container, template_type):
         """
@@ -236,7 +235,7 @@ class Auction(AuctioningObject):
         return template
 
 
-    def calculate_template_fields(object_type : int, templ_type : int, templ_fields : dict, mandatory_fields : list ) -> dict:
+    def calculate_template_fields(object_type: int, templ_type: int, templ_fields: dict, mandatory_fields: list ) -> dict:
         """
         Creates the sets of fields to be used in a template. The set includes mandatory and those that have been chosen
         by the user for the auction

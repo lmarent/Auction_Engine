@@ -7,7 +7,7 @@ from foundation.field_def_manager import FieldDefManager
 
 class IpapMessageParser:
 
-    def __init__(self, domain):
+    def __init__(self, domain: int):
         self.domain = domain
         self.field_def_manager = FieldDefManager()
 
@@ -114,15 +114,15 @@ class IpapMessageParser:
             if template.get_type() == template_type:
                 return template
 
-        raise ValueError("Template ")
+        raise ValueError("Template not found")
 
     @staticmethod
-    def read_data_records(message: IpapMessage, templ_id: TemplateType) -> list:
+    def read_data_records(message: IpapMessage, templ_id: int) -> list:
         """
         Reads the data record list from a message
 
+        templ_id : template identifier.
         :return: list of data records within the message.
-        @:raises ValueError when a data record is not found.
         """
         size = message.get_data_record_size()
         list_return = []

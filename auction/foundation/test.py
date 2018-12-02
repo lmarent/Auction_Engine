@@ -2,11 +2,15 @@ import unittest
 from foundation.field_def_manager import FieldDefManager
 from foundation.field_def_manager import DataType
 from foundation.ipap_message_parser import IpapMessageParser
+from foundation.auction_file_parser import AuctionXmlFileParser
+
 from foundation.field_value import FieldValue
 from foundation.specific_field_value import SpecificFieldValue
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import TemplateType
-
+from python_wrapper.ipap_message import IpapMessage
+from python_wrapper.ipap_data_record import IpapDataRecord
+from python_wrapper.ipap_value_field import IpapValueField
 
 class DefFileManagerTest(unittest.TestCase):
 
@@ -55,7 +59,7 @@ class DefFileManagerTest(unittest.TestCase):
             field_value = self.def_file_manager.get_field_value('Type2', 'srcip')
 
 
-class FieldTest(unittest.TestCase):
+class FieldValueTest(unittest.TestCase):
 
     def test_parse_field_value(self):
 
@@ -197,6 +201,55 @@ class IpapMessageParserTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             ret = self.ipap_message_parser.parse_template_type(ObjectType.IPAP_ALLOCATION, templ_type)
 
+    def test_read_template(self):
+        ipap_message = IpapMessage(1,1,False)
+        template_id = ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        ipap_message.add_field(template_id, 0, 30)
+
+        ipap_data_record = IpapDataRecord(templ_id=template_id)
+        ipap_field_value1 = IpapValueField()
+        value = 12231213
+        ipap_field_value1.set_value_uint64(value)
+
+        # Replace the value
+        ipap_data_record.insert_field(0, 30, ipap_field_value1)
+        ipap_message.include_data(template_id, ipap_data_record)
+
+        template = self.ipap_message_parser.read_template(ipap_message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        self.assertEqual(template.get_type(), TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+
+        with self.assertRaises(ValueError):
+            template = self.ipap_message_parser.read_template(ipap_message, TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
+
+    def test_read_data_records(self):
+        ipap_message = IpapMessage(1,1,False)
+        template_id = ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        ipap_message.add_field(template_id, 0, 30)
+
+        ipap_data_record = IpapDataRecord(templ_id=template_id)
+        ipap_field_value1 = IpapValueField()
+        value = 12231213
+        ipap_field_value1.set_value_uint64(value)
+
+        # Replace the value
+        ipap_data_record.insert_field(0, 30, ipap_field_value1)
+        ipap_message.include_data(template_id, ipap_data_record)
+
+        lst = self.ipap_message_parser.read_data_records(ipap_message, template_id)
+        self.assertEqual(len(lst), 1)
+
+        lst = self.ipap_message_parser.read_data_records(ipap_message, 100)
+        self.assertEqual(len(lst), 0)
+
     def test_get_domain(self):
         domain = self.ipap_message_parser.get_domain()
         self.assertEqual(domain, 10)
+
+
+class AuctionXmlFileParserTest(unittest.TestCase):
+
+    def setUp(self):
+        self.auction_xml_file_parser = AuctionXmlFileParser(domain=10)
+
+    #def test_parse(self):
+    #self.auction_xml_file_parser.parse("/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")
