@@ -11,6 +11,7 @@ from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_value_field import IpapValueField
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 class DefFileManagerTest(unittest.TestCase):
 
@@ -252,4 +253,33 @@ class AuctionXmlFileParserTest(unittest.TestCase):
         self.auction_xml_file_parser = AuctionXmlFileParser(10)
 
     def test_parse(self):
-        self.auction_xml_file_parser.parse("/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")
+        lst_auctions = self.auction_xml_file_parser.parse(
+                "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")
+
+        self.assertEqual(len(lst_auctions), 1)
+        auction = lst_auctions[0]
+
+        # verifies the interval
+        time_between = auction.interval.stop - auction.interval.start
+        self.assertEqual(auction.interval.duration, 100000)
+        self.assertEqual(auction.interval.interval, 10)
+
+        # verifies the total number of bidding objects
+        print(len(auction.bidding_object_templates))
+
+        for key in auction.bidding_object_templates[ObjectType.IPAP_BID]:
+            print(key)
+
+        self.template_container = IpapTemplateContainer()
+        exists = self.template_container.exists_template(
+            auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_OPTNS_BID_OBJECT_TEMPLATE])
+        self.assertEqual(exists, True)
+
+        templ_bid_data = auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_SETID_BID_OBJECT_TEMPLATE]
+        ipap_template = self.template_container.get_template(templ_bid_data)
+
+        ipap_template.
+
+        self.assertEqual(auction.resource_key, "1.router1")
+        self.assertEqual(auction.get_key(), "1.10")
+        self.assertEqual(len(auction.misc_dict),2)

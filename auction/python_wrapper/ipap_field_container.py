@@ -15,13 +15,13 @@ class IpapFieldContainer:
     def initialize_reverse(self):
         lib.ipap_field_container_initialize_reverse(self.obj)
 
-    def get_field(self, eno :int, type: int):
+    def get_field(self, eno: int, type: int):
         obj = lib.ipap_field_container_get_field_pointer(self.obj, c_int(eno), c_int(type))
 
         if obj: # not null
             field = IpapField(obj)
             return field
         else:
-            raise ValueError('Field not found')
+            raise ValueError('Field {0}.{1} not found'.format(str(eno),str(type)))
 
 

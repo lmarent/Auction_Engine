@@ -161,7 +161,7 @@ class Auction(AuctioningObject):
         """
         self.template_option_id = tid
 
-    def set_bidding_object_template(self, object_type: int, templ_type: int, template_id: int):
+    def set_bidding_object_template(self, object_type: ObjectType, templ_type: TemplateType, template_id: int):
         """
         Sets a new bigging object template for the auction. Valid bidding objects includes bid, allocations.
         :param object_type: object type (i.e., bid, allocation)
@@ -170,8 +170,8 @@ class Auction(AuctioningObject):
         """
         if object_type not in self.bidding_object_templates:
             self.bidding_object_templates[object_type] = {}
-        template_object = self.bidding_object_templates[object_type]
-        template_object[templ_type] = template_id
+
+        self.bidding_object_templates[object_type][templ_type] = template_id
 
     def _build_templates(self, templ_fields: dict):
         """
@@ -204,10 +204,11 @@ class Auction(AuctioningObject):
                                                                )
 
                 # Add a local reference to the template.
-                self.set_bidding_object_template(object_type, templ_type, template.get_template_id())
+                self.set_bidding_object_template(ObjectType(object_type), templ_type, template.get_template_id())
 
                 # Insert the template in the general container.
                 template_container.add_template(template)
+                print('terminando la funcion')
 
     @staticmethod
     def add_template_field(template: IpapTemplate, ipap_field_container: IpapFieldContainer, eno: int,
@@ -255,7 +256,7 @@ class Auction(AuctioningObject):
         """
         Creates the sets of fields to be used in a template. The set includes mandatory and those that have been chosen
         by the user for the auction
-        :param object_type          Object type 
+        :param object_type          Object type
         :param templ_type:          Template type (data, options)
         :param templ_fields:        Field to include given by the user
         :param mandatory_fields:    Mandatory fields to include given by the template type

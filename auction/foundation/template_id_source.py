@@ -16,7 +16,7 @@ class TemplateIdSource(metaclass=Singleton):
     id_reserved:  List of ids reserved, so they can not be used.
     """
 
-    def __init(self, num=255, unique=False):
+    def __init__(self, num=255, unique=False):
         self.num = num
         self.unique = unique
         self.ids_Reserved = []
@@ -31,7 +31,7 @@ class TemplateIdSource(metaclass=Singleton):
         :return: returns unique unused id value
         """
         if len(self.free_ids) == 0:
-            if self.num == 255:
+            if self.num == 65535:
                 raise ValueError("Maximum template number reached")
             else:
                 self.num = self.num + 1

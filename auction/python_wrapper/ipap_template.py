@@ -55,7 +55,7 @@ class IpapTemplate:
     def set_type(self, type: TemplateType):
         lib.ipap_template_set_type(self.obj, c_int(type.value))
 
-    def _get_template_type_mandatory_field_size(self, temp_type : TemplateType) -> int:
+    def _get_template_type_mandatory_field_size(self, temp_type: TemplateType) -> int:
         return lib.ipap_template_get_template_type_mandatory_field_size(self.obj, c_int(temp_type.value))
 
     def get_template_type_mandatory_field(self, temp_type : TemplateType) -> list:
@@ -64,9 +64,8 @@ class IpapTemplate:
 
         for i in range(0,size):
             obj = lib.ipap_template_get_template_type_mandatory_field(self.obj, c_int(temp_type.value), c_int(i))
-
             if obj: # not null
-                field_key = IpapFieldKey(obj)
+                field_key = IpapFieldKey(obj=obj)
                 list_return.append(field_key)
             else:
                 raise ValueError('Field key not found')
@@ -98,7 +97,7 @@ class IpapTemplate:
         list_return = []
 
         for i in range(0,size):
-            templ_type = lib.ipap_template_get_object_template_types_at_pos(self.obj, c_int(object_type.value), c_int(i))
+            templ_type = TemplateType(lib.ipap_template_get_object_template_types_at_pos(self.obj, c_int(object_type.value), c_int(i)))
 
             if templ_type == object_type.IPAP_INVALID:
                 raise ValueError('Object type requested but not found')

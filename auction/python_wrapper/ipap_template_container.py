@@ -1,9 +1,10 @@
 from ctypes import cdll
 from ctypes import c_uint16
 from python_wrapper.ipap_template import IpapTemplate
+from foundation.singleton import Singleton
 lib = cdll.LoadLibrary('libipap.so')
 
-class IpapTemplateContainer:
+class IpapTemplateContainer(metaclass=Singleton):
 
     def __init__(self):
         self.obj = lib.ipap_template_container_new()
@@ -25,3 +26,11 @@ class IpapTemplateContainer:
 
     def __del__(self):
         lib.ipap_template_container_destroy(self.obj)
+
+    def get_template(self, templid: int) -> IpapTemplate:
+        obj = lib.ipap_template_container_get_template(self.obj, c_uint16(templid))
+        if obj:  # not null
+            ipap_template = IpapTemplate(obj=obj)
+            return ipap_template
+        else:
+            raise ValueError('Template {0} not found'.format(str(templid)))

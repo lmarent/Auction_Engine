@@ -10,7 +10,7 @@ lib = cdll.LoadLibrary('libipap.so')
 
 class IpapField:
 
-    def __init__(self, obj:None):
+    def __init__(self, obj=None):
         if obj:
             self.obj = obj
         else:

@@ -146,12 +146,17 @@ class TemplateTest(unittest.TestCase):
     def test_get_template_type_mandatory_field(self):
         mandatory_fields = self.template.get_template_type_mandatory_field(
                                     TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        # verifies the total number
         self.assertEqual(len(mandatory_fields), 12)
+
+        # verifies that fields returned are correct ones.
+        for field in mandatory_fields:
+            self.assertEqual(field.get_eno(),0)
 
     def test_add_field(self):
         ipap_field = IpapField()
         ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
-        self.template.add_field(8, UnknownField.KNOWN,ipap_field)
+        self.template.add_field(8, UnknownField.KNOWN, True, ipap_field)
 
     def test_get_type(self):
         self.template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
@@ -165,15 +170,22 @@ class TemplateTest(unittest.TestCase):
         lst = self.template.get_object_template_types(ObjectType.IPAP_AUCTION)
         self.assertEqual(len(lst), 2)
 
+        lst = self.template.get_object_template_types(ObjectType.IPAP_BID)
+        self.assertEqual(len(lst), 2)
+
+        lst = self.template.get_object_template_types(ObjectType.IPAP_ALLOCATION)
+        self.assertEqual(len(lst), 2)
+
+        lst = self.template.get_object_template_types(ObjectType.IPAP_ASK)
+        self.assertEqual(len(lst), 2)
+
 
 class TemplateContainerTest(unittest.TestCase):
 
     def setUp(self):
-        print('in setUp')
         self.template_container = IpapTemplateContainer()
 
     def test_add_template(self):
-        print('in test_add_template')
         ipap_field = IpapField()
         ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
 
@@ -181,12 +193,11 @@ class TemplateContainerTest(unittest.TestCase):
         template = IpapTemplate()
         template.set_id(_id)
         template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        template.add_field(8, UnknownField.KNOWN, ipap_field)
+        template.add_field(8, UnknownField.KNOWN, True, ipap_field)
 
         self.template_container.add_template(template)
 
     def test_delete_all_templates(self):
-        print('in test_delete_all_templates')
         ipap_field = IpapField()
         ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
 
@@ -194,7 +205,7 @@ class TemplateContainerTest(unittest.TestCase):
         template = IpapTemplate()
         template.set_id(_id)
         template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        template.add_field(8, UnknownField.KNOWN, ipap_field)
+        template.add_field(8, UnknownField.KNOWN, True, ipap_field)
 
         self.template_container.add_template(template)
         self.template_container.delete_all_templates()
@@ -209,7 +220,7 @@ class TemplateContainerTest(unittest.TestCase):
         template = IpapTemplate()
         template.set_id(_id)
         template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        template.add_field(8, UnknownField.KNOWN, ipap_field)
+        template.add_field(8, UnknownField.KNOWN, True,ipap_field)
 
         self.template_container.add_template(template)
         self.template_container.delete_template(_id)
@@ -224,7 +235,7 @@ class TemplateContainerTest(unittest.TestCase):
         template = IpapTemplate()
         template.set_id(_id)
         template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-        template.add_field(8, UnknownField.KNOWN, ipap_field)
+        template.add_field(8, UnknownField.KNOWN, True, ipap_field)
         self.template_container.add_template(template)
 
         val = self.template_container.exists_template(_id)
@@ -233,6 +244,22 @@ class TemplateContainerTest(unittest.TestCase):
         _id = 13
         val = self.template_container.exists_template(_id)
         self.assertEqual(val, False)
+
+    def test_get_template(self):
+        ipap_field = IpapField()
+        ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
+
+        _id = 12
+        template = IpapTemplate()
+        template.set_id(_id)
+        template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        template.add_field(8, UnknownField.KNOWN, True, ipap_field)
+        self.template_container.add_template(template)
+
+        del template
+
+        temp = self.template_container.get_template(_id)
+        self.assertEqual(temp.get_template_id(),_id)
 
 
 class FieldContainerTest(unittest.TestCase):
