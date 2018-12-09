@@ -396,3 +396,10 @@ class Auction(AuctioningObject):
         :return:
         """
         return self.interval.stop
+
+    def get_resource_key(self) -> str:
+        """
+        Gets the resource key from the auction
+        :return: string representing the resource key.
+        """
+        return self.resource_key

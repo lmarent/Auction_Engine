@@ -68,3 +68,10 @@ class AuctioningObjectManager():
         auctioning_object.set_state(AuctioningObjectState.DONE)
         key = auctioning_object.get_key()
         self.auctioning_objects_done[key] = auctioning_object
+
+    def get_num_auctioning_objects(self) -> int:
+        """
+        Returns the number of current registed auctioning ojects
+        :return: number of auctioning objects.
+        """
+        return len(self.auctioning_objects)

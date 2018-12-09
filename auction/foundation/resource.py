@@ -48,7 +48,7 @@ class Resource(AuctioningObject):
         else:
             raise ValueError("auction with key:{} is not  in the resource".format(auction_key))
 
-    def verify_auction(self, auction : Auction):
+    def verify_auction(self, auction : Auction) -> bool:
         """
         Verifies whether or not the auction can be added to the resource
 
@@ -72,6 +72,17 @@ class Resource(AuctioningObject):
                 return False
 
         return True
+
+    def exist_auction(self, auction_key: str):
+        """
+        Verifies if an auction is already registered within the resource
+        :param auction_key: auction ey to verify
+        :return: True ifalready exist, False otherwise
+        """
+        if auction_key in self.auctions:
+            return True
+
+        return False
 
     def set_start_time(self, start_time : datetime ):
         """
