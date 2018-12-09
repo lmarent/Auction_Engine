@@ -1,4 +1,5 @@
-from auction_client_handler import 
+from aiohttp.web import Application, run_app
+import asyncio
 
 
 if __name__ == '__main__':

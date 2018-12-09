@@ -264,12 +264,6 @@ class AuctionXmlFileParserTest(unittest.TestCase):
         self.assertEqual(auction.interval.duration, 100000)
         self.assertEqual(auction.interval.interval, 10)
 
-        # verifies the total number of bidding objects
-        print(len(auction.bidding_object_templates))
-
-        for key in auction.bidding_object_templates[ObjectType.IPAP_BID]:
-            print(key)
-
         self.template_container = IpapTemplateContainer()
         exists = self.template_container.exists_template(
             auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_OPTNS_BID_OBJECT_TEMPLATE])
@@ -278,8 +272,25 @@ class AuctionXmlFileParserTest(unittest.TestCase):
         templ_bid_data = auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_SETID_BID_OBJECT_TEMPLATE]
         ipap_template = self.template_container.get_template(templ_bid_data)
 
-        ipap_template.
+        found = False
+        field_list =  ipap_template.get_fields()
+        for field in field_list:
+            if field.get_field_name().decode('ascii') == "auctionUnitValue":
+                found = True
 
+        self.assertEqual(found, True)
         self.assertEqual(auction.resource_key, "1.router1")
         self.assertEqual(auction.get_key(), "1.10")
         self.assertEqual(len(auction.misc_dict),2)
+
+        # Verifies the action that was created.
+        self.assertEqual(auction.action.name,"libbas")
+        self.assertEqual(auction.action.default_action, True)
+        self.assertEqual(len(auction.action.config_dict), 0)
+
+    def test_parse_maby_auctions(self):
+        lst_auctions = self.auction_xml_file_parser.parse(
+                "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions4.xml")
+
+
+        self.assertEqual(len(lst_auctions), 3)

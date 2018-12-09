@@ -1,5 +1,7 @@
 # auction.py
 from datetime import datetime
+from lxml.etree import Element
+
 from foundation.auctioning_object import AuctioningObject
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.template_id_source import TemplateIdSource
@@ -54,6 +56,27 @@ class Action:
             return self.config_dict[name]
         else:
             ValueError("Name {0} was not found in the configuration dictionary".format(name))
+
+    def parse_action(self, node: Element):
+        """
+        parsers an action from a xml element.
+        :param node: xml node.
+        """
+
+        action_name = node.get("NAME").lower()
+
+        # Verifies that a name was given to the action.
+        if not action_name:
+            raise ValueError("Auction Parser Error: missing name at line {0}".format(str(node.sourceline)))
+
+        self.name = action_name
+
+        for item in node.iterchildren():
+            if isinstance(item.tag, str):
+                if item.tag.lower() == "pref":
+                    config_param = ConfigParam()
+                    config_param.parse_config_item(item)
+                    self.add_config_item(config_param)
 
 
 class AuctionTemplateField:
@@ -273,13 +296,13 @@ class Auction(AuctioningObject):
             include = False
 
             field = templ_fields[field_key]
-            for (object_type_field, templ_type_field) in field.belogsto:
+            for (object_type_field, templ_type_field) in field.field_belong_to:
                 if (object_type_field == object_type) and (templ_type_field == templ_type):
                     include = True
                     break
 
             if include:
-                field_key = IpapFieldKey(field.get_eno(), field.get_ftype())
+                field_key = IpapFieldKey(field.field['eno'], field.field['ftype'])
                 # Excludes field_keys already in the dictionary.
                 if field_key.get_key() not in dict_return.keys():
                     dict_return[field_key.get_key()] = field_key

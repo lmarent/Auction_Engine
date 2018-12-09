@@ -106,6 +106,19 @@ class IpapTemplate:
 
         return list_return
 
+    def get_fields(self) -> list:
+        size = lib.ipap_template_get_numfields(self.obj)
+        list_return = []
+
+        for i in range(0,size):
+            obj = lib.ipap_template_get_field_by_pos(self.obj, c_int(i))
+            if obj: # not null
+                field = IpapField(obj=obj)
+                list_return.append(field)
+            else:
+                raise ValueError('Field key not found')
+        return list_return
+
     def __del__(self):
         if self.obj: # not null
             lib.ipap_template_destroy(self.obj)

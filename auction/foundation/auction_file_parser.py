@@ -30,25 +30,6 @@ class AuctionXmlFileParser(IpapMessageParser):
     def __init__(self, domain: int):
         super(AuctionXmlFileParser, self).__init__(domain=domain)
 
-    @staticmethod
-    def _parse_action(node: Element):
-
-        action_name = node.get("NAME").lower()
-
-        # Verifies that a name was given to the action.
-        if not action_name:
-            raise ValueError("Auction Parser Error: missing name at line {0}".format(str(node.sourceline)))
-
-        action = Action(action_name, False, dict())
-
-        for item in node.iterchildren():
-            if isinstance(item.tag, str):
-                if item.tag.lower() == "pref":
-                    config_param = ConfigParam()
-                    config_param.parse_config_item(item)
-                    action.add_config_item(config_param)
-
-        return action
 
     def _parse_global_options(self, item: Element) -> (dict, dict):
         """
@@ -68,7 +49,8 @@ class AuctionXmlFileParser(IpapMessageParser):
                     global_misc[config_param.name] = config_param
 
                 if sub_item.tag.lower() == "action":
-                    action = self._parse_action(sub_item)
+                    action = Action("",False, dict())
+                    action.parse_action(sub_item)
                     default = sub_item.get("DEFAULT")
                     if not default:
                         raise ValueError(
@@ -79,7 +61,7 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         return global_misc, global_actions
 
-    def _parse_field(self, node: Element):
+    def _parse_field(self, node: Element)-> (str,AuctionTemplateField):
         """
         Parse a field from the auction xml
 
@@ -93,13 +75,13 @@ class AuctionXmlFileParser(IpapMessageParser):
         belogs_to = []
         for item in node.iterchildren():
             if isinstance(item.tag, str):
-                if item.tag == "TEMPLATE_FIELD":
-                    object_type = self.parse_object_type(item.get("OBJECT_TYPE"))
-                    template_type = self.parse_template_type(object_type, item.get("TEMPLATE_TYPE"))
+                if item.tag.lower() == "template_field":
+                    object_type = self.parse_object_type(item.get("OBJECT_TYPE").lower())
+                    template_type = self.parse_template_type(object_type, item.get("TEMPLATE_TYPE").lower())
                     belogs_to.append((object_type, template_type))
 
         auction_template_field.field_belong_to = belogs_to
-        return auction_template_field
+        return field_name, auction_template_field
 
     def _parse_auction(self, node: Element, global_set: str, global_misc_config: dict,
                        global_actions: dict, field_container: IpapFieldContainer):
@@ -130,28 +112,30 @@ class AuctionXmlFileParser(IpapMessageParser):
         resurce_set = node.get("RESOURCE_SET").lower()
         resource_id = node.get("RESOURCE_ID").lower()
 
-        templ_fields = []
+        templ_fields = {}
 
         # Iterates over children nodes
         for subitem in node.iterchildren():
             if isinstance(subitem.tag, str):
-                if subitem.tag.lower() == "PREF":
+                if subitem.tag.lower() == "pref":
                     config_param = ConfigParam()
                     config_param.parse_config_item(subitem)
                     misc_config[name] = config_param
 
-                elif subitem.tag.lower() == "FIELD":
-                    templ_fields.append(self._parse_field(subitem, field_container))
+                elif subitem.tag.lower() == "field":
+                    field_name, field = self._parse_field(subitem)
+                    templ_fields[field_name] = field
 
-                elif subitem.tag.lower() == "ACTION":
-                    action = self._parse_action(subitem)
+                elif subitem.tag.lower() == "action":
+                    action = Action("",False,dict())
+                    action.parse_action(subitem)
                     action.default_action = True  # This is the default action,
                     actions[action.name] = action
 
         # get the default action
         action_default = None
-        for action in actions:
-            if action.default_action:
+        for action_name in actions:
+            if actions[action.name].default_action:
                 action_default = action
 
         auction_key = set_name + '.' + name
