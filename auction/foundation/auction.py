@@ -402,3 +402,10 @@ class Auction(AuctioningObject):
         :return: string representing the resource key.
         """
         return self.resource_key
+
+    def get_action(self) -> Action:
+        """
+        Gets the action associated with the auction
+        :return: Action
+        """
+        return self.action
