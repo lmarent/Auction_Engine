@@ -16,7 +16,7 @@ class AuctioningObjectManager():
 
     """
 
-    def __init__(self, domain):
+    def __init__(self, domain:int ):
         self.domain = domain
         self.auctioning_objects = {}
         self.auctioning_objects_done = {}

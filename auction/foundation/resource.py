@@ -18,8 +18,8 @@ class Resource(AuctioningObject):
     stop: Ending datatime whe the resource must be inactivated.
     """
 
-    def __init__(self, key : str):
-        super(Resource).__init__(key, AuctioningObjectType.RESOURCE)
+    def __init__(self, key: str):
+        super(Resource, self).__init__(key, AuctioningObjectType.RESOURCE)
         self.auctions = {}
         self.start = None
         self.stop = None

@@ -5,9 +5,12 @@ from foundation.singleton import Singleton
 
 class Config(metaclass=Singleton):
 
-    def __init__(self):
+    def __init__(self, file_name=None):
         base_dir = pathlib.Path(__file__).parent.parent
-        self.config_path = base_dir / 'config' / 'auction_cli.yaml'
+        if file_name:
+            self.config_path = base_dir / 'config' / file_name
+        else:
+            self.config_path = base_dir / 'config' / 'auction_cli.yaml'
         self.config = None
 
     def get_config(self):

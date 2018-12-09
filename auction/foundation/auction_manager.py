@@ -9,8 +9,8 @@ class AuctionManager(AuctioningObjectManager):
     This class maintains the auction within the server and client.
     """
 
-    def __init__(self, domain):
-        super(AuctionManager).__init__(domain)
+    def __init__(self, domain:int):
+        super(AuctionManager, self).__init__(domain)
         self.time_idx = {}
 
     def add_auction(self, auction: Auction):

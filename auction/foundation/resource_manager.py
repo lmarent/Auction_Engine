@@ -4,8 +4,8 @@ from foundation.auctioning_object_manager import AuctioningObjectManager
 
 class ResourceManager(AuctioningObjectManager):
 
-    def __init__(self, domain):
-        super(ResourceManager).__init__(domain)
+    def __init__(self, domain: int):
+        super(ResourceManager, self).__init__(domain)
         self.time_idx = {}
 
     def add_resource(self, resource: Resource):

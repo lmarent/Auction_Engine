@@ -1,0 +1,7 @@
+# Resources.yaml
+
+ResourceSet_1:
+  Router_1:
+    Name: Router_Principal
+    Id: Router_1
+

@@ -1,12 +1,11 @@
 #session_manager.py
-from session import SessionState
+from foundation.session import SessionState
 
-class SessionManager():
-    """
-      The SessionManager class allows to add and remove sessions in the core system. 
-    """
-
-	def __init__():
+class SessionManager:
+	"""
+	The SessionManager class allows to add and remove sessions in the core system.
+	"""
+	def __init__(self):
 		self.session_objects = {}
 		self.session_objects_done = {}
 	

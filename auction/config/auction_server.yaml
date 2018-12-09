@@ -1,0 +1,37 @@
+# auction_server.yaml
+Postgres:
+  Database: auctiondb
+  User: auction_user
+  Password: auction_pass
+  Host: localhost
+  Port: 5432
+  MinSize: 1
+  MaxSize: 5
+
+Main:
+  VerboseLevel: 4
+  Domain: 1
+  ResourceRequestFile: example_resource_request1.xml
+  DefaultDestinAddr: 192.168.3.3
+  DefaultDestinPort: 80
+  DefaultProtocol: 6
+  DefaultSourcePort: 12248
+  TimeFormat: "%Y%m%d %H%M%S"
+
+Control:
+  ControlPort: 12248
+  UseSSL: No
+  UseIPv6: No
+  LogOnConnect: yes
+  LogCommand: yes
+  LocalAddr-V4: 192.168.2.11
+  LocalAddr-V6: 0:0:0:0:0:0:0:0
+  Access:
+    Host: All
+    User: admin:admin
+
+AuctionfileDtd: auctionfile.dtd
+DtdRootNode: AUCTIONSET
+BidfileDtd: bidfile.dtd
+DefaultLogFile: netaum.log
+
