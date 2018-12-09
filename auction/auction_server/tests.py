@@ -27,4 +27,4 @@ class MyAppTestCase(AioHTTPTestCase):
             text = await resp.text()
             assert "1" in text
 
-        self.loop.run_until_complete(test_number_resources())
+        self.loop.run_forever()

@@ -120,7 +120,7 @@ class AuctionXmlFileParser(IpapMessageParser):
                 if subitem.tag.lower() == "pref":
                     config_param = ConfigParam()
                     config_param.parse_config_item(subitem)
-                    misc_config[name] = config_param
+                    misc_config[config_param.name] = config_param
 
                 elif subitem.tag.lower() == "field":
                     field_name, field = self._parse_field(subitem)

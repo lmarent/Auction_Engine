@@ -30,11 +30,11 @@ class Interval():
         Returns start datetime.
         """
         config = Config().get_config()
-        time_format = config['TimeFormat']
-        # parse tiem given 
+        time_format = config['Main']['TimeFormat']
+        # parse time given
         if stime[0] == '+':
             seconds = int(stime[1:])
-            time_val = datetime.datetime.now() + seconds
+            time_val = datetime.datetime.now() + timedelta(seconds=seconds)
         else:
             time_val = datetime.strptime(stime, time_format)
 

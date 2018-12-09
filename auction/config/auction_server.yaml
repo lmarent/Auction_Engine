@@ -17,6 +17,7 @@ Main:
   DefaultProtocol: 6
   DefaultSourcePort: 12248
   TimeFormat: "%Y%m%d %H%M%S"
+  ImmediateStart: True
 
 Control:
   ControlPort: 12248

@@ -11,7 +11,7 @@
     <!-- How often they should be run - value in seconds -->
     <PREF NAME="Interval">10</PREF>
   </GLOBAL>
-  <AUCTION ID="1" RESOURCE_SET="1" RESOURCE_ID="router1">
+  <AUCTION ID="1" RESOURCE_SET="ResourceSet_1" RESOURCE_ID="Router_1">
     <ACTION NAME="libbas" DEFAULT="true">
     <PREF NAME="Bandwidth" TYPE="Float32">8</PREF>
     <PREF NAME="ReservePrice" TYPE="Float64">0.0</PREF>
@@ -37,7 +37,7 @@
   </AUCTION>
 
 
-  <AUCTION ID="2" RESOURCE_SET="1" RESOURCE_ID="router1">
+  <AUCTION ID="2" RESOURCE_SET="ResourceSet_1" RESOURCE_ID="Router_1">
     <ACTION NAME="libbas" DEFAULT="true">
     <PREF NAME="Bandwidth" TYPE="Float32">8</PREF>
     <PREF NAME="ReservePrice" TYPE="Float64">0.0</PREF>

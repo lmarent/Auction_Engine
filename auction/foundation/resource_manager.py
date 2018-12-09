@@ -64,5 +64,5 @@ class ResourceManager(AuctioningObjectManager):
             return resource.verify_auction(auction)
 
         except ValueError as e:
-            # The resource given was not found, so the auction is invalid.
+            print('The resource given was not found, so the auction is invalid.')
             return False

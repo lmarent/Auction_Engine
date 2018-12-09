@@ -35,7 +35,7 @@ class AuctioningObject:
         self.auctioning_object_type = auctioning_object_type
         self.state = state
 
-    def set_state(self, state):
+    def set_state(self, state : AuctioningObjectState):
         """
         Change the object's state.
         """

@@ -3,6 +3,7 @@ import asyncio
 import functools
 import pathlib
 import yaml
+from datetime import datetime
 from foundation.resource import Resource
 
 
@@ -13,6 +14,8 @@ from foundation.resource_manager import ResourceManager
 from foundation.config import Config
 from foundation.parse_format import ParseFormats
 from foundation.auction_file_parser import AuctionXmlFileParser
+from foundation.auction import Auction
+from foundation.auction import AuctioningObjectState
 
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
@@ -24,6 +27,8 @@ class AuctionServer:
         self.conf = Config('auction_server.yaml').get_config()
 
         self.domain = ParseFormats.parse_int(self.conf['Main']['Domain'])
+        self.immediate_start = ParseFormats.parse_bool(self.conf['Main']['ImmediateStart'])
+
         self._load_ip_address()
         self._load_database_params()
         self._initialize_managers()
@@ -111,7 +116,7 @@ class AuctionServer:
                 resource_sets = yaml.load(f)
                 for resource_set in resource_sets:
                     for resource in resource_sets[resource_set]:
-                        resource = Resource(resource_set + '.' + resource)
+                        resource = Resource(resource_set.lower() + '.' + resource.lower())
                         self.resource_manager.add_auctioning_object(resource)
         except IOError as e:
             raise ValueError("Error opening file - Message:", str(e))
@@ -128,8 +133,33 @@ class AuctionServer:
         for auction in auctions:
             if self.resource_manager.verify_auction(auction):
                 self.auction_manager.add_auction(auction)
+
+                # Schedule auction activation
+                if self.immediate_start:
+                    self.loop.call_soon(functools.partial(self.handle_activate_auction, auction))
+                else:
+                    current_time = self.loop.time()
+                    diff_start = auction.get_start() - datetime.now()
+                    self.loop.call_at(self.loop.time() + diff_start.total_seconds(),
+                                      self.handle_activate_auction, auction)
+
+                # Schedule auction removal
+                diff_stop = auction.get_stop() - datetime.now()
+                self.loop.call_at(self.loop.time() + diff_stop.total_seconds(), self.handle_remove_auction, auction)
             else:
                 print("The auction with key {0} could not be added".format(auction.get_key()))
+
+    def handle_activate_auction(self, auction: Auction):
+        print('starting handle activate auction')
+
+
+        # change the state of all auctions to active
+        auction.set_state(AuctioningObjectState.ACTIVE)
+        print('ending handle activate auction')
+
+    def handle_remove_auction(self, auction: Auction):
+        print('starting handle remove auction')
+        print('ending handle remove auction')
 
     def run(self):
         """

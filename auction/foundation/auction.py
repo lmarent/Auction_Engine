@@ -231,7 +231,6 @@ class Auction(AuctioningObject):
 
                 # Insert the template in the general container.
                 template_container.add_template(template)
-                print('terminando la funcion')
 
     @staticmethod
     def add_template_field(template: IpapTemplate, ipap_field_container: IpapFieldContainer, eno: int,
