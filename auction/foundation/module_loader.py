@@ -1,10 +1,22 @@
 import os
 import importlib
 import importlib.util
+from foundation.module import Module
+
 
 class ModuleLoader:
+    """
+    The Module loader class maintains modules loaded during the execution of a bidding process. There are two
+    kinds of modules. Modules to be executed on customer agents which are thse that create bids and module for
+    execution on servers, which are those that take bids an create allocations.
 
-    def __init__(self, module_directory:str, modules: str, group: str ):
+    Atttributes
+    -----------
+    group: configuration group
+    modules: dict  map of modules already loaded.
+    """
+
+    def __init__(self, module_directory:str, group: str,  modules: str ):
         self.group = group
         self.modules = {}
 
@@ -16,7 +28,7 @@ class ModuleLoader:
             module_directory += "/"
 
         # test if specified dir does exist
-        if os.path.isdir(module_directory):
+        if not os.path.isdir(module_directory):
             raise ValueError("ModuleLoader: invalid module directory {0}".format(module_directory))
 
         self.module_directory = module_directory
@@ -39,7 +51,10 @@ class ModuleLoader:
 
         # the module name is relative
         if '/' not in module_name:
-            file_name = self.module_directory + module_name
+            if module_name.endswith('.py'):
+                file_name = self.module_directory + module_name
+            else:
+                file_name = self.module_directory + module_name + '.py'
 
         # Check if the module can be imported
         spec = importlib.util.spec_from_file_location(module_name, file_name)
@@ -48,13 +63,39 @@ class ModuleLoader:
 
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        proc_module = ProcModule(module)
-        self.modules[module_name] = proc_module
-        return proc_module
 
-    def get_module(self):
+        module_class =  getattr(module, module_name)
+        klass = module_class(module_name,file_name, module_name, module)
+        self.modules[module_name] = klass
+        return module
 
-    def release_module(self, module: Module):
+    def get_module(self, module_name:str):
+        """
+        Gets the module from the module loader
+
+        :param module_name: name of the module to get.
+        """
+        if not module_name:
+            raise ValueError('no module name specified')
+
+        if module_name in self.modules:
+            module = self.modules[module_name]
+        else:
+            module = self.load_module(module_name, False)
+
+        module.link()
+        return module
 
 
-    def get_version(self, module_name: str):
+    def release_module(self, module_name: str):
+        """
+        Release the module from the module louder
+        :param module_name name of the module to release.
+
+        """
+        if module_name in self.modules:
+            module = self.modules[module_name]
+            module.unlink()
+            if module.get_references() <= 0:
+                self.modules.pop(module_name, None)
+

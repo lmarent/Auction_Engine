@@ -3,6 +3,7 @@ from foundation.field_def_manager import FieldDefManager
 from foundation.field_def_manager import DataType
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.auction_file_parser import AuctionXmlFileParser
+from foundation.module_loader import ModuleLoader
 
 from foundation.field_value import FieldValue
 from foundation.specific_field_value import SpecificFieldValue
@@ -294,3 +295,28 @@ class AuctionXmlFileParserTest(unittest.TestCase):
 
 
         self.assertEqual(len(lst_auctions), 3)
+
+
+class ModuleLoaderTest(unittest.TestCase):
+
+    def setUp(self):
+        module_directory = '/home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules'
+        self.module_loader = ModuleLoader(module_directory, "AUMProcessor", None)
+
+    def test_load_module(self):
+        module_name = 'basic_server_module'
+        module = self.module_loader.load_module(module_name,False)
+        self.assertEqual(module is not None, True)
+
+    def test_get_module(self):
+        module_name = 'basic_server_module'
+        self.module_loader.load_module(module_name,False)
+        module = self.module_loader.get_module(module_name)
+        self.assertEqual(module is not None, True)
+
+    def test_release_module(self):
+        module_name = 'basic_server_module'
+        self.module_loader.load_module(module_name,False)
+        self.module_loader.release_module(module_name)
+        self.assertEqual(len(self.module_loader.modules),0)
+

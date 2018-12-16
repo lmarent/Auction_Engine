@@ -31,6 +31,25 @@ Control:
     Host: All
     User: admin:admin
 
+AUMProcessor:
+  ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/modules
+  ModuleDynamicLoad: yes
+  Modules: basic_server_module
+  basic_server_module:
+    Rate:
+      Name: Rate
+      Type: UInt32
+      Value: 102400
+    Burts:
+      Name: Rate
+      Type: UInt32
+      Value: 1556
+    NextId:
+      Name: NextId
+      Type: UInt32
+      Value: 100
+
+
 ResourceFile: resources.yaml
 AuctionFileDtd: auctionfile.dtd
 AuctionFile: example_auctions2.xml

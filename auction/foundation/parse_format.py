@@ -1,9 +1,9 @@
 import ipaddress
 import datetime
+import importlib
 from datetime import timedelta
 from decimal import Decimal
-from foundation.config import Config
-
+import os
 
 class ParseFormats:
     """
@@ -103,7 +103,16 @@ class ParseFormats:
             time = datetime.datetime.fromtimestamp(secs)
             return time
         else:
-            config = Config().get_config()
+            module_name = 'config'
+            cur_dir = os.path.dirname(__file__)
+            file_name = os.path.join(cur_dir, 'config.py')
+            spec = importlib.util.spec_from_file_location(module_name, file_name)
+            if spec is None:
+                raise ModuleNotFoundError("The module with name {0} can not be open".format(file_name))
+
+            config_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(config_module)
+            config = config_module.Config().get_config()
             time = datetime.datetime.strptime(value, config["TimeFormat"])
             return time
 
