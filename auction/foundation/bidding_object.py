@@ -1,7 +1,7 @@
 #bidding_object.py
-from auctioning_object import AuctoningObject
+from foundation.auctioning_object import AuctioningObject
 
-class BiddingObject(AuctoningObject):
+class BiddingObject(AuctioningObject):
     """
     This class respresents the bidding objects being interchanged between users and the auctionner. 
     A bidding object has two parts:

@@ -308,11 +308,24 @@ class ModuleLoaderTest(unittest.TestCase):
         module = self.module_loader.load_module(module_name,False)
         self.assertEqual(module is not None, True)
 
+        with self.assertRaises(ModuleNotFoundError):
+            module_name = 'basic_asda_module'
+            module2 = self.module_loader.load_module(module_name,False)
+
+        with self.assertRaises(ValueError):
+            module_name = ''
+            module2 = self.module_loader.load_module(module_name,False)
+
+
     def test_get_module(self):
         module_name = 'basic_server_module'
         self.module_loader.load_module(module_name,False)
         module = self.module_loader.get_module(module_name)
         self.assertEqual(module is not None, True)
+
+        module_name = 'basic_test'
+        with self.assertRaises(ModuleNotFoundError):
+            module2 = self.module_loader.get_module(module_name)
 
     def test_release_module(self):
         module_name = 'basic_server_module'

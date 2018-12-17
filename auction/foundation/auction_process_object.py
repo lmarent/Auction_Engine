@@ -7,14 +7,12 @@ class AuctionProcessObject():
      Attributes
      ----------
      key: int : index for uniquely identify this process object.
-     module: ProcModule Module loaded to execute the process
-     process_api: Module Api.
+     module: Module Module loaded to execute the process
     """
 
-    def __init__(self,key=0, module=None, process_api=None):
+    def __init__(self,key=0, module=None):
         self.key=key
         self.module=module
-        self.process_api=process_api
 
     def set_module(self,module):
         """
@@ -23,14 +21,6 @@ class AuctionProcessObject():
         :param module:
         """
         self.module = module
-
-    def set_process_api(self, process_api):
-        """
-        Sets the process api to be used during execution.
-
-        :param process_api:
-        """
-        self.process_api = process_api
 
     def get_key(self) -> int:
         """
@@ -45,10 +35,3 @@ class AuctionProcessObject():
         :return:
         """
         return self.module
-
-    def get_process_api(self):
-        """
-        Gets the process api
-        :return:
-        """
-        return self.process_api

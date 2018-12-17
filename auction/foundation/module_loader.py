@@ -57,17 +57,17 @@ class ModuleLoader:
                 file_name = self.module_directory + module_name + '.py'
 
         # Check if the module can be imported
-        spec = importlib.util.spec_from_file_location(module_name, file_name)
-        if spec is None:
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, file_name)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            module_class =  getattr(module, module_name)
+            klass = module_class(module_name,file_name, module_name, module)
+            self.modules[module_name] = klass
+            return module
+        except FileNotFoundError as e:
             raise ModuleNotFoundError("The module with name {0} can not be open".format(file_name))
-
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        module_class =  getattr(module, module_name)
-        klass = module_class(module_name,file_name, module_name, module)
-        self.modules[module_name] = klass
-        return module
 
     def get_module(self, module_name:str):
         """

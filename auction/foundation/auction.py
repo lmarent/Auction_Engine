@@ -57,6 +57,14 @@ class Action:
         else:
             ValueError("Name {0} was not found in the configuration dictionary".format(name))
 
+    def get_config_params(self) -> dict:
+        """
+        Returns the configuration params to be used during action initialization.
+
+        :return: dictinary with name - param definition
+        """
+        return self.config_dict
+
     def parse_action(self, node: Element):
         """
         parsers an action from a xml element.

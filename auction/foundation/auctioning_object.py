@@ -30,12 +30,12 @@ class AuctioningObject:
     represents an abtract class of all objects  being exchanged in the auction.
     """
 
-    def __init__(self, key, auctioning_object_type, state=AuctioningObjectState.NEW):
+    def __init__(self, key, auctioning_object_type: AuctioningObjectType, state=AuctioningObjectState.NEW):
         self.key = key
         self.auctioning_object_type = auctioning_object_type
         self.state = state
 
-    def set_state(self, state : AuctioningObjectState):
+    def set_state(self, state: AuctioningObjectState):
         """
         Change the object's state.
         """
@@ -52,3 +52,10 @@ class AuctioningObject:
         Return object's key.
         """
         return self.key
+
+    def get_type(self) -> AuctioningObjectType:
+        """
+        Returns the auction object type
+        :return: AuctioningObjectType
+        """
+        return self.auctioning_object_type
