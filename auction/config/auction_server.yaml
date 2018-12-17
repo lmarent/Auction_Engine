@@ -32,7 +32,7 @@ Control:
     User: admin:admin
 
 AUMProcessor:
-  ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/modules
+  ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules
   ModuleDynamicLoad: yes
   Modules: basic_server_module
   basic_server_module:
@@ -52,7 +52,7 @@ AUMProcessor:
 
 ResourceFile: resources.yaml
 AuctionFileDtd: auctionfile.dtd
-AuctionFile: example_auctions2.xml
+AuctionFile: example_auctions3.xml
 DtdRootNode: AUCTIONSET
 BidfileDtd: bidfile.dtd
 DefaultLogFile: netaum.log

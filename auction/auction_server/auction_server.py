@@ -4,12 +4,12 @@ import functools
 import pathlib
 import yaml
 from datetime import datetime
+from asyncio.events import TimerHandle
 
 from auction_server.auction_processor import AuctionProcessor
 
 from foundation.resource import Resource
 from foundation.auction_manager import AuctionManager
-#from foundation.bidding_object_manager import BiddingObjectManager
 from foundation.session_manager import SessionManager
 from foundation.resource_manager import ResourceManager
 from foundation.config import Config
@@ -18,49 +18,50 @@ from foundation.auction_file_parser import AuctionXmlFileParser
 from foundation.auction import Auction
 from foundation.auctioning_object import AuctioningObjectState
 
-from python_wrapper.ipap_template_container import IpapTemplateContainer
-
 
 class AuctionServer:
 
     def __init__(self):
+        try:
+            self.config = Config('auction_server.yaml').get_config()
 
-        self.conf = Config('auction_server.yaml').get_config()
+            self.domain = ParseFormats.parse_int(self.config['Main']['Domain'])
+            self.immediate_start = ParseFormats.parse_bool(self.config['Main']['ImmediateStart'])
+            self._pending_tasks_by_auction = {}
 
-        self.domain = ParseFormats.parse_int(self.conf['Main']['Domain'])
-        self.immediate_start = ParseFormats.parse_bool(self.conf['Main']['ImmediateStart'])
+            self._load_ip_address()
+            self._load_database_params()
+            self._initialize_managers()
+            self._initilize_processors()
 
-        self._load_ip_address()
-        self._load_database_params()
-        self._initialize_managers()
-        self._initilize_processors()
-
-        # Start Listening the web server application
-        self.app = Application()
-        self.loop = asyncio.get_event_loop()
-        self._load_resources()
-        self._load_auctions()
+            # Start Listening the web server application
+            self.app = Application()
+            self.loop = asyncio.get_event_loop()
+            self._load_resources()
+            self._load_auctions()
+        except Exception as e:
+            print ("Error during server initialization - message:", str(e) )
 
     def _load_ip_address(self):
         """
         Sets the ip addreess defined in the configuration file
         """
-        use_ipv6 = self.conf['Control']['UseIPv6']
+        use_ipv6 = self.config['Control']['UseIPv6']
         use_ipv6 = ParseFormats.parse_bool(use_ipv6)
         if use_ipv6:
-            self.ip_address = ParseFormats.parse_ipaddress(self.conf['Control']['LocalAddr-V6'])
+            self.ip_address = ParseFormats.parse_ipaddress(self.config['Control']['LocalAddr-V6'])
         else:
-            self.ip_address = ParseFormats.parse_ipaddress(self.conf['Control']['LocalAddr-V4'])
+            self.ip_address = ParseFormats.parse_ipaddress(self.config['Control']['LocalAddr-V4'])
 
     def _load_database_params(self):
         """
         Loads the database parameters from configuration file
         """
-        self.db_name = self.conf['Postgres']['Database']
-        self.db_user = self.conf['Postgres']['User']
-        self.db_passwd = self.conf['Postgres']['Password']
-        self.db_ip_address = self.conf['Postgres']['Host']
-        self.db_port = self.conf['Postgres']['Port']
+        self.db_name = self.config['Postgres']['Database']
+        self.db_user = self.config['Postgres']['User']
+        self.db_passwd = self.config['Postgres']['Password']
+        self.db_ip_address = self.config['Postgres']['Host']
+        self.db_port = self.config['Postgres']['Port']
 
     def _initialize_managers(self):
         """
@@ -87,14 +88,37 @@ class AuctionServer:
         else:
             raise ValueError('There should be a AUMProcessor option set in config file')
 
+    def _add_pending_tasks(self, key:str, call: TimerHandle, when:float):
+        """
+        Adds a ending tasks to an auction identified by its key
+        :param key: key of the auction
+        :param call: the awaitable that was scheduled to execute.
+        :return:
+        """
+        if key not in self._pending_tasks_by_auction:
+            self._pending_tasks_by_auction[key] = {}
+
+        self._pending_tasks_by_auction[key][when]= call
+
+    def _remove_pending_task(self, key:str, when:float):
+        """
+        Removes a pending task for an auction key and scheduled at a specific time
+        :param key:  auction key
+        :param when: specific time when it was scheduled.
+        :return:
+        """
+        if key in self._pending_tasks_by_auction:
+            if when in self._pending_tasks_by_auction[key]:
+                self._pending_tasks_by_auction[key].pop(when)
+
     def _load_resources(self):
         """
         Loads resources from file
         :return:
         """
-        if 'ResourceFile' in self.conf:
+        if 'ResourceFile' in self.config:
             base_dir = pathlib.Path(__file__).parent.parent
-            resource_file = self.conf['ResourceFile']
+            resource_file = self.config['ResourceFile']
             resource_file = base_dir / 'config' / resource_file
             self.handle_load_resources(resource_file)
         else:
@@ -105,8 +129,8 @@ class AuctionServer:
         Loads auctions from file
         :return:
         """
-        if 'AuctionFile' in self.conf:
-            auction_file = self.conf['AuctionFile']
+        if 'AuctionFile' in self.config:
+            auction_file = self.config['AuctionFile']
             base_dir = pathlib.Path(__file__).parent.parent
             auction_file = base_dir / 'xmls' / auction_file
             auction_file = str(auction_file)
@@ -144,21 +168,26 @@ class AuctionServer:
 
                 # Schedule auction activation
                 if self.immediate_start:
-                    self.loop.call_soon(functools.partial(self.handle_activate_auction, auction))
+                    when = self.loop.time()
+                    self.loop.call_soon(functools.partial(self.handle_activate_auction, auction, when))
                 else:
-                    current_time = self.loop.time()
                     diff_start = auction.get_start() - datetime.now()
-                    self.loop.call_at(self.loop.time() + diff_start.total_seconds(),
-                                      self.handle_activate_auction, auction)
-
+                    when = self.loop.time() + diff_start.total_seconds()
+                    call = self.loop.call_at(when, self.handle_activate_auction, auction, when)
+                    self._add_pending_tasks(auction.get_key(), call)
                 # Schedule auction removal
                 diff_stop = auction.get_stop() - datetime.now()
-                self.loop.call_at(self.loop.time() + diff_stop.total_seconds(), self.handle_remove_auction, auction)
+                when = self.loop.time() + diff_stop.total_seconds()
+                call = self.loop.call_at(when, self.handle_remove_auction, auction, when)
+                self._add_pending_tasks(auction.get_key(), call, when)
             else:
                 print("The auction with key {0} could not be added".format(auction.get_key()))
 
-    def handle_activate_auction(self, auction: Auction):
+    def handle_activate_auction(self, auction: Auction, when:float):
         print('starting handle activate auction')
+
+        # The task is no longer scheduled.
+        self._remove_pending_task(auction.get_key(), when)
 
         # creates the auction processor
         self.auction_processor.add_auction_process(auction)
@@ -168,19 +197,38 @@ class AuctionServer:
         diff_start = auction.get_start() - datetime.now()
 
         # Activates its execution
-        self.loop.call_at(self.loop.time()+ diff_start.total_seconds(), self.handle_push_execution, auction )
+        when = self.loop.time() + diff_start.total_seconds()
+        caller = self.loop.call_at(when, self.handle_push_execution, auction, when)
 
-        # change the state of all auctions to active
+        # Change the state of all auctions to active
         auction.set_state(AuctioningObjectState.ACTIVE)
         print('ending handle activate auction')
 
-    def handle_remove_auction(self, auction: Auction):
+    def handle_remove_auction(self, auction: Auction, when:float):
         print('starting handle remove auction')
 
-        # Remove the auction from the auction processor
-        
+        # The task is no longer scheduled.
+        self._remove_pending_task(auction.get_key(), when)
+
+        # Cancels all pending task scheduled for the auction
+        for when in self._pending_tasks_by_auction[auction.get_key()]:
+            call = self._pending_tasks_by_auction[auction.get_key()][when]
+            call.cancel()
+
+        self._pending_tasks_by_auction.pop(auction.get_key())
 
         print('ending handle remove auction')
+
+    def handle_push_execution(self, auction: Auction, when:float):
+        print('starting handle push execution')
+
+        # The task is no longer scheduled.
+        self._remove_pending_task(auction.get_key(), when)
+
+        # Remove the auction from the auction processor
+
+
+        print('ending handle push execution')
 
     def run(self):
         """

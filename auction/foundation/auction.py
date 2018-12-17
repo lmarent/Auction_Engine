@@ -417,3 +417,10 @@ class Auction(AuctioningObject):
         :return: Action
         """
         return self.action
+
+    def get_interval(self) -> Interval:
+        """
+        Gets the interval associated with the auction
+        :return:
+        """
+        return self.interval
