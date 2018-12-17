@@ -56,4 +56,3 @@ AuctionFile: example_auctions2.xml
 DtdRootNode: AUCTIONSET
 BidfileDtd: bidfile.dtd
 DefaultLogFile: netaum.log
-

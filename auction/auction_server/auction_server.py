@@ -4,9 +4,10 @@ import functools
 import pathlib
 import yaml
 from datetime import datetime
+
+from auction_server.auction_processor import AuctionProcessor
+
 from foundation.resource import Resource
-
-
 from foundation.auction_manager import AuctionManager
 #from foundation.bidding_object_manager import BiddingObjectManager
 from foundation.session_manager import SessionManager
@@ -15,7 +16,7 @@ from foundation.config import Config
 from foundation.parse_format import ParseFormats
 from foundation.auction_file_parser import AuctionXmlFileParser
 from foundation.auction import Auction
-from foundation.auction import AuctioningObjectState
+from foundation.auctioning_object import AuctioningObjectState
 
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
@@ -76,8 +77,15 @@ class AuctionServer:
         Initialize processors used
         :return:
         """
-        pass
-
+        if 'AUMProcessor' in self.config:
+            if 'ModuleDir' in self.config['AUMProcessor']:
+                module_directory = self.config['AUMProcessor']['ModuleDir']
+                self.auction_processor = AuctionProcessor(self.domain, module_directory)
+            else:
+                ValueError(
+                    'Configuration file does not have {0} entry within {1}'.format('ModuleDir', 'AumProcessor'))
+        else:
+            raise ValueError('There should be a AUMProcessor option set in config file')
 
     def _load_resources(self):
         """
@@ -152,6 +160,15 @@ class AuctionServer:
     def handle_activate_auction(self, auction: Auction):
         print('starting handle activate auction')
 
+        # creates the auction processor
+        self.auction_processor.add_auction_process(auction)
+        start = auction.get_start()
+        stop = auction.get_stop()
+        interval = auction.get_interval()
+        diff_start = auction.get_start() - datetime.now()
+
+        # Activates its execution
+        self.loop.call_at(self.loop.time()+ diff_start.total_seconds(), self.handle_push_execution, auction )
 
         # change the state of all auctions to active
         auction.set_state(AuctioningObjectState.ACTIVE)
@@ -159,6 +176,10 @@ class AuctionServer:
 
     def handle_remove_auction(self, auction: Auction):
         print('starting handle remove auction')
+
+        # Remove the auction from the auction processor
+        
+
         print('ending handle remove auction')
 
     def run(self):

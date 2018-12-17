@@ -72,8 +72,6 @@ class Interval():
         #duration = 0 indicates no duration set
         self.duration = 0
 
-        print(interval_dict)
-
         sstart = interval_dict.get('start',None)
         sstop = interval_dict.get('stop',None)
         sduration = interval_dict.get('duration',None)

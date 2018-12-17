@@ -1,5 +1,6 @@
 #bidding_object.py
 from foundation.auctioning_object import AuctioningObject
+from foundation.auctioning_object import AuctioningObjectType
 
 class BiddingObject(AuctioningObject):
     """
@@ -10,8 +11,8 @@ class BiddingObject(AuctioningObject):
       2. A set of options which establish the duration of the bidding object. 
     """
 
-    def __init__(self, auction, bidding_object_key, elements, options)
-        super(BiddingObject).__init__(bidding_object_key)
+    def __init__(self, auction, bidding_object_key, elements, options):
+        super(BiddingObject, self).__init__(bidding_object_key, AuctioningObjectType.BID)
 
         self.elements = {}
         self.options = {}

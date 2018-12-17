@@ -10,17 +10,19 @@ class basic_server_module(Module):
         self.config_param_list = []
 
     def init_module(self, config_param_list:list):
+        print ('in init_module')
         self.config_param_list = config_param_list
 
     def destroy_module(self):
-        print ('destroying the module')
+        print ('in destroy_module')
 
     def execute(self, auction_key: str, start:datetime, stop:datetime, bids: dict) -> dict:
         print('in execute')
         return {}
 
     def execute_user(self, request_params, auctions: list, start:datetime, stop:datetime) -> list:
+        print('in execute_user')
         pass
 
     def reset(self):
-        print('reset')
+        print('in reset')

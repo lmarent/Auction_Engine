@@ -97,5 +97,6 @@ class ModuleLoader:
             module = self.modules[module_name]
             module.unlink()
             if module.get_references() <= 0:
+                module.destroy_module()
                 self.modules.pop(module_name, None)
 

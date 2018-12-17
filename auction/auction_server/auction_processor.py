@@ -73,26 +73,24 @@ class AuctionProcessor(IpapMessageParser):
         self.field_sets = {}
 
         if not module_directory:
-            if 'AumProcessor' in self.config:
-                if 'ModuleDir' in self.config['AumProcessor']:
-                    module_directory = self.config['AumProcessor']['ModuleDir']
+            if 'AUMProcessor' in self.config:
+                if 'ModuleDir' in self.config['AUMProcessor']:
+                    module_directory = self.config['AUMProcessor']['ModuleDir']
                 else:
                     ValueError(
                         'Configuration file does not have {0} entry within {1}'.format('ModuleDir', 'AumProcessor'))
             else:
                 ValueError('Configuration file does not have {0} entry,please include it'.format('AumProcessor'))
 
-        if 'AumProcessor' in self.config:
-            if 'Modules' in self.config['AumProcessor']:
-                module_directory = self.config['AumProcessor']['Modules']
+        if 'AUMProcessor' in self.config:
+            if 'Modules' in self.config['AUMProcessor']:
+                modules = self.config['AUMProcessor']['Modules']
+                self.module_loader = ModuleLoader(module_directory, 'AUMProcessor', modules)
             else:
                 ValueError(
                     'Configuration file does not have {0} entry within {1}'.format('Modules', 'AumProcessor'))
         else:
             ValueError('Configuration file does not have {0} entry,please include it'.format('AumProcessor'))
-
-        modules = self.config['AumProcessor']['Modules']
-        self.module_loader = ModuleLoader(module_directory, modules, 'AUMProcessor')
 
     def add_auction_process(self, auction: Auction):
         """
@@ -106,10 +104,12 @@ class AuctionProcessor(IpapMessageParser):
             module_name = action.name
             module = self.module_loader.get_module(module_name)
             action_process = AuctionProcess(key, module, action.get_config_params(), auction)
+            module.init_module(action.get_config_params())
             self.auctions[key] = action_process
             return key
         except Exception as e:
             print('Error msg:', str(e))
+            return None
 
     def execute_auction(self, key: str, start: datetime, end: datetime):
         """
@@ -134,10 +134,16 @@ class AuctionProcessor(IpapMessageParser):
         """
         if key not in self.auctions:
             raise ValueError("auction process with index:{0} was not found".format(key))
-
         action_process = self.auctions[key]
+
+        if bidding_object.parent_auction.get_key() != action_process.key:
+            raise ValueError("bidding object given {0} is not for the auction {1}".format(
+                bidding_object.get_key(), key))
+
         if bidding_object.get_type() == AuctioningObjectType.BID:
             action_process.insert_bid(bidding_object)
+        else:
+            raise ValueError("bidding object is not BID type")
 
     def delete_bidding_object_from_auction_process(self, key: int, bidding_object: BiddingObject):
         """
@@ -167,6 +173,17 @@ class AuctionProcessor(IpapMessageParser):
         action_process = self.auctions.pop(key, None)
         if action_process:
             self.module_loader.release_module(action_process.get_module().get_module_name())
+
+    def get_auction_process(self, key:str) -> AuctionProcess:
+        """
+        Gets the auction process with the key given
+        :param key: key to find
+        :return: auction process
+        """
+        if key not in self.auctions:
+            raise ValueError("auction process with index:{0} was not found".format(key))
+
+        return self.auctions.get(key)
 
     def get_session_information(self, message: IpapMessage):
         """
@@ -203,11 +220,11 @@ class AuctionProcessor(IpapMessageParser):
 
             # Fill option auctions fields
             agent_search_fields = set()
-            agent_search_fields(IpapFieldKey(field_def_manager.get_field('start')['eno'],
+            agent_search_fields.add(IpapFieldKey(field_def_manager.get_field('start')['eno'],
                                            field_def_manager.get_field('start')['ftype']))
-            agent_search_fields(IpapFieldKey(field_def_manager.get_field('stop')['eno'],
+            agent_search_fields.add(IpapFieldKey(field_def_manager.get_field('stop')['eno'],
                                            field_def_manager.get_field('stop')['ftype']))
-            agent_search_fields(IpapFieldKey(field_def_manager.get_field('resourceid')['eno'],
+            agent_search_fields.add(IpapFieldKey(field_def_manager.get_field('resourceid')['eno'],
                                            field_def_manager.get_field('resourceid')['ftype']))
             self.field_sets[AgentFieldSet.REQUEST_FIELD_SET_NAME] = agent_search_fields
 
