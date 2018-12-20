@@ -1,4 +1,4 @@
-# auction_cli.yaml
+# auction_agent.yaml
 postgres:
   database: auctiondb
   user: auction_user
@@ -13,6 +13,12 @@ DefaultDestinAddr: 192.168.3.3
 DefaultDestinPort: 80
 DefaultSourcePort: 12248
 TimeFormat: "%Y%m%d %H%M%S"
+
+AGNTProcessor:
+  ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules
+  ModuleDynamicLoad: yes
+  Modules: basic_client_module
+
 
 AuctionfileDtd: auctionfile.dtd
 DtdRootNode: AUCTIONSET

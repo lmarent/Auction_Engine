@@ -11,7 +11,7 @@ class Config(metaclass=Singleton):
         if file_name:
             self.config_path = base_dir / 'config' / file_name
         else:
-            self.config_path = base_dir / 'config' / 'auction_cli.yaml'
+            self.config_path = base_dir / 'config' / 'auction_agent.yaml'
         self.config = None
 
     def get_config(self):

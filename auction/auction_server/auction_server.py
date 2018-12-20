@@ -3,7 +3,7 @@ import asyncio
 import functools
 import pathlib
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 from asyncio.events import TimerHandle
 
 from auction_server.auction_processor import AuctionProcessor
@@ -17,6 +17,7 @@ from foundation.parse_format import ParseFormats
 from foundation.auction_file_parser import AuctionXmlFileParser
 from foundation.auction import Auction
 from foundation.auctioning_object import AuctioningObjectState
+from foundation.interval import Interval
 
 
 class AuctionServer:
@@ -174,7 +175,7 @@ class AuctionServer:
                     diff_start = auction.get_start() - datetime.now()
                     when = self.loop.time() + diff_start.total_seconds()
                     call = self.loop.call_at(when, self.handle_activate_auction, auction, when)
-                    self._add_pending_tasks(auction.get_key(), call)
+                    self._add_pending_tasks(auction.get_key(), call, when)
                 # Schedule auction removal
                 diff_stop = auction.get_stop() - datetime.now()
                 when = self.loop.time() + diff_stop.total_seconds()
@@ -198,7 +199,8 @@ class AuctionServer:
 
         # Activates its execution
         when = self.loop.time() + diff_start.total_seconds()
-        caller = self.loop.call_at(when, self.handle_push_execution, auction, when)
+        call = self.loop.call_at(when, self.handle_push_execution, auction, start, stop, interval, when)
+        self._add_pending_tasks(auction.get_key(), call, when)
 
         # Change the state of all auctions to active
         auction.set_state(AuctioningObjectState.ACTIVE)
@@ -219,13 +221,27 @@ class AuctionServer:
 
         print('ending handle remove auction')
 
-    def handle_push_execution(self, auction: Auction, when:float):
+    def handle_push_execution(self, auction: Auction, start: datetime, stop:datetime, interval:Interval, when:float):
         print('starting handle push execution')
 
         # The task is no longer scheduled.
         self._remove_pending_task(auction.get_key(), when)
 
-        # Remove the auction from the auction processor
+        stop_tmp = start + timedelta(seconds=interval.interval)
+
+        if stop_tmp > stop:
+            stop_tmp = stop
+
+        # execute the algorithm
+        self.auction_processor.execute_auction(auction.get_key(),start, stop_tmp)
+
+        if stop_tmp < stop:
+            diff_stop_tmp = stop_tmp - datetime.now()
+            when = self.loop.time() + diff_stop_tmp.total_seconds()
+            call = self.loop.call_at(when, self.handle_push_execution, auction, stop_tmp, stop, interval, when)
+            self._add_pending_tasks(auction.get_key(), call, when)
+
+        print('interval:', interval.align)
 
 
         print('ending handle push execution')
