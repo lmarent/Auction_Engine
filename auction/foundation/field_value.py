@@ -1,6 +1,7 @@
 from foundation.specific_field_value import SpecificFieldValue
 from foundation.field_def_manager import FieldDefManager
 from enum import Enum
+from lxml.etree import Element
 
 
 class MatchFieldType(Enum):
@@ -135,3 +136,36 @@ class FieldValue:
             self._parse_field_value_list(value)
         else:
             self._parse_field_value_exact(value)
+
+    def parse_field_value(self, node: Element):
+        """
+        parsers a field value from a xml node
+        :param node: Xml node that constains the field value
+        :return: Nothing
+        """
+        name = node.get("NAME")
+        value = node.text
+        if not name:
+            raise ValueError("The xml has a field with no name")
+
+        if not value:
+            raise ValueError("The xml has a field with no value")
+
+        name = name.lower()
+        field_def_manager = FieldDefManager()
+        field_def = field_def_manager.get_field(name)
+
+        field_type = node.get("TYPE")
+        if field_type:
+            field_type = field_type.lower()
+        else:
+            field_type = "string"  # default type is string.
+
+        # verifies that types agree
+        if field_type != field_def['type']:
+            raise ValueError("the type given {0} for field {1} is not of the \
+                              type registered in the field definitions".format(field_type,name))
+
+        self.name = name
+        self.type = field_type
+        self.parse_field_value(value)
