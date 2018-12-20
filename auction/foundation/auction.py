@@ -65,6 +65,14 @@ class Action:
         """
         return self.config_dict
 
+    def get_name(self) -> str:
+        """
+        Returns the name of the module to be used.
+
+        :return: module's name
+        """
+        return self.name
+
     def parse_action(self, node: Element):
         """
         parsers an action from a xml element.

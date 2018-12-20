@@ -53,6 +53,6 @@ AUMProcessor:
 ResourceFile: resources.yaml
 AuctionFileDtd: auctionfile.dtd
 AuctionFile: example_auctions3.xml
-DtdRootNode: AUCTIONSET
+AuctionRootNode: AUCTIONSET
 BidfileDtd: bidfile.dtd
 DefaultLogFile: netaum.log

@@ -15,7 +15,7 @@ class basic_client_module(Module):
     def destroy_module(self):
         print ('destroying the module')
 
-    def execute_user(self, request_params, auctions: list, start:datetime, stop:datetime) -> list:
+    def execute_user(self, auctions: list, start:datetime, stop:datetime) -> list:
         print('in execute user')
         return {}
 

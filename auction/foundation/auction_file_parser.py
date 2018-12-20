@@ -157,10 +157,10 @@ class AuctionXmlFileParser(IpapMessageParser):
         else:
             raise ValueError("The DTD ({}) configuration option does not exist!".format('AuctionFileDtd'))
 
-        if 'DtdRootNode' in config:
-            root_node = config['DtdRootNode']
+        if 'AuctionRootNode' in config:
+            root_node = config['AuctionRootNode']
         else:
-            raise ValueError("The DTD Root Node({}) configuration option does not exist!".format('DtdRootNode'))
+            raise ValueError("The DTD Root Node({}) configuration option does not exist!".format('AuctionRootNode'))
 
         parser = etree.XMLParser(dtd_validation=True)
         base_dir = pathlib.Path(__file__).parent.parent

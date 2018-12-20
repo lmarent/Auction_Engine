@@ -20,7 +20,7 @@ class basic_server_module(Module):
         print('in execute')
         return {}
 
-    def execute_user(self, request_params, auctions: list, start:datetime, stop:datetime) -> list:
+    def execute_user(self, auction_key: str, start:datetime, stop:datetime) -> list:
         print('in execute_user')
         pass
 
