@@ -35,6 +35,19 @@ class ParseFormats:
             return val
 
     @staticmethod
+    def parse_uint8(value: str) -> int:
+        """
+        Parsers a string which has a unsigned 16 bits integer value
+
+        :param value: string
+        :return: integer
+        """
+        val =  int(value)
+        if val < 0 or val > 255:
+            raise ValueError("Invalid value for unsigned 8 int, out of range")
+
+
+    @staticmethod
     def parse_uint16(value: str) -> int:
         """
         Parsers a string which has a unsigned 16 bits integer value

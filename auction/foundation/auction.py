@@ -432,3 +432,6 @@ class Auction(AuctioningObject):
         :return:
         """
         return self.interval
+
+    def get_session_references(self):
+        return len(self.sessions)

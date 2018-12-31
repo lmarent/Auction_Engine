@@ -2,6 +2,7 @@
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.auctioning_object import AuctioningObject
 from foundation.field_value import FieldValue
+from auction_client.resource_request_interval import ResourceRequestInterval
 
 
 class ResourceRequest(AuctioningObject):
@@ -15,7 +16,7 @@ class ResourceRequest(AuctioningObject):
         self.intervals = []
         self.time_format = time_format
 
-    def add_interval(self, interval):
+    def add_interval(self, interval: ResourceRequestInterval):
         """
         Adds an interval to the resource request
         """
@@ -27,7 +28,7 @@ class ResourceRequest(AuctioningObject):
         """
         self.field_values[field_value.name] = field_value
 
-    def get_interval_by_start_time(self, start):
+    def get_interval_by_start_time(self, start) -> ResourceRequestInterval:
         """
         Returns the interval with start time equals to start
         """
@@ -36,7 +37,7 @@ class ResourceRequest(AuctioningObject):
                 return interval
         return None
 
-    def get_interval_by_end_time(self, end):
+    def get_interval_by_end_time(self, end) -> ResourceRequestInterval:
         """
         Returns the interval with stop time equals to end
 
@@ -46,7 +47,7 @@ class ResourceRequest(AuctioningObject):
                 return interval
         return None
 
-    def get_intervals(self):
+    def get_intervals(self) -> list:
         """
         Returns all intervals associated with the resource request
         """

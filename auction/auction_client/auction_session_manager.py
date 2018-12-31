@@ -29,7 +29,6 @@ class AuctionSessionManager(SessionManager):
         agent_session = AuctionSession(session_id, s_sender_address, s_destin_address,
                                        sender_port, destin_port, protocol, life_time)
 
-        self.add_session(agent_session)
         return agent_session
 
     def create_agent_session(self, s_sender_address: str, s_destin_address: str,

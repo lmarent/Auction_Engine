@@ -58,5 +58,5 @@ class AuctionSession(Session):
 
         :param auctions - auctions' identifiers to be copied. 
         """
-        for identifier in auctions:
-            self.auction_set.add(identifier)
+        for auction_key in auctions:
+            self.auction_set.add(auction_key)

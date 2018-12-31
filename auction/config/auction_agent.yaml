@@ -11,19 +11,23 @@ postgres:
 Main:
   ResourceRequestFileDtd: resourcerequestfile.dtd
   ResourceRequestFile: example_resource_request1.xml
-  DefaultDestinAddr: 192.168.3.3
-  DefaultDestinPort: 80
+  UseIPv6: No
+  LocalAddr-V4: 192.168.2.11
+  LocalAddr-V6: 0:0:0:0:0:0:0:0
+  DefaultDestinationAddr-V4: 192.168.3.3
+  DefaultDestinationAddr-V6: 0:0:0:0:0:0:0:0
+  DefaultDestinationPort: 80
   DefaultSourcePort: 12248
+  # Tcp by default.
+  DefaultProtocol: 6
+  LifeTime: 60
   TimeFormat: "%Y%m%d %H%M%S"
 
 Control:
   ControlPort: 12248
   UseSSL: No
-  UseIPv6: No
   LogOnConnect: yes
   LogCommand: yes
-  LocalAddr-V4: 192.168.2.11
-  LocalAddr-V6: 0:0:0:0:0:0:0:0
   Access:
     Host: All
     User: admin:admin

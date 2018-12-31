@@ -6,12 +6,13 @@ from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 from datetime import datetime
 
+
 class AuctionManager(AuctioningObjectManager):
     """
     This class maintains the auction within the server and client.
     """
 
-    def __init__(self, domain:int):
+    def __init__(self, domain: int):
         """
         Create an auction manager
         :param domain: id of the agent
@@ -28,7 +29,7 @@ class AuctionManager(AuctioningObjectManager):
         """
         super(AuctionManager, self).add_auctioning_object(auction)
 
-    def delete_auction(self, auction_key : str):
+    def delete_auction(self, auction_key: str):
         """
         Deletes an auction from the container
 
@@ -37,7 +38,7 @@ class AuctionManager(AuctioningObjectManager):
         """
         super(AuctionManager, self).del_actioning_object(auction_key)
 
-    def get_auction(self, auction_key:str) -> Auction:
+    def get_auction(self, auction_key: str) -> Auction:
         """
         gets a auction from the container
 
@@ -45,6 +46,15 @@ class AuctionManager(AuctioningObjectManager):
         :return: Auction or an exception when not found.
         """
         return super(AuctionManager, self).get_auctioning_object(auction_key)
+
+    def get_done_auction(self, auction_key: str) -> Auction:
+        """
+        gets a done auction from the container
+
+        :param auction_key: key of the auction to get
+        :return: Auction or an exception when not found.
+        """
+        return super(AuctionManager, self).get_auctioning_object_done(auction_key)
 
     def parse_auction_from_file(self, file_name: str):
         """
@@ -56,7 +66,7 @@ class AuctionManager(AuctioningObjectManager):
         auctions = auction_file_parser.parse(file_name)
         return auctions
 
-    def parse_ipap_message(self, ipap_message: IpapMessage, template_container : IpapTemplateContainer):
+    def parse_ipap_message(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer):
         """
         parse auctions from an ipap_message
 
@@ -65,8 +75,8 @@ class AuctionManager(AuctioningObjectManager):
         """
         pass
 
-    def get_ipap_message(self, auctions : list, temaplate_container: IpapTemplateContainer, use_ipv6 : bool,
-                         saddress_ipv4 : str, saddress_ipv6 :str , port: int) -> IpapMessage:
+    def get_ipap_message(self, auctions: list, temaplate_container: IpapTemplateContainer, use_ipv6: bool,
+                         saddress_ipv4: str, saddress_ipv6: str, port: int) -> IpapMessage:
         """
         get the ipap_message that contains all the auctions within the list given
 
@@ -80,8 +90,7 @@ class AuctionManager(AuctioningObjectManager):
         """
         pass
 
-
-    def increment_references(self, auctions: list, session_id : str):
+    def increment_references(self, auctions: list, session_id: str):
         """
         This methods adds for auctions in the list a reference to the session given as parameter
 
@@ -90,11 +99,24 @@ class AuctionManager(AuctioningObjectManager):
         """
         pass
 
-    def decrement_references(self, auctions: list, session_id : str):
+    def decrement_references(self, auctions: set, session_id: str) -> list:
         """
         This methods removes for auctions in the list the reference to the session given as parameter
-        :param auctions: list of auctions to remove a reference
+        :param auctions: set of auctions keys to remove a reference
         :param session_id: session id to be excluded
+        :return: list of auctions to be removed from handlers.
         """
-        pass
+        auctions_to_remove = []
+        for auction_key in auctions:
+            auction = None
+            try:
+                auction = self.get_auction(auction_key)
+            except ValueError as e:
+                auction = self.get_done_auction(auction_key)
 
+            if auction:
+                auction.delete_session_reference(session_id)
+                if auction.get_session_references() == 0:
+                    auctions_to_remove.append(auction)
+
+        return auctions_to_remove
