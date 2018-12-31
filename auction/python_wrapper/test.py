@@ -387,6 +387,7 @@ class IpapMessageTest(unittest.TestCase):
             self.ipap_message.add_field(2, 0, 30)
 
     def test_delete_template(self):
+        print('start test_delete_template')
         template_id = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.ipap_message.add_field(template_id, 0, 30)
         self.ipap_message.delete_template(template_id)
@@ -395,6 +396,7 @@ class IpapMessageTest(unittest.TestCase):
         self.assertEqual(len(lst), 0)
 
     def test_delete_all_templates(self):
+        print('start test_delete_all_templates')
         template_id = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.ipap_message.add_field(template_id, 0, 30)
         self.ipap_message.delete_all_templates()
@@ -402,12 +404,14 @@ class IpapMessageTest(unittest.TestCase):
         self.assertEqual(len(lst), 0)
 
     def test_get_template_list(self):
+        print('start test_get_template_list')
         template_id = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.ipap_message.add_field(template_id, 0, 30)
         lst = self.ipap_message.get_template_list()
         self.assertEqual(lst[0], 256)
 
     def test_get_template_object(self):
+        print('start test_get_template_object')
         template_id = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.ipap_message.add_field(template_id, 0, 30)
 
@@ -415,17 +419,29 @@ class IpapMessageTest(unittest.TestCase):
         template_type = template.get_type()
         self.assertEqual(template_type, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
 
+        lst = template.get_fields()
+        print('num fields:', len(lst))
+
+
         with self.assertRaises(ValueError):
             template = self.ipap_message.get_template_object(4)
 
     def test_include_data(self):
+        print('in test_include_data')
         template_id = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.ipap_message.add_field(template_id, 0, 30)
+
+
+        template = self.ipap_message.get_template_object(template_id)
+        lst = template.get_fields()
 
         ipap_data_record = IpapDataRecord(templ_id=template_id)
         ipap_field_value1 = IpapValueField()
         value = 12231213
         ipap_field_value1.set_value_uint64(value)
+
+        template = self.ipap_message.get_template_object(template_id)
+        lst = template.get_fields()
 
         # Replace the value
         ipap_data_record.insert_field(0, 30, ipap_field_value1)
@@ -435,7 +451,6 @@ class IpapMessageTest(unittest.TestCase):
         self.assertEqual(record_size, 1)
 
     def test_get_data_record_at_pos(self):
-
         template_id = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         self.ipap_message.add_field(template_id, 0, 30)
 
@@ -447,6 +462,5 @@ class IpapMessageTest(unittest.TestCase):
         # Replace the value
         ipap_data_record.insert_field(0, 30, ipap_field_value1)
         self.ipap_message.include_data(template_id, ipap_data_record)
-
         ipap_data_record2 = self.ipap_message.get_data_record_at_pos(0)
 

@@ -1,6 +1,13 @@
-from python_wrapper.ipap_field_type import  IpapFieldType
+from python_wrapper.ipap_value_field import IpapValueField
 from ctypes import cdll
 from ctypes import c_int
+from ctypes import c_uint8
+from ctypes import c_uint16
+from ctypes import c_uint32
+from ctypes import c_uint64
+from ctypes import c_float
+from ctypes import c_double
+
 from ctypes import c_size_t
 from ctypes import c_char_p
 from ctypes import c_wchar_p
@@ -48,6 +55,80 @@ class IpapField:
         get_documentation.restype = c_char_p
 
         return lib.ipap_field_get_documentation(self.obj)
+
+    def get_ipap_field_value_uint8(self, value:int):
+        obj = lib.ipap_field_get_ipap_value_field_uint8(self.obj, c_uint8(value))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_uint16(self, value:int):
+        obj = lib.ipap_field_get_ipap_value_field_uint16(self.obj, c_uint16(value))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_uint32(self, value:int):
+        obj = lib.ipap_field_get_ipap_value_field_uint32(self.obj, c_uint32(value))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_uint64(self, value:int):
+        obj = lib.ipap_field_get_ipap_value_field_uint64(self.obj, c_uint64(value))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_float(self, value:float):
+        obj = lib.ipap_field_get_ipap_value_field_float(self.obj, c_float(value))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_double(self, value:float):
+        obj = lib.ipap_field_get_ipap_value_field_double(self.obj, c_double(value))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_string(self, value:str):
+        obj = lib.ipap_field_get_ipap_value_field_string(self.obj, c_char_p(value), c_int(len(value)))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    # TODO: Create the function.
+    # def get_ipap_field_value_ubytes(self, value:str):
+    #     obj = lib.ipap_field_get_ipap_value_field_bytes(self.obj, c_char_p(value), c_int(len(value)))
+    #
+    #     if obj:  # not null
+    #         field_value = IpapValueField(obj=obj)
+    #         return field_value
+    #     else:
+    #         raise ValueError('Field value could not be created')
+
 
     def __del__(self):
         if self.obj: # not null

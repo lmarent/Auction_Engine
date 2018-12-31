@@ -12,6 +12,7 @@ lib = cdll.LoadLibrary('libipap.so')
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_data_record import IpapDataRecord
+from python_wrapper.ipap_field import IpapField
 
 class IpapMessage:
 
@@ -21,12 +22,12 @@ class IpapMessage:
     def new_data_template(self, nfields : int, template_type_id : TemplateType) -> c_uint16:
         return lib.ipap_message_new_data_template(self.obj, c_int(nfields), c_int(template_type_id.value))
 
-    def add_field(self, templid : int, eno : int, type : int):
+    def add_field(self, templid: int, eno: int, type: int):
         val = lib.ipap_message_add_field(self.obj, c_uint16(templid), c_uint32(eno), c_uint16(type))
         if val < 0:
             raise ValueError("Invalid argument. The field was not included")
 
-    def delete_template(self, templid : int):
+    def delete_template(self, templid: int):
         lib.ipap_message_delete_template(self.obj, c_uint16(templid))
 
     def delete_all_templates(self):
@@ -53,8 +54,8 @@ class IpapMessage:
         else:
             raise ValueError("Template with id:{} was not found".format(str(templ_id)))
 
-    def include_data(self, template_id: int, ipap_data_record : IpapDataRecord):
-        lib.ipap_message_include_data(self.obj, template_id, ipap_data_record.obj)
+    def include_data(self, template_id: int, ipap_data_record: IpapDataRecord):
+        lib.ipap_message_include_data(self.obj, c_uint16(template_id), ipap_data_record.obj)
 
     def get_data_record_size(self):
         return lib.ipap_message_get_data_record_size(self.obj)

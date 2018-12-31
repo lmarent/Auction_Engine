@@ -1,15 +1,18 @@
 from aiohttp.web import Application, run_app
 import asyncio
+from datetime import datetime
 
+from foundation.agent import Agent
 from foundation.config import Config
 from foundation.parse_format import ParseFormats
 from foundation.auction_manager import AuctionManager
 from foundation.bidding_object_manager import BiddingObjectManager
-from foundation.resource_request_manager import ResourceRequestManager
 
+from auction_client.resource_request_manager import ResourceRequestManager
 from auction_client.agent_processor import AgentProcessor
+from auction_client.resource_request import ResourceRequest
 
-class AuctionClient:
+class AuctionClient(Agent):
 
     def __init__(self):
         try:
@@ -17,16 +20,15 @@ class AuctionClient:
 
             self.domain = ParseFormats.parse_int(self.config['Main']['Domain'])
             self.immediate_start = ParseFormats.parse_bool(self.config['Main']['ImmediateStart'])
-            self._pending_tasks_by_auction = {}
 
             self._load_ip_address()
+            self._load_control_port()
             self._load_database_params()
             self._initialize_managers()
             self._initilize_processors()
 
-            # Start Listening the web server application
-            self.app = Application()
-            self.loop = asyncio.get_event_loop()
+            super(AuctionClient, self).__init__()
+
             self._load_resources_request()
 
         except Exception as e:
@@ -77,8 +79,45 @@ class AuctionClient:
         else:
             raise ValueError('There should be a AUMProcessor option set in config file')
 
-    def _load_resources_request(self):
 
+    def _load_resources_request(self):
+        if 'Main' in self.config:
+            raise ValueError("The main section was not defined in configuration option file")
+
+        if 'ResourceRequestFile' in self.config['Main']:
+            raise ValueError("The ResourceRequestFile option is not defined in the main section \
+                                of the configuration file")
+
+        resource_request_file = self.config['Main']['ResourceRequestFile']
+        resource_requests = self.resource_request_manager.parse_resource_request_from_file(resource_request_file)
+
+        # schedule the new events.
+        for request in resource_requests:
+            ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
+            for start in ret_start:
+                when = self._calculate_when(start)
+                call = self.loop.call_at(when, self.handle_activate_resource_request, ret_start[start], when)
+                self._add_pending_tasks(ret_start[start].get_key(), call, when)
+
+            for stop in ret_stop:
+                when = self._calculate_when(stop)
+                call = self.loop.call_at(when, self.handle_remove_resource_request, ret_stop[stop], when)
+                self._add_pending_tasks(ret_stop[stop].get_key(), call, when)
+    :
+    def handle_activate_resource_request(self, resource_request: ResourceRequest, when: float):
+        print('start handle activate resource request')
+
+        # The task is no longer scheduled.
+        self._remove_pending_task(resource_request.get_key(), when)
+
+        # for now we request to any resource,
+        # a protocol to spread resources available must be implemented
+        resourceId = "ANY"
+
+
+        print('ending handle activate resource request')
+
+    def handle_remove_resource_request(self):
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

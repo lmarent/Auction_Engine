@@ -4,10 +4,8 @@ from ctypes import c_uint8
 from ctypes import c_uint16
 from ctypes import c_uint32
 from ctypes import c_uint64
-from ctypes import c_uint64
 from ctypes import c_float
 from ctypes import c_double
-from ctypes import c_char_p
 from ctypes import POINTER
 from ctypes import c_size_t
 from ctypes import c_char_p

@@ -51,11 +51,13 @@ class Interval():
         Parse parameters interval and align within an interval.
         """
         inter = 0
-        inter = int(sinterval)
+        align = 0
+
+        if sinterval:
+            inter = int(sinterval)
+
         if salign:
             align = 1
-        else:
-            align = 0
 
         return inter, align
 

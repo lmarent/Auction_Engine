@@ -8,11 +8,25 @@ postgres:
   minsize: 1
   maxsize: 5
 
-ResourceRequestFile: example_resource_request1.xml
-DefaultDestinAddr: 192.168.3.3
-DefaultDestinPort: 80
-DefaultSourcePort: 12248
-TimeFormat: "%Y%m%d %H%M%S"
+Main:
+  ResourceRequestFileDtd: resourcerequestfile.dtd
+  ResourceRequestFile: example_resource_request1.xml
+  DefaultDestinAddr: 192.168.3.3
+  DefaultDestinPort: 80
+  DefaultSourcePort: 12248
+  TimeFormat: "%Y%m%d %H%M%S"
+
+Control:
+  ControlPort: 12248
+  UseSSL: No
+  UseIPv6: No
+  LogOnConnect: yes
+  LogCommand: yes
+  LocalAddr-V4: 192.168.2.11
+  LocalAddr-V6: 0:0:0:0:0:0:0:0
+  Access:
+    Host: All
+    User: admin:admin
 
 AGNTProcessor:
   ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules

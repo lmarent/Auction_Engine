@@ -1,11 +1,13 @@
 import unittest
 from auction_client.resource_request_file_parser import ResourceRequestFileParser
+from foundation.config import Config
 
 
 
 class ResourceRequestXmlFileParserTest(unittest.TestCase):
 
     def setUp(self):
+        config = Config('auction_agent.yaml')
         self.resource_request_file_parser = ResourceRequestFileParser(10)
 
     def test_parse(self):
@@ -17,3 +19,4 @@ class ResourceRequestXmlFileParserTest(unittest.TestCase):
 
         # verifies the number of intervals
         self.assertEqual(len(resource_request.get_intervals()), 2)
+

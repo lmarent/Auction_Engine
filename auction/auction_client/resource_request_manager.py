@@ -1,11 +1,13 @@
 # resource_request_manager.py
+from python_wrapper.ipap_message import IpapMessage
 from foundation.auctioning_object_manager import AuctioningObjectManager
 from auction_client.resource_request import ResourceRequest
+from auction_client.resource_request_file_parser import ResourceRequestFileParser
 
 class ResourceRequestManager(AuctioningObjectManager):
 
-    def __init__(self):
-        super(ResourceRequestManager, self).__init__()
+    def __init__(self, domain:int):
+        super(ResourceRequestManager, self).__init__(domain=domain)
         self.map_by_start_date = {}
         self.map_by_end_date = {}
         pass
@@ -18,27 +20,23 @@ class ResourceRequestManager(AuctioningObjectManager):
         """
         return super(ResourceRequestManager, self).get_auctioning_object(resource_request_key)
 
-    def add_resource_requests(self, resource_requests: list):
-        """
-        Adds a list of resource requests to the container
-
-        :param resource_requests: resource request list to add
-        :return:
-        """
-        for request in resource_requests:
-            self.add_resource_request(request)
-
     def add_resource_request(self, resource_request: ResourceRequest):
         """
         Adds a resource request to the container
 
         :param resource_request: resource request to add
+        :return dictionaries with resource request to stat and stop
         """
         super(ResourceRequestManager, self).add_auctioning_object(resource_request)
-         
+
+        ret_start = []
+        ret_stop = []
         # Inserts the intervals of the resource request
         intervals = resource_request.get_intervals()
         for interval in intervals:
+            ret_start[interval.start] = resource_request
+            ret_stop[interval.stop] = resource_request
+
             if interval.start not in interval.start:
                 self.map_by_start_date[interval.start] = []
             self.map_by_start_date[interval.start].append(resource_request)
@@ -48,7 +46,9 @@ class ResourceRequestManager(AuctioningObjectManager):
                     self.map_by_end_date[interval.stop] = []
                 self.map_by_end_date[interval.stop].append(resource_request)
 
-    def del_resource_request(self, resource_request_key:str):
+        return ret_start, ret_stop
+
+    def del_resource_request(self, resource_request_key: str):
         """
         Deletes a resource request from the container
 
@@ -62,4 +62,12 @@ class ResourceRequestManager(AuctioningObjectManager):
         parse a XML resource request from file
         :param file_name: file to parse.
         :return: list of resource request parsed.
+        """
+        resource_request_file_parser = ResourceRequestFileParser(self.domain)
+        return resource_request_file_parser.parse(file_name)
+
+    def get_ipap_message(self, resource_request: ResourceRequest) -> IpapMessage:
+        """
+        gets the ipap_message that contains a request for resources
+        :return:
         """

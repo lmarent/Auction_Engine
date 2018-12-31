@@ -81,6 +81,7 @@ class IpapTemplate:
                                     c_uint8(unknow_field.value), c_int(i_encode_network), field.obj)
 
     def get_type(self) -> TemplateType:
+        print ('template type:', lib.ipap_template_get_type(self.obj))
         return TemplateType(lib.ipap_template_get_type(self.obj))
 
     def _get_object_template_types_size(self, object_type : ObjectType) -> int:

@@ -75,7 +75,7 @@ class ResourceRequestFileParser:
             if isinstance(subitem.tag, str):
                 if subitem.tag.lower() == "field":
                     field_value = FieldValue()
-                    field_value.parse_field_value(subitem)
+                    field_value.parse_field_value_from_xml(subitem)
                     resource_request.add_field_value(field_value)
 
                 elif subitem.tag.lower() == "interval":
@@ -93,8 +93,11 @@ class ResourceRequestFileParser:
         """
         config = Config().get_config()
 
-        if 'ResourceRequestFileDtd' in config:
-            the_dtd = config['ResourceRequestFileDtd']
+        if 'Main' not in config:
+            raise ValueError("The main section was not defined in configuration option file")
+
+        if 'ResourceRequestFileDtd' in config['Main']:
+            the_dtd = config['Main']['ResourceRequestFileDtd']
         else:
             raise ValueError("The DTD ({}) configuration option does not exist!".format('ResourceRequestFileDtd'))
 
@@ -104,8 +107,8 @@ class ResourceRequestFileParser:
         if not os.path.exists(the_dtd):
             raise ValueError("The DTD ({}) does not exist!".format(the_dtd))
 
-        if 'TimeFormat' in config:
-            time_format = config['TimeFormat']
+        if 'TimeFormat' in config['Main']:
+            time_format = config['Main']['TimeFormat']
         else:
             raise ValueError("The time format configuration option fos not exist")
 

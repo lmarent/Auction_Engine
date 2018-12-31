@@ -137,7 +137,7 @@ class FieldValue:
         else:
             self._parse_field_value_exact(value)
 
-    def parse_field_value(self, node: Element):
+    def parse_field_value_from_xml(self, node: Element):
         """
         parsers a field value from a xml node
         :param node: Xml node that constains the field value
@@ -159,12 +159,7 @@ class FieldValue:
         if field_type:
             field_type = field_type.lower()
         else:
-            field_type = "string"  # default type is string.
-
-        # verifies that types agree
-        if field_type != field_def['type']:
-            raise ValueError("the type given {0} for field {1} is not of the \
-                              type registered in the field definitions".format(field_type,name))
+            field_type = field_def['type'] # default type is the one registered.
 
         self.name = name
         self.type = field_type
