@@ -3,10 +3,13 @@ from python_wrapper.ipap_message import IpapMessage
 from foundation.auctioning_object_manager import AuctioningObjectManager
 from auction_client.resource_request import ResourceRequest
 from auction_client.resource_request_file_parser import ResourceRequestFileParser
+from auction_client.ipap_resource_request_parser import IpapResourceRequestParser
+from datetime import datetime
+
 
 class ResourceRequestManager(AuctioningObjectManager):
 
-    def __init__(self, domain:int):
+    def __init__(self, domain: int):
         super(ResourceRequestManager, self).__init__(domain=domain)
         self.map_by_start_date = {}
         self.map_by_end_date = {}
@@ -57,7 +60,7 @@ class ResourceRequestManager(AuctioningObjectManager):
         """
         super(ResourceRequestManager, self).del_actioning_object(resource_request_key)
 
-    def parse_resource_request_from_file(self, file_name:str) -> list:
+    def parse_resource_request_from_file(self, file_name: str) -> list:
         """
         parse a XML resource request from file
         :param file_name: file to parse.
@@ -66,8 +69,14 @@ class ResourceRequestManager(AuctioningObjectManager):
         resource_request_file_parser = ResourceRequestFileParser(self.domain)
         return resource_request_file_parser.parse(file_name)
 
-    def get_ipap_message(self, resource_request: ResourceRequest) -> IpapMessage:
+    def get_ipap_message(self, resource_request: ResourceRequest, start: datetime,
+                         resource_id: str, use_ipv6: bool, s_address_ipv4: str,
+                         s_address_ipv6: str, port: int) -> IpapMessage:
         """
         gets the ipap_message that contains a request for resources
         :return:
         """
+        ipap_resource_request_parser = IpapResourceRequestParser(self.domain)
+        return ipap_resource_request_parser.get_ipap_message(start, resource_request,
+                                                             resource_id, use_ipv6, s_address_ipv4, s_address_ipv6,
+                                                             port)

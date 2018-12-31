@@ -48,15 +48,14 @@ class SessionManager:
         in the database, and it removes the session from the database
 		""" 
 		if key in self.session_objects.keys():
-			session = self.session_objects[key]
-			del self.session_objects[key]
-			store_session_as_done(session)
+			session = self.session_objects.pop(key)
+			self.store_session_as_done(session)
 		else:
 			raise ValueError('Session {} does not exist'.format(key))
 
 	def store_session_as_done(self, session):
 		"""
-		Add the session to the list of finished bids
+		Add the session to the list of finished sessions
 		""" 
 		session.set_state(SessionState.SS_DONE)
 		key = session.get_key()

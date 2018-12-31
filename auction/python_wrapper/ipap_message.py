@@ -67,6 +67,9 @@ class IpapMessage:
         else:
             raise ValueError("Data record at pos {0} was not found".format(str(int)) )
 
+    def output(self):
+        lib.ipap_message_output(self.obj)
+
     def __del__(self):
         if self.obj:
             lib.ipap_message_destroy(self.obj)

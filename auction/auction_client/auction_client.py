@@ -9,6 +9,7 @@ from foundation.auction_manager import AuctionManager
 from foundation.bidding_object_manager import BiddingObjectManager
 
 from auction_client.resource_request_manager import ResourceRequestManager
+from auction_client.auction_session_manager import AuctionSessionManager
 from auction_client.agent_processor import AgentProcessor
 from auction_client.resource_request import ResourceRequest
 
@@ -39,11 +40,24 @@ class AuctionClient(Agent):
         Sets the ip addreess defined in the configuration file
         """
         use_ipv6 = self.config['Control']['UseIPv6']
-        use_ipv6 = ParseFormats.parse_bool(use_ipv6)
-        if use_ipv6:
-            self.ip_address = ParseFormats.parse_ipaddress(self.config['Control']['LocalAddr-V6'])
+        self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
+        if self.use_ipv6:
+            self.ip_address6 = ParseFormats.parse_ipaddress(self.config['Control']['LocalAddr-V6'])
         else:
-            self.ip_address = ParseFormats.parse_ipaddress(self.config['Control']['LocalAddr-V4'])
+            self.ip_address4 = ParseFormats.parse_ipaddress(self.config['Control']['LocalAddr-V4'])
+
+    def _load_control_port(self):
+        """
+        Sets the control por defined in the configuration file
+        """
+        try:
+
+            self.port = ParseFormats.parse_uint16(self.config['Control']['ControlPort'])
+
+        except ValueError as verr:
+            raise ValueError("The value for control port{0} is not a valid number".format(
+                            self.config['Control']['ControlPort']))
+
 
     def _load_database_params(self):
         """
@@ -63,6 +77,7 @@ class AuctionClient(Agent):
         self.auction_manager = AuctionManager(self.domain)
         self.bidding_object_manager = BiddingObjectManager()
         self.resource_request_manager = ResourceRequestManager()
+        self.auction_session_manager = AuctionSessionManager()
 
     def _initilize_processors(self):
         """
@@ -96,15 +111,16 @@ class AuctionClient(Agent):
             ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
             for start in ret_start:
                 when = self._calculate_when(start)
-                call = self.loop.call_at(when, self.handle_activate_resource_request, ret_start[start], when)
+                call = self.loop.call_at(when, self.handle_activate_resource_request, start, ret_start[start], when)
                 self._add_pending_tasks(ret_start[start].get_key(), call, when)
 
             for stop in ret_stop:
                 when = self._calculate_when(stop)
-                call = self.loop.call_at(when, self.handle_remove_resource_request, ret_stop[stop], when)
+                call = self.loop.call_at(when, self.handle_remove_resource_request, stop, ret_stop[stop], when)
                 self._add_pending_tasks(ret_stop[stop].get_key(), call, when)
     :
-    def handle_activate_resource_request(self, resource_request: ResourceRequest, when: float):
+    def handle_activate_resource_request(self, start:datetime,
+                                         resource_request: ResourceRequest, when: float):
         print('start handle activate resource request')
 
         # The task is no longer scheduled.
@@ -112,8 +128,17 @@ class AuctionClient(Agent):
 
         # for now we request to any resource,
         # a protocol to spread resources available must be implemented
-        resourceId = "ANY"
+        resource_id = "ANY"
+        interval = resource_request.get_interval_by_start_time(start)
 
+        # Gets an ask message for the resource
+        message = self.resource_request_manager.get_ipap_message(resource_request, start,
+                                                       resource_id, self.use_ipv6,
+                                                       self.ip_address4, self.ip_address6,
+                                                       self.port)
+
+        # Create a new session for sending the request
+        self.auction_session_manager.create_agent_session()
 
         print('ending handle activate resource request')
 

@@ -13,21 +13,21 @@ from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_field import IpapField
 from python_wrapper.ipap_field_container import IpapFieldContainer
 
+
 class IpapResourceRequestParser(IpapMessageParser):
 
-
-    def __init__(self, domain:int):
+    def __init__(self, domain: int):
         super(IpapResourceRequestParser, self).__init__(domain=domain)
 
     @staticmethod
-    def _add_fields_option_template(message:IpapMessage) -> int:
+    def _add_fields_option_template(message: IpapMessage) -> int:
         """
         Adds required field for the bid's option template
         :return: template id created for the message.
         """
         template = IpapTemplate()
         field_list = template.get_template_type_mandatory_field(TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE)
-        template_id = self.message.new_data_template(len(field_list), TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE)
+        template_id = message.new_data_template(len(field_list), TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE)
 
         for field in field_list:
             message.add_field(template_id, field.get_eno(), field.get_ftype())
@@ -35,8 +35,8 @@ class IpapResourceRequestParser(IpapMessageParser):
         return template_id
 
     @staticmethod
-    def _add_option_record(record_id: str, resource_id:str, interval: Interval, use_ipv6:bool,
-                           ip_address4: str, ip_address6:str, port:int, template_id: int, message: IpapMessage):
+    def _add_option_record(record_id: str, resource_id: str, interval: Interval, use_ipv6: bool,
+                           ip_address4: str, ip_address6: str, port: int, template_id: int, message: IpapMessage):
         """
         Adds the field of all auction relationship into option message's template
         :return:
@@ -49,11 +49,21 @@ class IpapResourceRequestParser(IpapMessageParser):
         ipap_field_container.initialize_forward()
         ipap_field_container.initialize_reverse()
 
+        # Add the record Id
+        record_id_def = field_def_manager.get_field('recordid')
+        record_field: IpapField = ipap_field_container.get_field(
+            int(record_id_def['eno']), int(record_id_def['ftype']))
+
+        data_option.insert_field(int(record_id_def['eno']), int(record_id_def['ftype']),
+                                 record_field.get_ipap_field_value_string(record_id))
+
         # Add the Resource Id
-        resource_id = field_def_manager.get_field('resourceid')
-        resource_field:IpapField = ipap_field_container.get_field(int(resource_id['eno']), int(resource_id['ftype']))
-        data_option.insert_field(int(resource_id['eno']), int(resource_id['ftype']),
-                                 resource_field.get_ipap_field_value_string(record_id))
+        resource_id_def = field_def_manager.get_field('resourceid')
+        resource_field: IpapField = ipap_field_container.get_field(
+            int(resource_id_def['eno']), int(resource_id_def['ftype']))
+
+        data_option.insert_field(int(resource_id_def['eno']), int(resource_id_def['ftype']),
+                                 resource_field.get_ipap_field_value_string(resource_id))
 
         # Add the start datetime
         start = field_def_manager.get_field('start')
@@ -113,8 +123,8 @@ class IpapResourceRequestParser(IpapMessageParser):
 
         message.include_data(template_id, data_option)
 
-    def get_ipap_message(self, start: datetime, resource_request: ResourceRequest, resource_id:str, use_ipv6:bool,
-                           ip_address4: str, ip_address6:str, port:int) -> IpapMessage:
+    def get_ipap_message(self, start: datetime, resource_request: ResourceRequest, resource_id: str, use_ipv6: bool,
+                         ip_address4: str, ip_address6: str, port: int) -> IpapMessage:
         """
         gets the ipap_message that represents an specifc resource request.
         :return:
@@ -125,7 +135,7 @@ class IpapResourceRequestParser(IpapMessageParser):
         template_id = self._add_fields_option_template(message)
 
         # Build the recordId as the resourceRequestSet + resourceRequestName
-        record_id = resource_request.get_ipap_id(self.domain)
+        record_id = resource_request.get_key()
 
         self._add_option_record(record_id, resource_id, interval, use_ipv6, ip_address4,
                                 ip_address6, port, template_id, message)
@@ -133,5 +143,4 @@ class IpapResourceRequestParser(IpapMessageParser):
         # fill the char buffer to send
         message.output()
 
-        return self.message
-
+        return message

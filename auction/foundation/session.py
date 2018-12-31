@@ -27,13 +27,12 @@ class Session:
     """
 
     def __init__(self, session_id: str, sender_address: str, sender_port: int,
-                 receiver_address: str, receiver_port: int, source_address: str, protocol: int):
+                 receiver_address: str, receiver_port: int, protocol: int):
         self.session_id = session_id
         self.session_state = SessionState.SS_NEW
         self.pending_messages = {}
         self.sender_address = ipaddress.ip_address(sender_address)
         self.receiver_address = ipaddress.ip_address(receiver_address)
-        self.source_address = ipaddress.ip_address(source_address)
         self.sender_port = sender_port
         self.receiver_port = receiver_port
         self.protocol = protocol
