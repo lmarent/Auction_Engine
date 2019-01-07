@@ -24,3 +24,11 @@ class ResourceRequestInterval(Interval):
         :return:
         """
         self.resource_request_process.discard(resource_request_process_key)
+
+    def get_resource_request_process(self) -> set:
+        """
+        Gets the resource request process associated with the interval
+
+        :return: set of resource request
+        """
+        return self.resource_request_process

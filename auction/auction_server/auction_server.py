@@ -1,4 +1,7 @@
 from aiohttp.web import run_app
+from aiohttp.web import WebSocketResponse
+from aiohttp.web import post
+from aiohttp import WSMsgType
 import functools
 import pathlib
 import yaml
@@ -21,6 +24,31 @@ from foundation.interval import Interval
 
 class AuctionServer(Agent):
 
+    async def callback_message(self, msg):
+        print(msg)
+
+    async def handle_web_socket(self, request):
+        ws = WebSocketResponse()
+        await ws.prepare(request)
+
+        # Put in the list the new connection from the client.
+        request.app['web_sockets'].append(ws)
+
+        async for msg in ws:
+            if msg.tp == WSMsgType.text:
+                await self.callback_message(msg)
+
+            elif msg.tp == WSMsgType.error:
+                request.app['log'].debug('ws connection closed with exception %s' % ws.exception())
+
+            elif msg.tp == WSMsgType.close:
+                request.app['log'].debug('ws connection closed')
+
+        request.app['web_sockets'].remove(ws)
+        request.app['log'].debug('websocket connection closed')
+
+        return ws
+
     def __init__(self):
         try:
             self.config = Config('auction_server.yaml').get_config()
@@ -28,16 +56,23 @@ class AuctionServer(Agent):
             self.domain = ParseFormats.parse_int(self.config['Main']['Domain'])
             self.immediate_start = ParseFormats.parse_bool(self.config['Main']['ImmediateStart'])
 
-            self._load_ip_address()
-            self._load_control_port()
+            self._load_main_data()
+            self._load_control_data()
             self._load_database_params()
             self._initialize_managers()
             self._initilize_processors()
 
             super(AuctionServer, self).__init__()
 
+            # Start list of web sockets connected
+            self.app['web_sockets'] = []
+
             self._load_resources()
             self._load_auctions()
+
+            # add routers.
+            self.app.add_routes([post('/websockets', self.handle_web_socket),])
+
         except Exception as e:
             print("Error during server initialization - message:", str(e))
 
@@ -204,6 +239,8 @@ class AuctionServer(Agent):
         print('interval:', interval.align)
 
         print('ending handle push execution')
+
+
 
     def run(self):
         """

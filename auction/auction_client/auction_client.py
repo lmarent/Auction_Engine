@@ -1,4 +1,5 @@
 from aiohttp.web import Application, run_app
+from aiohttp import web, WSMsgType
 import asyncio
 from datetime import datetime
 
@@ -12,6 +13,7 @@ from auction_client.resource_request_manager import ResourceRequestManager
 from auction_client.auction_session_manager import AuctionSessionManager
 from auction_client.agent_processor import AgentProcessor
 from auction_client.resource_request import ResourceRequest
+from auction_client.agent_processor import AgentProcessor
 
 class AuctionClient(Agent):
 
@@ -35,42 +37,19 @@ class AuctionClient(Agent):
         except Exception as e:
             print ("Error during server initialization - message:", str(e) )
 
-    def _load_main_data(self):
-        """
-        Sets the main data defined in the configuration file
-        """
-        use_ipv6 = self.config['Main']['UseIPv6']
-        self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
-        if self.use_ipv6:
-            self.ip_address6 = ParseFormats.parse_ipaddress(self.config['Main']['LocalAddr-V6'])
-            self.destination_address6 = ParseFormats.parse_ipaddress(self.config['Main']['DefaultDestinationAddr-V6'])
-        else:
-            self.ip_address4 = ParseFormats.parse_ipaddress(self.config['Main']['LocalAddr-V4'])
-            self.destination_address4 = ParseFormats.parse_ipaddress(self.config['Main']['DefaultDestinationAddr-V4'])
+    async def callback_message(self, msg):
+        print(msg)
 
-        # Gets default ports (origin, destination)
-        self.source_port = ParseFormats.parse_uint16(self.config['Main']['DefaultSourcePort'])
-        self.destination_port = ParseFormats.parse_uint16(self.config['Main']['DefaultDestinationPort'])
-        self.protocol = ParseFormats.parse_uint8(self.config['Main']['DefaultProtocol'])
-        self.life_time = ParseFormats.parse_uint8(self.config['Main']['LifeTime'])
-
-    def _load_control_data(self):
-        """
-        Sets the control data defined in the configuration file
-        """
-        try:
-            self.use_ssl = ParseFormats.parse_bool(self.config['Control']['UseSSL'])
-            self.control_port = ParseFormats.parse_uint16(self.config['Control']['ControlPort'])
-            self.log_on_connect = ParseFormats.parse_bool(self.config['Control']['LogOnConnect'])
-            self.log_command = ParseFormats.parse_bool(self.config['Control']['LogCommand'])
-            self.control_hosts = self.config['Control']['Access']['Host']
-            self.control_user, self.control_passwd = \
-                        self.config['Control']['Access']['User'].split(':')
-
-        except ValueError as verr:
-            raise ValueError("The value for control port{0} is not a valid number".format(
-                            self.config['Control']['ControlPort']))
-
+    async def websocket(self, session):
+        async with session.ws_connect('http://example.org/websocket') as ws:
+            self.web_socket = ws
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    await self.callback_message(msg.data)
+                elif msg.type == WSMsgType.CLOSED:
+                    break
+                elif msg.type == WSMsgType.ERROR:
+                    break
 
     def _load_database_params(self):
         """
@@ -97,16 +76,16 @@ class AuctionClient(Agent):
         Initialize processors used
         :return:
         """
-        if 'AUMProcessor' in self.config:
-            if 'ModuleDir' in self.config['AUMProcessor']:
-                module_directory = self.config['AUMProcessor']['ModuleDir']
-                self.auction_processor = AgentProcessor(self.domain, module_directory)
+        if 'AGNTProcessor' in self.config:
+            if 'ModuleDir' in self.config['AGNTProcessor']:
+                module_directory = self.config['AGNTProcessor']['ModuleDir']
+                self.agent_processor = AgentProcessor(self.domain, module_directory)
             else:
                 ValueError(
-                    'Configuration file does not have {0} entry within {1}'.format('ModuleDir', 'AumProcessor'))
+                    'Configuration file does not have {0} \
+                    entry within {1}'.format('ModuleDir', 'AGNTProcessor'))
         else:
             raise ValueError('There should be a AUMProcessor option set in config file')
-
 
     def _load_resources_request(self):
         if 'Main' in self.config:
@@ -210,32 +189,20 @@ class AuctionClient(Agent):
             self.handle_send_teardown_message()
 
             # Deletes active request process associated with this request interval.
-        set < int > requestProcs = interval->resourceProcesses;
-        for ( set < int >::
-            iterator
-        it = requestProcs.begin();
-        it != requestProcs.end();
-        ++it){
-            proc->delRequest(*it);
-        }
+            resource_request_process_ids = interval.get_resource_request_process()
+            for resurce_request_process_id in resource_request_process_ids:
+                self.agent_processor.delete_request(resurce_request_process_id)
 
             # deletes the reference to the auction (a session is not referencing it anymore)
             auctions_to_remove = self.auction_manager.decrement_references(auctions,session_id)
             for auction in auctions:
                 self.handle_remove_auction(auction)
 
-
-            else {
-                log->elog(ch, "Could not find the session for the request" );
-            }
-
         except Exception as e:
             print('Error during activate resource request interval - Error:', str(e))
         print('ending handle activate resource request interval')
 
 
-    def handle_send_message(self):
-        pass
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

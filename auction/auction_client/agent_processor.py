@@ -10,8 +10,8 @@ from datetime import datetime
 
 class RequestProcess(AuctionProcessObject):
 
-    def __init__(self, key: str, session_id: str, module: Module, auction: Auction, config_dict: dict, start: datetime,
-                 stop: datetime):
+    def __init__(self, key: str, session_id: str, module: Module, auction: Auction,
+                 config_dict: dict, start: datetime, stop: datetime):
         super(RequestProcess, self).__init__(key, module)
         self.config_dict = config_dict
         self.start = start
