@@ -31,8 +31,8 @@ class AuctionServer(Agent):
         """
         raise SystemExit(0)
 
-    async def on_shutdown(self):
-        for ws in self.app['websockets']:
+    async def on_shutdown(self, app):
+        for ws in app['web_sockets']:
             await ws.close(code=1001, message='Server shutdown')
 
     async def callback_message(self, msg):
