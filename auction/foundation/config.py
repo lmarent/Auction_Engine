@@ -39,6 +39,27 @@ class Config(metaclass=Singleton):
             ret_list = conf_grp_map[module]
             for param in ret:
                 ret.append(ConfigParam(ret[param]['Name'], ret[param]['Type'], ret[param]['Value']))
+        else:
+            raise ValueError("configuration group {0} was not found in config file".format(config_group))
 
         return ret
 
+    def get_config_param(self, config_group: str, param: str) -> str:
+        """
+        Gets the configuration paramaters associated with a config group
+        :param config_group  configuration group to find.
+        :param param         parameter to find.
+        :return: param as string
+        """
+        ret = []
+        if config_group in self.get_config():
+            conf_grp_map = self.get_config()[config_group]
+            if param in conf_grp_map:
+                return conf_grp_map[param]
+            else:
+                raise ValueError("configuration param {0} not defined in config param {1}".format(
+                            param, config_group))
+        else:
+            raise ValueError("configuration group {0} was not found in config file".format(config_group))
+
+        return ret

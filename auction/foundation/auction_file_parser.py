@@ -150,17 +150,9 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         :return: list of auctions in the file
         """
-        config = Config().get_config()
 
-        if 'AuctionFileDtd' in config:
-            the_dtd = config['AuctionFileDtd']
-        else:
-            raise ValueError("The DTD ({}) configuration option does not exist!".format('AuctionFileDtd'))
-
-        if 'AuctionRootNode' in config:
-            root_node = config['AuctionRootNode']
-        else:
-            raise ValueError("The DTD Root Node({}) configuration option does not exist!".format('AuctionRootNode'))
+        the_dtd = Config().get_config_param('Main', 'AuctionFileDtd')
+        root_node = Config().get_config_param('Main', 'AuctionRootNode')
 
         parser = etree.XMLParser(dtd_validation=True)
         base_dir = pathlib.Path(__file__).parent.parent

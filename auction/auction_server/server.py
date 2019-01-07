@@ -14,15 +14,26 @@ from foundation.resource import Resource
 from foundation.auction_manager import AuctionManager
 from foundation.session_manager import SessionManager
 from foundation.resource_manager import ResourceManager
-from foundation.config import Config
-from foundation.parse_format import ParseFormats
 from foundation.auction_file_parser import AuctionXmlFileParser
 from foundation.auction import Auction
 from foundation.auctioning_object import AuctioningObjectState
 from foundation.interval import Interval
+from foundation.config import Config
+from foundation.parse_format import ParseFormats
 
 
 class AuctionServer(Agent):
+
+    async def terminate(self):
+        """
+        Terminate server execution
+        :return:
+        """
+        raise SystemExit(0)
+
+    async def on_shutdown(self):
+        for ws in self.app['websockets']:
+            await ws.close(code=1001, message='Server shutdown')
 
     async def callback_message(self, msg):
         print(msg)
@@ -51,18 +62,12 @@ class AuctionServer(Agent):
 
     def __init__(self):
         try:
-            self.config = Config('auction_server.yaml').get_config()
+            super(AuctionServer, self).__init__('auction_server.yaml')
 
-            self.domain = ParseFormats.parse_int(self.config['Main']['Domain'])
-            self.immediate_start = ParseFormats.parse_bool(self.config['Main']['ImmediateStart'])
+            self.logger.debug('Startig init')
 
-            self._load_main_data()
-            self._load_control_data()
-            self._load_database_params()
             self._initialize_managers()
             self._initilize_processors()
-
-            super(AuctionServer, self).__init__()
 
             # Start list of web sockets connected
             self.app['web_sockets'] = []
@@ -71,78 +76,94 @@ class AuctionServer(Agent):
             self._load_auctions()
 
             # add routers.
-            self.app.add_routes([post('/websockets', self.handle_web_socket),])
+            self.app.add_routes([post('/websockets', self.handle_web_socket),
+                                 post('/terminate', self.terminate)
+                                 ])
+            self.app.on_shutdown.append(self.on_shutdown)
+            self.logger.debug('ending init')
 
         except Exception as e:
-            print("Error during server initialization - message:", str(e))
+            self.logger.error("Error during server initialization - message:", str(e))
 
-    def _load_database_params(self):
+    def _load_main_data(self):
         """
-        Loads the database parameters from configuration file
+        Sets the main data defined in the configuration file
         """
-        self.db_name = self.config['Postgres']['Database']
-        self.db_user = self.config['Postgres']['User']
-        self.db_passwd = self.config['Postgres']['Password']
-        self.db_ip_address = self.config['Postgres']['Host']
-        self.db_port = self.config['Postgres']['Port']
+        self.logger.debug("Stating _load_main_data")
+
+
+        use_ipv6 = Config().get_config_param('Main','UseIPv6')
+        self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
+        if self.use_ipv6:
+            self.ip_address6 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V6'))
+        else:
+            self.ip_address4 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V4'))
+
+        # Gets default ports (origin, destination)
+        self.local_port = ParseFormats.parse_uint16(Config().get_config_param('Main','LocalPort'))
+        self.protocol = ParseFormats.parse_uint8( Config().get_config_param('Main','DefaultProtocol'))
+        self.life_time = ParseFormats.parse_uint8( Config().get_config_param('Main','LifeTime'))
+
+        self.logger.debug("ending _load_main_data")
+
 
     def _initialize_managers(self):
         """
         Initializes managers used.
         :return:
         """
+        self.logger.debug("Starting _initialize_managers")
         self.auction_manager = AuctionManager(self.domain)
         #       self.bidding_object_manager = BiddingObjectManager()
         self.session_manager = SessionManager()
         self.resource_manager = ResourceManager(self.domain)
+        self.logger.debug("Ending _initialize_managers")
 
     def _initilize_processors(self):
         """
         Initialize processors used
         :return:
         """
-        if 'AUMProcessor' in self.config:
-            if 'ModuleDir' in self.config['AUMProcessor']:
-                module_directory = self.config['AUMProcessor']['ModuleDir']
-                self.auction_processor = AuctionProcessor(self.domain, module_directory)
-            else:
-                ValueError(
-                    'Configuration file does not have {0} entry within {1}'.format('ModuleDir', 'AumProcessor'))
-        else:
-            raise ValueError('There should be a AUMProcessor option set in config file')
+        self.logger.debug("Starting _initilize_processors")
+        module_directory = Config().get_config_param('AUMProcessor', 'ModuleDir')
+        self.auction_processor = AuctionProcessor(self.domain, module_directory)
+        self.logger.debug("Ending _initilize_processors")
 
     def _load_resources(self):
         """
         Loads resources from file
         :return:
         """
-        if 'ResourceFile' in self.config:
+        self.logger.debug("Starting _load_resources")
+
+        try:
+            resource_file = Config().get_config_param('Main', 'ResourceFile')
             base_dir = pathlib.Path(__file__).parent.parent
-            resource_file = self.config['ResourceFile']
             resource_file = base_dir / 'config' / resource_file
             self.handle_load_resources(resource_file)
-        else:
-            raise ValueError("The Resource File ({}) configuration option does not exist!".format('ResourceFile'))
+        except Exception as e:
+            self.logger.error("An error occours during load resource", str(e))
+        self.logger.debug("Ending _load_resources")
 
     def _load_auctions(self):
         """
         Loads auctions from file
         :return:
         """
-        if 'AuctionFile' in self.config:
-            auction_file = self.config['AuctionFile']
-            base_dir = pathlib.Path(__file__).parent.parent
-            auction_file = base_dir / 'xmls' / auction_file
-            auction_file = str(auction_file)
-            self.handle_load_auctions(auction_file)
-        else:
-            raise ValueError("The Auction File ({}) configuration option does not exist!".format('AuctionFile'))
+        self.logger.debug("Starting _load_resources")
+        auction_file = Config().get_config_param('Main', 'AuctionFile')
+        base_dir = pathlib.Path(__file__).parent.parent
+        auction_file = base_dir / 'xmls' / auction_file
+        auction_file = str(auction_file)
+        self.handle_load_auctions(auction_file)
+        self.logger.debug("Ending _load_resources")
 
     def handle_load_resources(self, file_name: str):
         """
         Handles adding the resources defined in the file given to the auction server.
         The file name includes the absolute path.
         """
+        self.logger.debug("Starting handle_load_resources")
         try:
             with open(file_name) as f:
                 resource_sets = yaml.load(f)
@@ -150,7 +171,9 @@ class AuctionServer(Agent):
                     for resource in resource_sets[resource_set]:
                         resource = Resource(resource_set.lower() + '.' + resource.lower())
                         self.resource_manager.add_auctioning_object(resource)
+            self.logger.debug("Ending handle_load_resources")
         except IOError as e:
+            self.logger.error("Error opening file - Message: {0}".format(str(e)))
             raise ValueError("Error opening file - Message:", str(e))
 
     def handle_load_auctions(self, file_name: str):
@@ -160,29 +183,41 @@ class AuctionServer(Agent):
         :param file_name: name of he auction xml file to load
         :return:
         """
-        auction_file_parser = AuctionXmlFileParser(self.domain)
-        auctions = auction_file_parser.parse(file_name)
-        for auction in auctions:
-            if self.resource_manager.verify_auction(auction):
-                self.auction_manager.add_auction(auction)
+        self.logger.debug("Starting handle_load_auctions")
+        try:
+            auction_file_parser = AuctionXmlFileParser(self.domain)
+            auctions = auction_file_parser.parse(file_name)
+            for auction in auctions:
+                if self.resource_manager.verify_auction(auction):
+                    self.auction_manager.add_auction(auction)
 
-                # Schedule auction activation
-                if self.immediate_start:
-                    when = self.loop.time()
-                    self.loop.call_soon(functools.partial(self.handle_activate_auction, auction, when))
-                else:
-                    when = self._calculate_when(auction.get_start())
-                    call = self.loop.call_at(when, self.handle_activate_auction, auction, when)
+                    # Schedule auction activation
+                    if self.immediate_start:
+                        when = self.loop.time()
+                        self.loop.call_soon(functools.partial(self.handle_activate_auction, auction, when))
+                    else:
+                        when = self._calculate_when(auction.get_start())
+                        call = self.loop.call_at(when, self.handle_activate_auction, auction, when)
+                        self._add_pending_tasks(auction.get_key(), call, when)
+                    # Schedule auction removal
+                    when = self._calculate_when(auction.get_stop())
+                    call = self.loop.call_at(when, self.handle_remove_auction, auction, when)
                     self._add_pending_tasks(auction.get_key(), call, when)
-                # Schedule auction removal
-                when = self._calculate_when(auction.get_stop())
-                call = self.loop.call_at(when, self.handle_remove_auction, auction, when)
-                self._add_pending_tasks(auction.get_key(), call, when)
-            else:
-                print("The auction with key {0} could not be added".format(auction.get_key()))
+                else:
+                    print("The auction with key {0} could not be added".format(auction.get_key()))
+        except Exception as e:
+            self.logger.error("An error occur during load actions - Error:{}".format(str(e)))
+
+        self.logger.debug("Ending handle_load_auctions")
 
     def handle_activate_auction(self, auction: Auction, when: float):
-        print('starting handle activate auction')
+        """
+        Activates an auction
+
+        :param auction: auction to activate
+        :param when: seconds when the auction should be activate
+        """
+        self.logger.debug('Starting handle activate auction')
 
         # The task is no longer scheduled.
         self._remove_pending_task(auction.get_key(), when)
@@ -200,10 +235,16 @@ class AuctionServer(Agent):
 
         # Change the state of all auctions to active
         auction.set_state(AuctioningObjectState.ACTIVE)
-        print('ending handle activate auction')
+        self.logger.debug('Ending handle activate auction')
 
     def handle_remove_auction(self, auction: Auction, when: float):
-        print('starting handle remove auction')
+        """
+        Removes an auction
+
+        :param auction: auction to remove
+        :param when: seconds when the auction should be activate
+        """
+        self.logger.debug('Starting handle remove auction')
 
         # The task is no longer scheduled.
         self._remove_pending_task(auction.get_key(), when)
@@ -215,10 +256,19 @@ class AuctionServer(Agent):
 
         self._pending_tasks_by_auction.pop(auction.get_key())
 
-        print('ending handle remove auction')
+        self.logger.debug('Ending handle remove auction')
 
     def handle_push_execution(self, auction: Auction, start: datetime, stop: datetime, interval: Interval, when: float):
-        print('starting handle push execution')
+        """
+
+        :param auction:
+        :param start:
+        :param stop:
+        :param interval:
+        :param when:
+        :return:
+        """
+        self.logger.debug('starting handle push execution')
 
         # The task is no longer scheduled.
         self._remove_pending_task(auction.get_key(), when)
@@ -238,13 +288,23 @@ class AuctionServer(Agent):
 
         print('interval:', interval.align)
 
-        print('ending handle push execution')
-
-
+        self.logger.debug('ending handle push execution')
 
     def run(self):
         """
         Runs the application.
         :return:
         """
-        run_app(self.app)
+        if self.use_ipv6:
+            run_app(self.app, host=str(self.ip_address6), port=self.local_port)
+        else:
+            run_app(self.app, host=str(self.ip_address4), port=self.local_port)
+
+
+if __name__ == '__main__':
+    try:
+        agent = AuctionServer()
+        agent.run()
+    finally:
+        print('closing event loop')
+        agent.loop.close()

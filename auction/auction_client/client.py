@@ -1,7 +1,7 @@
 from aiohttp.web import Application, run_app
 from aiohttp import web, WSMsgType
-import asyncio
 from datetime import datetime
+from aiohttp.web import post
 
 from foundation.agent import Agent
 from foundation.config import Config
@@ -11,31 +11,46 @@ from foundation.bidding_object_manager import BiddingObjectManager
 
 from auction_client.resource_request_manager import ResourceRequestManager
 from auction_client.auction_session_manager import AuctionSessionManager
-from auction_client.agent_processor import AgentProcessor
 from auction_client.resource_request import ResourceRequest
 from auction_client.agent_processor import AgentProcessor
 
 class AuctionClient(Agent):
 
+    async def terminate(self, request):
+        raise SystemExit(0)
+        await self.app['ws'].send_str(new_msg_to_send)
+
+    async def callback(self, msg):
+        print(msg)
+
+    async def websocket(self, session):
+        async with session.ws_connect('http://example.org/websocket') as ws:
+            self.app['ws'] = ws
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    await self.callback(msg.data)
+                elif msg.type == WSMsgType.CLOSED:
+                    break
+                elif msg.type == WSMsgType.ERROR:
+                    break
+
     def __init__(self):
         try:
-            self.config = Config('auction_agent.yaml').get_config()
+            super(AuctionClient, self).__init__('auction_agent.yaml')
 
-            self.domain = ParseFormats.parse_int(self.config['Main']['Domain'])
-            self.immediate_start = ParseFormats.parse_bool(self.config['Main']['ImmediateStart'])
-
-            self._load_main_data()
-            self._load_control_data()
-            self._load_database_params()
             self._initialize_managers()
             self._initilize_processors()
 
-            super(AuctionClient, self).__init__()
-
             self._load_resources_request()
 
+            # add routers.
+            self.app.add_routes([post('/terminate', self.terminate),])
+
+            session = aiohttp.ClientSession()
+            self.app['websocket_task'] = self.app.loop.create_task(self.websocket(session))
+
         except Exception as e:
-            print ("Error during server initialization - message:", str(e) )
+            self.logger.error("Error during server initialization - message:", str(e) )
 
     async def callback_message(self, msg):
         print(msg)
@@ -51,51 +66,62 @@ class AuctionClient(Agent):
                 elif msg.type == WSMsgType.ERROR:
                     break
 
-    def _load_database_params(self):
+    def _load_main_data(self):
         """
-        Loads the database parameters from configuration file
+        Sets the main data defined in the configuration file
         """
-        self.db_name = self.config['Postgres']['Database']
-        self.db_user = self.config['Postgres']['User']
-        self.db_passwd = self.config['Postgres']['Password']
-        self.db_ip_address = self.config['Postgres']['Host']
-        self.db_port = self.config['Postgres']['Port']
+        self.logger.debug("Stating _load_main_data")
+
+
+        use_ipv6 = Config().get_config_param('Main','UseIPv6')
+        self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
+        if self.use_ipv6:
+            self.ip_address6 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V6'))
+            self.destination_address6 = ParseFormats.parse_ipaddress(
+                            Config().get_config_param('Main','DefaultDestinationAddr-V6'))
+        else:
+            self.ip_address4 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V4'))
+            self.destination_address4 = ParseFormats.parse_ipaddress(
+                            Config().get_config_param('Main','DefaultDestinationAddr-V4'))
+
+        # Gets default ports (origin, destination)
+        self.source_port = ParseFormats.parse_uint16(Config().get_config_param('Main','DefaultSourcePort'))
+        self.destination_port = ParseFormats.parse_uint16(
+                                Config().get_config_param('Main','DefaultDestinationPort'))
+        self.protocol = ParseFormats.parse_uint8( Config().get_config_param('Main','DefaultProtocol'))
+        self.life_time = ParseFormats.parse_uint8( Config().get_config_param('Main','LifeTime'))
+
+        self.logger.debug("ending _load_main_data")
 
     def _initialize_managers(self):
         """
         Initializes managers used.
         :return:
         """
+        self.logger.debug("Starting _initialize_managers")
         self.auction_manager = AuctionManager(self.domain)
         self.bidding_object_manager = BiddingObjectManager()
         self.resource_request_manager = ResourceRequestManager()
         self.auction_session_manager = AuctionSessionManager()
+        self.logger.debug("Ending _initialize_managers")
 
     def _initilize_processors(self):
         """
         Initialize processors used
         :return:
         """
-        if 'AGNTProcessor' in self.config:
-            if 'ModuleDir' in self.config['AGNTProcessor']:
-                module_directory = self.config['AGNTProcessor']['ModuleDir']
-                self.agent_processor = AgentProcessor(self.domain, module_directory)
-            else:
-                ValueError(
-                    'Configuration file does not have {0} \
-                    entry within {1}'.format('ModuleDir', 'AGNTProcessor'))
-        else:
-            raise ValueError('There should be a AUMProcessor option set in config file')
+        self.logger.debug("Starting _initilize_processors")
+        module_directory = Config().get_config_param('AGNTProcessor', 'ModuleDir')
+        self.agent_processor = AgentProcessor(self.domain, module_directory)
+        self.logger.debug("Ending _initilize_processors")
 
     def _load_resources_request(self):
-        if 'Main' in self.config:
-            raise ValueError("The main section was not defined in configuration option file")
-
-        if 'ResourceRequestFile' in self.config['Main']:
-            raise ValueError("The ResourceRequestFile option is not defined in the main section \
-                                of the configuration file")
-
-        resource_request_file = self.config['Main']['ResourceRequestFile']
+        """
+        Loads resource request registered in file
+        :return:
+        """
+        self.logger.debug("Starting _load_resources_request")
+        resource_request_file = Config().get_config_param('Main', 'ResourceRequestFile')
         resource_requests = self.resource_request_manager.parse_resource_request_from_file(resource_request_file)
 
         # schedule the new events.
@@ -110,10 +136,12 @@ class AuctionClient(Agent):
                 when = self._calculate_when(stop)
                 call = self.loop.call_at(when, self.handle_remove_resource_request_interval, stop, ret_stop[stop], when)
                 self._add_pending_tasks(ret_stop[stop].get_key(), call, when)
-    :
+
+        self.logger.debug("Ending _load_resources_request")
+
     def handle_activate_resource_request_interval(self, start:datetime,
                                          resource_request: ResourceRequest, when: float):
-        print('start handle activate resource request interval')
+        self.logger.debug("start handle activate resource request interval")
 
         try:
             # The task is no longer scheduled.
@@ -157,9 +185,9 @@ class AuctionClient(Agent):
             # Assign the new session to the interval.
             interval.session = session.get_key()
         except Exception as e:
-            print('Error during handle activate resource request - Error:', str(e))
+            self.logger.error('Error during handle activate resource request - Error:', str(e))
 
-        print('ending handle activate resource request interval')
+        self.logger.debug('ending handle activate resource request interval')
 
     def handle_remove_resource_request_interval(self, stop:datetime,
                                          resource_request: ResourceRequest, when: float):
@@ -170,7 +198,7 @@ class AuctionClient(Agent):
         :param when:
         :return:
         """
-        print('start handle activate resource request interval')
+        self.logger.debug('start handle activate resource request interval')
         try:
             # The task is no longer scheduled.
             self._remove_pending_task(resource_request.get_key(), when)
@@ -199,30 +227,25 @@ class AuctionClient(Agent):
                 self.handle_remove_auction(auction)
 
         except Exception as e:
-            print('Error during activate resource request interval - Error:', str(e))
-        print('ending handle activate resource request interval')
+            self.logger.error('Error during activate resource request interval - Error:', str(e))
 
+        self.logger.debug('ending handle activate resource request interval')
+
+    def run(self):
+        """
+        Runs the application.
+        :return:
+        """
+        if self.use_ipv6:
+            run_app(self.app, self.ip_address6, self.source_port)
+        else:
+            run_app(self.app, self.ip_address4, self.source_port)
 
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
     try:
-        # Read the configuration file
-        app['config'] = config
-
-        # Read request file.
-
-
-        # schedule resource request event for auctioning with those resources.
-        loop.call_soon(functools.partial(event_handler, loop))
-
-        print('starting event loop')
-        loop.call_soon(functools.partial(event_handler, loop))
-        current_time = loop.time()
-        new_time = current_time + 60
-        print('wait', current_time, new_time)
-        loop.call_at(new_time, event_handler, loop, True)
-        loop.run_forever()
+        agent = AuctionClient()
+        # agent.run()
     finally:
         print('closing event loop')
-        loop.close()
+        agent.loop.close()

@@ -2,7 +2,7 @@ from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 import unittest
 
 from aiohttp import web
-from auction_server.auction_server import AuctionServer
+from auction_server.server import AuctionServer
 from auction_server.auction_processor import AuctionProcessor
 from foundation.auction_file_parser import AuctionXmlFileParser
 from foundation.bidding_object import BiddingObject

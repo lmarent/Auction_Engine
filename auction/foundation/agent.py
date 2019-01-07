@@ -2,25 +2,35 @@ from aiohttp.web import Application
 import asyncio
 from asyncio.events import TimerHandle
 from datetime import datetime
+from logging import Logger
 
 from foundation.parse_format import ParseFormats
 from foundation.config import Config
+
 from utils.auction_utils import get_logger
+
 
 class Agent:
 
-    def __init__(self):
+    def __init__(self, config_file_name: str):
         self._pending_tasks_by_auction = {}
+
+        self.config = Config(config_file_name).get_config()
 
         # Start Listening the web server application
         self.loop = asyncio.get_event_loop()
-        self.app = Application(self.loop)
+        self.app = Application(loop=self.loop)
 
         # Gets the log file
-        config = Config()
-        log_file_name = config['DefaultLogFile']
-        self.app['log'] = get_logger(log_file_name)
+        log_file_name = self.config['DefaultLogFile']
+        self.logger = get_logger(log_file_name)
 
+        self.domain = ParseFormats.parse_int(Config().get_config_param('Main', 'Domain'))
+        self.immediate_start = ParseFormats.parse_bool(Config().get_config_param('Main', 'ImmediateStart'))
+
+        self._load_main_data()
+        self._load_control_data()
+        self._load_database_params()
 
     def _add_pending_tasks(self, key: str, call: TimerHandle, when: float):
         """
@@ -57,39 +67,40 @@ class Agent:
         when = self.loop.time() + diff_start.total_seconds()
         return when
 
-    def _load_main_data(self):
-        """
-        Sets the main data defined in the configuration file
-        """
-        use_ipv6 = self.config['Main']['UseIPv6']
-        self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
-        if self.use_ipv6:
-            self.ip_address6 = ParseFormats.parse_ipaddress(self.config['Main']['LocalAddr-V6'])
-            self.destination_address6 = ParseFormats.parse_ipaddress(self.config['Main']['DefaultDestinationAddr-V6'])
-        else:
-            self.ip_address4 = ParseFormats.parse_ipaddress(self.config['Main']['LocalAddr-V4'])
-            self.destination_address4 = ParseFormats.parse_ipaddress(self.config['Main']['DefaultDestinationAddr-V4'])
-
-        # Gets default ports (origin, destination)
-        self.source_port = ParseFormats.parse_uint16(self.config['Main']['DefaultSourcePort'])
-        self.destination_port = ParseFormats.parse_uint16(self.config['Main']['DefaultDestinationPort'])
-        self.protocol = ParseFormats.parse_uint8(self.config['Main']['DefaultProtocol'])
-        self.life_time = ParseFormats.parse_uint8(self.config['Main']['LifeTime'])
-
     def _load_control_data(self):
         """
         Sets the control data defined in the configuration file
         """
+        self.logger.debug("Stating _load_control_data")
+
         try:
-            self.use_ssl = ParseFormats.parse_bool(self.config['Control']['UseSSL'])
-            self.control_port = ParseFormats.parse_uint16(self.config['Control']['ControlPort'])
-            self.log_on_connect = ParseFormats.parse_bool(self.config['Control']['LogOnConnect'])
-            self.log_command = ParseFormats.parse_bool(self.config['Control']['LogCommand'])
+            self.use_ssl = ParseFormats.parse_bool(Config().get_config_param('Control','UseSSL'))
+            self.control_port = ParseFormats.parse_uint16(Config().get_config_param('Control','ControlPort'))
+            self.log_on_connect = ParseFormats.parse_bool(Config().get_config_param('Control','LogOnConnect'))
+            self.log_command = ParseFormats.parse_bool(Config().get_config_param('Control','LogCommand'))
             self.control_hosts = self.config['Control']['Access']['Host']
             self.control_user, self.control_passwd = \
-                        self.config['Control']['Access']['User'].split(':')
+                self.config['Control']['Access']['User'].split(':')
+
+            self.logger.debug("Ending _load_control_data")
 
         except ValueError as verr:
-            raise ValueError("The value for control port{0} is not a valid number".format(
-                            self.config['Control']['ControlPort']))
+            self.logger.error("The value for control port{0} is not a valid number".format(
+                Config().get_config_param('Control', 'ControlPort')))
 
+            raise ValueError("The value for control port{0} is not a valid number".format(
+                Config().get_config_param('Control', 'ControlPort')))
+
+    def _load_database_params(self):
+        """
+        Loads the database parameters from configuration file
+        """
+        self.logger.debug("starting _load_database_params")
+
+        self.db_name = Config().get_config_param('Postgres', 'Database')
+        self.db_user = Config().get_config_param('Postgres', 'User')
+        self.db_passwd = Config().get_config_param('Postgres', 'Password')
+        self.db_ip_address = Config().get_config_param('Postgres', 'Host')
+        self.db_port = ParseFormats.parse_uint16(Config().get_config_param('Postgres', 'Port'))
+
+        self.logger.debug("ending _load_database_params")

@@ -11,21 +11,25 @@ Postgres:
 Main:
   VerboseLevel: 4
   Domain: 1
-  ResourceRequestFile: example_resource_request1.xml
-  DefaultDestinAddr: 192.168.3.3
-  DefaultDestinPort: 80
+  UseIPv6: No
+  LocalAddr-V4: 127.0.0.1
+  LocalPort: 8080
   DefaultProtocol: 6
-  DefaultSourcePort: 12248
+  LifeTime: 60
   TimeFormat: "%Y%m%d %H%M%S"
   ImmediateStart: True
+  ResourceFile: resources.yaml
+  AuctionFileDtd: auctionfile.dtd
+  AuctionFile: example_auctions3.xml
+  AuctionRootNode: AUCTIONSET
+  BidfileDtd: bidfile.dtd
+
 
 Control:
   ControlPort: 12248
   UseSSL: No
-  UseIPv6: No
   LogOnConnect: yes
   LogCommand: yes
-  LocalAddr-V4: 192.168.2.11
   LocalAddr-V6: 0:0:0:0:0:0:0:0
   Access:
     Host: All
@@ -34,8 +38,8 @@ Control:
 AUMProcessor:
   ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules
   ModuleDynamicLoad: yes
-  Modules: basic_server_module
-  basic_server_module:
+  Modules: basic_module
+  basic_module:
     Rate:
       Name: Rate
       Type: UInt32
@@ -49,10 +53,4 @@ AUMProcessor:
       Type: UInt32
       Value: 100
 
-
-ResourceFile: resources.yaml
-AuctionFileDtd: auctionfile.dtd
-AuctionFile: example_auctions3.xml
-AuctionRootNode: AUCTIONSET
-BidfileDtd: bidfile.dtd
 DefaultLogFile: netaum.log
