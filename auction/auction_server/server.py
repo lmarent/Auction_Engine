@@ -36,7 +36,7 @@ class AuctionServer(Agent):
         """
         print('Send signal termination')
         os.kill(os.getpid(), signal.SIGINT)
-        return web.Response(text="Hello, world")
+        return web.Response(text="Terminate started")
 
     def remove_auction_tasks(self):
         """
@@ -104,7 +104,7 @@ class AuctionServer(Agent):
             self._load_auctions()
 
             # add routers.
-            self.app.add_routes([post('/websockets', self.handle_web_socket),
+            self.app.add_routes([get('/websockets', self.handle_web_socket),
                                  get('/terminate', self.terminate)
                                  ])
             self.app.on_shutdown.append(self.on_shutdown)

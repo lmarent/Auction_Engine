@@ -32,15 +32,15 @@ class ResourceRequestManager(AuctioningObjectManager):
         """
         super(ResourceRequestManager, self).add_auctioning_object(resource_request)
 
-        ret_start = []
-        ret_stop = []
+        ret_start = {}
+        ret_stop = {}
         # Inserts the intervals of the resource request
         intervals = resource_request.get_intervals()
         for interval in intervals:
             ret_start[interval.start] = resource_request
             ret_stop[interval.stop] = resource_request
 
-            if interval.start not in interval.start:
+            if interval.start not in self.map_by_start_date:
                 self.map_by_start_date[interval.start] = []
             self.map_by_start_date[interval.start].append(resource_request)
 

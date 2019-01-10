@@ -1,7 +1,12 @@
 from aiohttp.web import Application, run_app
 from aiohttp import web, WSMsgType
 from datetime import datetime
-from aiohttp.web import post
+from aiohttp.web import get
+from aiohttp import ClientSession
+from aiohttp import WSCloseCode
+
+import os,signal
+import pathlib
 
 from foundation.agent import Agent
 from foundation.config import Config
@@ -17,15 +22,34 @@ from auction_client.agent_processor import AgentProcessor
 class AuctionClient(Agent):
 
     async def terminate(self, request):
-        raise SystemExit(0)
-        await self.app['ws'].send_str(new_msg_to_send)
+        print('Send signal termination')
+        os.kill(os.getpid(), signal.SIGINT)
+        return web.Response(text="Terminate started")
+
+    async def on_shutdown(self, app):
+
+        # Close open sockets
+        await self.app['ws'].close(code=WSCloseCode.GOING_AWAY,
+                            message='Client shutdown')
+        await self.app['session'].close()
 
     async def callback(self, msg):
         print(msg)
 
     async def websocket(self, session):
-        async with session.ws_connect('http://example.org/websocket') as ws:
+
+        if self.use_ipv6:
+            destin_ip_address = str(self.destination_address6)
+        else:
+            destin_ip_address = str(self.destination_address4)
+
+        # TODO: CONNECT USING DNS
+        http_address = 'http://{ip}:{port}/{resource}'.format(ip=destin_ip_address,
+                                                    port=str(self.destination_port),
+                                                    resource='websockets')
+        async with session.ws_connect(http_address) as ws:
             self.app['ws'] = ws
+            self.app['session'] = session
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
                     await self.callback(msg.data)
@@ -33,6 +57,10 @@ class AuctionClient(Agent):
                     break
                 elif msg.type == WSMsgType.ERROR:
                     break
+
+    async def on_startup(self, app):
+        session = ClientSession()
+        app['websocket_task'] = self.loop.create_task(self.websocket(session))
 
     def __init__(self):
         try:
@@ -44,34 +72,19 @@ class AuctionClient(Agent):
             self._load_resources_request()
 
             # add routers.
-            self.app.add_routes([post('/terminate', self.terminate),])
+            self.app.add_routes([get('/terminate', self.terminate),])
 
-            session = aiohttp.ClientSession()
-            self.app['websocket_task'] = self.app.loop.create_task(self.websocket(session))
+            self.app.on_startup.append(self.on_startup)
+            self.app.on_shutdown.append(self.on_shutdown)
 
         except Exception as e:
-            self.logger.error("Error during server initialization - message:", str(e) )
-
-    async def callback_message(self, msg):
-        print(msg)
-
-    async def websocket(self, session):
-        async with session.ws_connect('http://example.org/websocket') as ws:
-            self.web_socket = ws
-            async for msg in ws:
-                if msg.type == WSMsgType.TEXT:
-                    await self.callback_message(msg.data)
-                elif msg.type == WSMsgType.CLOSED:
-                    break
-                elif msg.type == WSMsgType.ERROR:
-                    break
+            self.logger.error("Error during server initialization - message: {0}".format(str(e)) )
 
     def _load_main_data(self):
         """
         Sets the main data defined in the configuration file
         """
-        self.logger.debug("Stating _load_main_data")
-
+        self.logger.debug("Stating _load_main_data auction client")
 
         use_ipv6 = Config().get_config_param('Main','UseIPv6')
         self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
@@ -86,12 +99,13 @@ class AuctionClient(Agent):
 
         # Gets default ports (origin, destination)
         self.source_port = ParseFormats.parse_uint16(Config().get_config_param('Main','DefaultSourcePort'))
+        print('self.source_port', self.source_port, Config().get_config_param('Main','DefaultSourcePort'))
         self.destination_port = ParseFormats.parse_uint16(
                                 Config().get_config_param('Main','DefaultDestinationPort'))
         self.protocol = ParseFormats.parse_uint8( Config().get_config_param('Main','DefaultProtocol'))
         self.life_time = ParseFormats.parse_uint8( Config().get_config_param('Main','LifeTime'))
 
-        self.logger.debug("ending _load_main_data")
+        self.logger.debug("ending _load_main_data auction client")
 
     def _initialize_managers(self):
         """
@@ -101,7 +115,7 @@ class AuctionClient(Agent):
         self.logger.debug("Starting _initialize_managers")
         self.auction_manager = AuctionManager(self.domain)
         self.bidding_object_manager = BiddingObjectManager()
-        self.resource_request_manager = ResourceRequestManager()
+        self.resource_request_manager = ResourceRequestManager(self.domain)
         self.auction_session_manager = AuctionSessionManager()
         self.logger.debug("Ending _initialize_managers")
 
@@ -122,7 +136,12 @@ class AuctionClient(Agent):
         """
         self.logger.debug("Starting _load_resources_request")
         resource_request_file = Config().get_config_param('Main', 'ResourceRequestFile')
+        base_dir = pathlib.Path(__file__).parent.parent
+        resource_request_file = base_dir / 'xmls' / resource_request_file
+        resource_request_file = str(resource_request_file)
         resource_requests = self.resource_request_manager.parse_resource_request_from_file(resource_request_file)
+
+        self.logger.debug("resource_request to read:{0}".format(len(resource_requests)))
 
         # schedule the new events.
         for request in resource_requests:
@@ -185,7 +204,7 @@ class AuctionClient(Agent):
             # Assign the new session to the interval.
             interval.session = session.get_key()
         except Exception as e:
-            self.logger.error('Error during handle activate resource request - Error:', str(e))
+            self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))
 
         self.logger.debug('ending handle activate resource request interval')
 
@@ -227,7 +246,7 @@ class AuctionClient(Agent):
                 self.handle_remove_auction(auction)
 
         except Exception as e:
-            self.logger.error('Error during activate resource request interval - Error:', str(e))
+            self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
 
         self.logger.debug('ending handle activate resource request interval')
 
@@ -237,15 +256,17 @@ class AuctionClient(Agent):
         :return:
         """
         if self.use_ipv6:
-            run_app(self.app, self.ip_address6, self.source_port)
+            print(self.ip_address6, self.source_port)
+            run_app(self.app, host=str(self.ip_address6), port=self.source_port)
         else:
-            run_app(self.app, self.ip_address4, self.source_port)
+            print(self.ip_address4, self.source_port)
+            run_app(self.app, host=str(self.ip_address4), port=self.source_port)
 
 
 if __name__ == '__main__':
     try:
         agent = AuctionClient()
-        # agent.run()
+        agent.run()
     finally:
         print('closing event loop')
         agent.loop.close()

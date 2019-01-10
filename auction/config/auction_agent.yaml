@@ -1,27 +1,32 @@
 # auction_agent.yaml
-postgres:
-  database: auctiondb
-  user: auction_user
-  password: auction_pass
-  host: localhost
-  port: 5432
-  minsize: 1
-  maxsize: 5
+Postgres:
+  Database: auctiondb
+  User: auction_user
+  Password: auction_pass
+  Host: localhost
+  Port: 5432
+  Minsize: 1
+  Maxsize: 5
 
 Main:
+  Domain: 10
   ResourceRequestFileDtd: resourcerequestfile.dtd
   ResourceRequestFile: example_resource_request1.xml
   UseIPv6: No
-  LocalAddr-V4: 192.168.2.11
+  LocalAddr-V4: 127.0.0.1
   LocalAddr-V6: 0:0:0:0:0:0:0:0
-  DefaultDestinationAddr-V4: 192.168.3.3
+  DefaultDestinationAddr-V4: 127.0.0.1
   DefaultDestinationAddr-V6: 0:0:0:0:0:0:0:0
-  DefaultDestinationPort: 80
-  DefaultSourcePort: 12248
+  DefaultDestinationPort: 8080
+  DefaultSourcePort: 8020
   # Tcp by default.
+  ImmediateStart: True
   DefaultProtocol: 6
   LifeTime: 60
   TimeFormat: "%Y%m%d %H%M%S"
+  AuctionfileDtd: auctionfile.dtd
+  DtdRootNode: AUCTIONSET
+  BidfileDtd: bidfile.dtd
 
 Control:
   ControlPort: 12248
@@ -35,11 +40,7 @@ Control:
 AGNTProcessor:
   ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules
   ModuleDynamicLoad: yes
-  Modules: basic_client_module
+  Modules: basic_module
 
-
-AuctionfileDtd: auctionfile.dtd
-DtdRootNode: AUCTIONSET
-BidfileDtd: bidfile.dtd
-DefaultLogFile: netaum.log
+DefaultLogFile: netagent
 

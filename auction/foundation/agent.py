@@ -8,9 +8,10 @@ from foundation.parse_format import ParseFormats
 from foundation.config import Config
 
 from utils.auction_utils import get_logger
+from abc import ABC
+from abc import abstractmethod
 
-
-class Agent:
+class Agent(ABC):
 
     def __init__(self, config_file_name: str):
         self._pending_tasks_by_auction = {}
@@ -31,6 +32,10 @@ class Agent:
         self._load_main_data()
         self._load_control_data()
         self._load_database_params()
+
+    @abstractmethod
+    def _load_main_data(self):
+        pass
 
     def _add_pending_tasks(self, key: str, call: TimerHandle, when: float):
         """

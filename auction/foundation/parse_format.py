@@ -37,7 +37,7 @@ class ParseFormats:
     @staticmethod
     def parse_uint8(value: str) -> int:
         """
-        Parsers a string which has a unsigned 16 bits integer value
+        Parsers a string which has a unsigned 8 bits integer value
 
         :param value: string
         :return: integer
@@ -46,6 +46,21 @@ class ParseFormats:
         if val < 0 or val > 255:
             raise ValueError("Invalid value for unsigned 8 int, out of range")
 
+        return val
+
+    @staticmethod
+    def parse_sint8(value: str) -> int:
+        """
+        Parsers a string which has a signed 8 bits integer value
+
+        :param value: string
+        :return: integer
+        """
+        val = int(value)
+        if val < -128 or val > 127:
+            raise ValueError("Invalid value for signed 8 int, out of range")
+
+        return val
 
     @staticmethod
     def parse_uint16(value: str) -> int:
@@ -58,6 +73,37 @@ class ParseFormats:
         val =  int(value)
         if val < 0 or val > 65535:
             raise ValueError("Invalid value for unsigned 16 int, out of range")
+
+        return val
+
+    @staticmethod
+    def parse_sint16(value: str) -> int:
+        """
+        Parsers a string which has a signed 16 bits integer value
+
+        :param value: string
+        :return: integer
+        """
+        val = int(value)
+        if val < -32768 or val > 32767:
+            raise ValueError("Invalid value for signed 16 int, out of range")
+
+        return val
+
+    @staticmethod
+    def parse_sint32(value: str) -> int:
+        """
+        Parsers a string which has a signed 32 bits integer value
+
+        :param value: string
+        :return: integer
+        """
+        val = int(value)
+        if (val < -2147483648) or (val > 2147483647):
+            raise ValueError("Invalid value for signed 32 int, out of range")
+
+        return val
+
 
     @staticmethod
     def parse_int(value: str) -> int:
@@ -151,12 +197,18 @@ class ParseFormats:
         :except ValueError thestring does not have a value of the given type
         """
 
-        if (c_type.lower() == "uint8") or (c_type.lower() == "sint8"):
-            ParseFormats.parse_int(value)
-        elif (c_type.lower() == "uint16") or (c_type.lower() == "sint16"):
-            ParseFormats.parse_long(value)
-        elif (c_type.lower() == "uint32") or (c_type == "sint32"):
+        if c_type.lower() == "uint8":
+            ParseFormats.parse_uint8(value)
+        elif c_type.lower() == "sint8":
+            ParseFormats.parse_sint8(value)
+        elif c_type.lower() == "uint16":
+            ParseFormats.parse_uint16(value)
+        elif c_type.lower() == "sint16":
+            ParseFormats.parse_sint16(value)
+        elif c_type.lower() == "uint32":
             ParseFormats.parse_ulong(value)
+        elif c_type.lower() == "sint32":
+            ParseFormats.parse_sint32(value)
         elif c_type.lower() == "ipaddr":
             ParseFormats.parse_ipaddress(value)
         elif c_type.lower() == "ip6addr":

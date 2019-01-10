@@ -13,6 +13,7 @@ Main:
   Domain: 1
   UseIPv6: No
   LocalAddr-V4: 127.0.0.1
+  LocalAddr-V6: 0:0:0:0:0:0:0:0
   LocalPort: 8080
   DefaultProtocol: 6
   LifeTime: 60
