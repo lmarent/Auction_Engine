@@ -98,18 +98,14 @@ class AuctionProcessor(IpapMessageParser):
 
         :param auction: auction to be added
         """
-        try:
-            key = auction.get_key()
-            action = auction.get_action()
-            module_name = action.name
-            module = self.module_loader.get_module(module_name)
-            action_process = AuctionProcess(key, module, action.get_config_params(), auction)
-            module.init_module(action.get_config_params())
-            self.auctions[key] = action_process
-            return key
-        except Exception as e:
-            print('Error msg:', str(e))
-            return None
+        key = auction.get_key()
+        action = auction.get_action()
+        module_name = action.name
+        module = self.module_loader.get_module(module_name)
+        action_process = AuctionProcess(key, module, action.get_config_params(), auction)
+        module.init_module(action.get_config_params())
+        self.auctions[key] = action_process
+        return key
 
     def execute_auction(self, key: str, start: datetime, end: datetime):
         """

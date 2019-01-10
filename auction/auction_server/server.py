@@ -1,10 +1,15 @@
 from aiohttp.web import run_app
 from aiohttp.web import WebSocketResponse
 from aiohttp.web import post
+from aiohttp.web import get
 from aiohttp import WSMsgType
+from aiohttp import WSCloseCode
+from aiohttp import web
+
 import functools
 import pathlib
 import yaml
+import os,signal
 from datetime import datetime, timedelta
 
 from auction_server.auction_processor import AuctionProcessor
@@ -24,16 +29,39 @@ from foundation.parse_format import ParseFormats
 
 class AuctionServer(Agent):
 
-    async def terminate(self):
+    async def terminate(self, request):
         """
         Terminate server execution
         :return:
         """
-        raise SystemExit(0)
+        print('Send signal termination')
+        os.kill(os.getpid(), signal.SIGINT)
+        return web.Response(text="Hello, world")
+
+    def remove_auction_tasks(self):
+        """
+        Removes pending tasks for all auctions as part of the shutdown process
+        :return:
+        """
+        keys = self.auction_manager.get_auctioning_object_keys()
+        for key in keys:
+            # Cancels all pending task scheduled for the auction
+            for when in self._pending_tasks_by_auction[key]:
+                pending_tasks = self._pending_tasks_by_auction[key]
+                for when in pending_tasks:
+                    pending_tasks[when].cancel()
+
+            self._pending_tasks_by_auction.pop(key)
 
     async def on_shutdown(self, app):
+
+        # Close all open sockets
         for ws in app['web_sockets']:
-            await ws.close(code=1001, message='Server shutdown')
+            await ws.close(code=WSCloseCode.GOING_AWAY,
+                            message='Server shutdown')
+
+        # Close pending tasks
+        self.remove_auction_tasks()
 
     async def callback_message(self, msg):
         print(msg)
@@ -44,20 +72,20 @@ class AuctionServer(Agent):
 
         # Put in the list the new connection from the client.
         request.app['web_sockets'].append(ws)
+        try:
+            async for msg in ws:
+                if msg.tp == WSMsgType.text:
+                    await self.callback_message(msg)
 
-        async for msg in ws:
-            if msg.tp == WSMsgType.text:
-                await self.callback_message(msg)
+                elif msg.tp == WSMsgType.error:
+                    request.app['log'].debug('ws connection closed with exception %s' % ws.exception())
 
-            elif msg.tp == WSMsgType.error:
-                request.app['log'].debug('ws connection closed with exception %s' % ws.exception())
+                elif msg.tp == WSMsgType.close:
+                    request.app['log'].debug('ws connection closed')
+        finally:
+            request.app['web_sockets'].remove(ws)
 
-            elif msg.tp == WSMsgType.close:
-                request.app['log'].debug('ws connection closed')
-
-        request.app['web_sockets'].remove(ws)
         request.app['log'].debug('websocket connection closed')
-
         return ws
 
     def __init__(self):
@@ -77,7 +105,7 @@ class AuctionServer(Agent):
 
             # add routers.
             self.app.add_routes([post('/websockets', self.handle_web_socket),
-                                 post('/terminate', self.terminate)
+                                 get('/terminate', self.terminate)
                                  ])
             self.app.on_shutdown.append(self.on_shutdown)
             self.logger.debug('ending init')
@@ -218,23 +246,25 @@ class AuctionServer(Agent):
         :param when: seconds when the auction should be activate
         """
         self.logger.debug('Starting handle activate auction')
+        try:
+            # The task is no longer scheduled.
+            self._remove_pending_task(auction.get_key(), when)
 
-        # The task is no longer scheduled.
-        self._remove_pending_task(auction.get_key(), when)
+            # creates the auction processor
+            self.auction_processor.add_auction_process(auction)
+            start = auction.get_start()
+            stop = auction.get_stop()
+            interval = auction.get_interval()
 
-        # creates the auction processor
-        self.auction_processor.add_auction_process(auction)
-        start = auction.get_start()
-        stop = auction.get_stop()
-        interval = auction.get_interval()
+            # Activates its execution
+            when = self._calculate_when(auction.get_start())
+            call = self.loop.call_at(when, self.handle_push_execution, auction, start, stop, interval, when)
+            self._add_pending_tasks(auction.get_key(), call, when)
 
-        # Activates its execution
-        when = self._calculate_when(auction.get_start())
-        call = self.loop.call_at(when, self.handle_push_execution, auction, start, stop, interval, when)
-        self._add_pending_tasks(auction.get_key(), call, when)
-
-        # Change the state of all auctions to active
-        auction.set_state(AuctioningObjectState.ACTIVE)
+            # Change the state of all auctions to active
+            auction.set_state(AuctioningObjectState.ACTIVE)
+        except Exception as e:
+            self.logger.error("Auction {0} could not be activated - error: {1}".format(auction.get_key(), str(e)))
         self.logger.debug('Ending handle activate auction')
 
     def handle_remove_auction(self, auction: Auction, when: float):

@@ -56,6 +56,14 @@ class AuctionManager(AuctioningObjectManager):
         """
         return super(AuctionManager, self).get_auctioning_object_done(auction_key)
 
+    def get_auction_keys(self):
+        """
+        Gets auction keys of object registered.
+
+        :return:
+        """
+        return super(AuctionManager, self).get_auctioning_object_keys()
+
     def parse_auction_from_file(self, file_name: str):
         """
         parses a file in format XML and gets the registered definition of auctions

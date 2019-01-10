@@ -76,3 +76,10 @@ class AuctioningObjectManager():
         :return: number of auctioning objects.
         """
         return len(self.auctioning_objects)
+
+    def get_auctioning_object_keys(self):
+        """
+        Returns the keys of the auction objects
+        :return: set of keys
+        """
+        return self.auctioning_objects.keys()
