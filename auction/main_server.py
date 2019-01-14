@@ -5,4 +5,4 @@ if __name__ == '__main__':
 
     agent = AuctionServer()
     agent.run()
-    agent.loop.close()
+    # agent.loop.close()

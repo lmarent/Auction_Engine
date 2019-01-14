@@ -66,7 +66,7 @@ class AuctionServer(Agent):
             print('websocket closed')
 
         # Close pending tasks
-        self.remove_auction_tasks()
+        # self.remove_auction_tasks()
 
     async def callback_message(self, msg):
         print(msg)
@@ -79,13 +79,13 @@ class AuctionServer(Agent):
         request.app['web_sockets'].append(ws)
         try:
             async for msg in ws:
-                if msg.tp == WSMsgType.text:
+                if msg.type == WSMsgType.text:
                     await self.callback_message(msg)
 
-                elif msg.tp == WSMsgType.error:
+                elif msg.type == WSMsgType.error:
                     self.logger.debug('ws connection closed with exception %s' % ws.exception())
 
-                elif msg.tp == WSMsgType.close:
+                elif msg.type == WSMsgType.close:
                     self.logger.debug('ws connection closed')
         finally:
             request.app['web_sockets'].remove(ws)
@@ -99,19 +99,21 @@ class AuctionServer(Agent):
 
             self.logger.debug('Startig init')
 
-            self._initialize_managers()
-            self._initilize_processors()
+            # self._initialize_managers()
+            # self._initilize_processors()
 
-            # Start list of web sockets connected
-            self.app['web_sockets'] = []
-
-            self._load_resources()
-            self._load_auctions()
+            #self._load_resources()
+            # self._load_auctions()
 
             # add routers.
             self.app.add_routes([get('/websockets', self.handle_web_socket),
                                  get('/terminate', self.terminate)
                                  ])
+
+            # Start list of web sockets connected
+            self.app['web_sockets'] = []
+
+
             self.app.on_shutdown.append(self.on_shutdown)
             self.logger.debug('ending init')
 

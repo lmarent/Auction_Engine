@@ -4,6 +4,8 @@ from datetime import datetime
 from aiohttp.web import get
 from aiohttp import ClientSession
 from aiohttp import WSCloseCode
+import asyncio
+
 
 import os,signal
 import pathlib
@@ -28,50 +30,60 @@ class AuctionClient(Agent):
         return web.Response(text="Terminate started")
 
     async def on_shutdown(self, app):
-
+        self.logger.info('shutdown started')
         # Close open sockets
-        await self.app['ws'].close(code=WSCloseCode.GOING_AWAY,
+        session = self.app['session']
+        if not session.closed:
+            print('session not closed, closing')
+            ws = self.app['ws']
+            if not ws.closed:
+                await ws.close(code=WSCloseCode.GOING_AWAY,
                             message='Client shutdown')
-        await self.app['session'].close()
+            await session.close()
+
+        self.logger.info('shutdown ended')
 
     async def callback(self, msg):
         print(msg)
 
-    async def websocket(self, session):
+    async def websocket(self):
+        session = ClientSession()
+        self.app['session'] = session
 
         if self.use_ipv6:
             destin_ip_address = str(self.destination_address6)
         else:
-            destin_ip_address = str(self.destination_address4)
+           destin_ip_address = str(self.destination_address4)
 
         # TODO: CONNECT USING A DNS
         print('connect to ', destin_ip_address, self.destination_port)
         http_address = 'http://{ip}:{port}/{resource}'.format(ip=destin_ip_address,
                                                     port=str(self.destination_port),
                                                     resource='websockets')
+
         async with session.ws_connect(http_address) as ws:
             self.app['ws'] = ws
-            self.app['session'] = session
             async for msg in ws:
                 print(msg.type)
                 if msg.type == WSMsgType.TEXT:
                     await self.callback(msg.data)
+
                 elif msg.type == WSMsgType.CLOSED:
                     self.logger.error("websocket closed by the server.")
                     print("websocket closed by the server.")
                     break
+
                 elif msg.type == WSMsgType.ERROR:
                     self.logger.error("websocket error received.")
                     print("websocket error received.")
                     break
 
-        self.logger.info("closed by server request")
-        # os.kill(os.getpid(), signal.SIGINT)
+        print("closed by server request")
+        os.kill(os.getpid(), signal.SIGINT)
 
 
     async def on_startup(self, app):
-        session = ClientSession()
-        app['websocket_task'] = self.loop.create_task(self.websocket(session))
+        app['websocket_task'] = self.loop.create_task(self.websocket())
 
     def __init__(self):
         try:
@@ -273,6 +285,35 @@ class AuctionClient(Agent):
         else:
             print(self.ip_address4, self.source_port)
             run_app(self.app, host=str(self.ip_address4), port=self.source_port)
+
+
+# async def websocket():
+#     session = ClientSession()
+#
+#     HOST = os.getenv('HOST', '127.0.0.1')
+#     PORT = int(os.getenv('PORT', 8080))
+#
+#     # TODO: CONNECT USING A DNS
+#     print('connect to ', HOST, PORT)
+#     http_address = f'http://{HOST}:{PORT}/websockets'
+#
+#     async with session.ws_connect(http_address) as ws:
+#         async for msg in ws:
+#             print(msg.type)
+#             if msg.type == WSMsgType.TEXT:
+#                 print(msg)
+#
+#             elif msg.type == WSMsgType.CLOSED:
+#                 print("websocket closed by the server.")
+#                 break
+#
+#             elif msg.type == WSMsgType.ERROR:
+#                 print("websocket error received.")
+#                 break
+#
+#     print("closed by server request")
+#     # os.kill(os.getpid(), signal.SIGINT)
+
 
 
 if __name__ == '__main__':
