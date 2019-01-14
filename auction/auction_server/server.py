@@ -42,6 +42,7 @@ class AuctionServer(Agent):
         Removes pending tasks for all auctions as part of the shutdown process
         :return:
         """
+        print("Starting remove auction tasks")
         keys = self.auction_manager.get_auctioning_object_keys()
         for key in keys:
             # Cancels all pending tasks scheduled for the auction
@@ -52,13 +53,17 @@ class AuctionServer(Agent):
 
                 self._pending_tasks_by_auction.pop(key)
 
+        print("ending remove auction tasks")
+
     async def on_shutdown(self, app):
-        print('on_shutdown')
+        print('on_shutdown - active sockets:', app['web_sockets'])
         # Close all open sockets
         for ws in app['web_sockets']:
             print('closing websocket')
+
             await ws.close(code=WSCloseCode.GOING_AWAY,
                             message='Server shutdown')
+            print('websocket closed')
 
         # Close pending tasks
         self.remove_auction_tasks()

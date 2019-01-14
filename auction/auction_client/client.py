@@ -65,6 +65,10 @@ class AuctionClient(Agent):
                     print("websocket error received.")
                     break
 
+        self.logger.info("closed by server request")
+        # os.kill(os.getpid(), signal.SIGINT)
+
+
     async def on_startup(self, app):
         session = ClientSession()
         app['websocket_task'] = self.loop.create_task(self.websocket(session))
