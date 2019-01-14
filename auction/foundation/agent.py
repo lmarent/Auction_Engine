@@ -2,7 +2,6 @@ from aiohttp.web import Application
 import asyncio
 from asyncio.events import TimerHandle
 from datetime import datetime
-from logging import Logger
 
 from foundation.parse_format import ParseFormats
 from foundation.config import Config

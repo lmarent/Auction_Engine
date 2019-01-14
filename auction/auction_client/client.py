@@ -7,6 +7,7 @@ from aiohttp import WSCloseCode
 
 import os,signal
 import pathlib
+import random
 
 from foundation.agent import Agent
 from foundation.config import Config
@@ -43,7 +44,8 @@ class AuctionClient(Agent):
         else:
             destin_ip_address = str(self.destination_address4)
 
-        # TODO: CONNECT USING DNS
+        # TODO: CONNECT USING A DNS
+        print('connect to ', destin_ip_address, self.destination_port)
         http_address = 'http://{ip}:{port}/{resource}'.format(ip=destin_ip_address,
                                                     port=str(self.destination_port),
                                                     resource='websockets')
@@ -51,11 +53,16 @@ class AuctionClient(Agent):
             self.app['ws'] = ws
             self.app['session'] = session
             async for msg in ws:
+                print(msg.type)
                 if msg.type == WSMsgType.TEXT:
                     await self.callback(msg.data)
                 elif msg.type == WSMsgType.CLOSED:
+                    self.logger.error("websocket closed by the server.")
+                    print("websocket closed by the server.")
                     break
                 elif msg.type == WSMsgType.ERROR:
+                    self.logger.error("websocket error received.")
+                    print("websocket error received.")
                     break
 
     async def on_startup(self, app):
@@ -255,6 +262,7 @@ class AuctionClient(Agent):
         Runs the application.
         :return:
         """
+        self.source_port = random.randint(1024, 65000)
         if self.use_ipv6:
             print(self.ip_address6, self.source_port)
             run_app(self.app, host=str(self.ip_address6), port=self.source_port)

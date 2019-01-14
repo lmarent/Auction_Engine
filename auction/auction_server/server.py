@@ -1,6 +1,5 @@
 from aiohttp.web import run_app
 from aiohttp.web import WebSocketResponse
-from aiohttp.web import post
 from aiohttp.web import get
 from aiohttp import WSMsgType
 from aiohttp import WSCloseCode
@@ -45,18 +44,19 @@ class AuctionServer(Agent):
         """
         keys = self.auction_manager.get_auctioning_object_keys()
         for key in keys:
-            # Cancels all pending task scheduled for the auction
-            for when in self._pending_tasks_by_auction[key]:
+            # Cancels all pending tasks scheduled for the auction
+            if key in self._pending_tasks_by_auction:
                 pending_tasks = self._pending_tasks_by_auction[key]
                 for when in pending_tasks:
                     pending_tasks[when].cancel()
 
-            self._pending_tasks_by_auction.pop(key)
+                self._pending_tasks_by_auction.pop(key)
 
     async def on_shutdown(self, app):
-
+        print('on_shutdown')
         # Close all open sockets
         for ws in app['web_sockets']:
+            print('closing websocket')
             await ws.close(code=WSCloseCode.GOING_AWAY,
                             message='Server shutdown')
 
@@ -78,14 +78,14 @@ class AuctionServer(Agent):
                     await self.callback_message(msg)
 
                 elif msg.tp == WSMsgType.error:
-                    request.app['log'].debug('ws connection closed with exception %s' % ws.exception())
+                    self.logger.debug('ws connection closed with exception %s' % ws.exception())
 
                 elif msg.tp == WSMsgType.close:
-                    request.app['log'].debug('ws connection closed')
+                    self.logger.debug('ws connection closed')
         finally:
             request.app['web_sockets'].remove(ws)
 
-        request.app['log'].debug('websocket connection closed')
+        self.logger.debug('websocket connection closed')
         return ws
 
     def __init__(self):
@@ -330,11 +330,3 @@ class AuctionServer(Agent):
         else:
             run_app(self.app, host=str(self.ip_address4), port=self.local_port)
 
-
-if __name__ == '__main__':
-    try:
-        agent = AuctionServer()
-        agent.run()
-    finally:
-        print('closing event loop')
-        agent.loop.close()
