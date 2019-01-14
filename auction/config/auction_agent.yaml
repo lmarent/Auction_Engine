@@ -23,6 +23,8 @@ Main:
   ImmediateStart: True
   DefaultProtocol: 6
   LifeTime: 60
+  # Timeout for server connections
+  TimeOut: 5
   TimeFormat: "%Y%m%d %H%M%S"
   AuctionfileDtd: auctionfile.dtd
   DtdRootNode: AUCTIONSET

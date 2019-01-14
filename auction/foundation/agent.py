@@ -18,8 +18,8 @@ class Agent(ABC):
         self.config = Config(config_file_name).get_config()
 
         # Start Listening the web server application
-        self.loop = asyncio.get_event_loop()
-        self.app = Application(loop=self.loop)
+        loop = asyncio.get_event_loop()
+        self.app = Application(loop=loop)
 
         # Gets the log file
         log_file_name = self.config['DefaultLogFile']
@@ -68,7 +68,7 @@ class Agent(ABC):
         :return: time in milliseconds when we should start the new event
         """
         diff_start = start - datetime.now()
-        when = self.loop.time() + diff_start.total_seconds()
+        when = self.app.loop.time() + diff_start.total_seconds()
         return when
 
     def _load_control_data(self):

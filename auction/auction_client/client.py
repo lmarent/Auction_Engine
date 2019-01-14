@@ -4,8 +4,7 @@ from datetime import datetime
 from aiohttp.web import get
 from aiohttp import ClientSession
 from aiohttp import WSCloseCode
-import asyncio
-
+from aiohttp.client_exceptions import ClientConnectorError
 
 import os,signal
 import pathlib
@@ -31,15 +30,16 @@ class AuctionClient(Agent):
 
     async def on_shutdown(self, app):
         self.logger.info('shutdown started')
+
         # Close open sockets
-        session = self.app['session']
-        if not session.closed:
-            print('session not closed, closing')
-            ws = self.app['ws']
-            if not ws.closed:
-                await ws.close(code=WSCloseCode.GOING_AWAY,
-                            message='Client shutdown')
-            await session.close()
+        if 'session' in self.app:
+            session = self.app['session']
+            if not session.closed:
+                ws = self.app['ws']
+                if not ws.closed:
+                    await ws.close(code=WSCloseCode.GOING_AWAY,
+                                message='Client shutdown')
+                await session.close()
 
         self.logger.info('shutdown ended')
 
@@ -48,7 +48,6 @@ class AuctionClient(Agent):
 
     async def websocket(self):
         session = ClientSession()
-        self.app['session'] = session
 
         if self.use_ipv6:
             destin_ip_address = str(self.destination_address6)
@@ -61,29 +60,42 @@ class AuctionClient(Agent):
                                                     port=str(self.destination_port),
                                                     resource='websockets')
 
-        async with session.ws_connect(http_address) as ws:
-            self.app['ws'] = ws
-            async for msg in ws:
-                print(msg.type)
-                if msg.type == WSMsgType.TEXT:
-                    await self.callback(msg.data)
+        try:
+            async with session.ws_connect(http_address) as ws:
+                print("connected")
+                self.app['session'] = session
+                self.app['ws'] = ws
+                async for msg in ws:
+                    print(msg.type)
+                    if msg.type == WSMsgType.TEXT:
+                        await self.callback(msg.data)
 
-                elif msg.type == WSMsgType.CLOSED:
-                    self.logger.error("websocket closed by the server.")
-                    print("websocket closed by the server.")
-                    break
+                    elif msg.type == WSMsgType.CLOSED:
+                        self.logger.error("websocket closed by the server.")
+                        print("websocket closed by the server.")
+                        break
 
-                elif msg.type == WSMsgType.ERROR:
-                    self.logger.error("websocket error received.")
-                    print("websocket error received.")
-                    break
+                    elif msg.type == WSMsgType.ERROR:
+                        self.logger.error("websocket error received.")
+                        print("websocket error received.")
+                        break
 
-        print("closed by server request")
-        os.kill(os.getpid(), signal.SIGINT)
+            print("closed by server request")
+            os.kill(os.getpid(), signal.SIGINT)
+
+        except ClientConnectorError as e:
+            print(str(e))
+            self.logger.error("Error during server connection - error:{0}".format(str(e)))
+            os.kill(os.getpid(), signal.SIGINT)
 
 
     async def on_startup(self, app):
-        app['websocket_task'] = self.loop.create_task(self.websocket())
+        """
+        method for connecting to the web server.
+        :param app: application where the loop is taken.
+        :return:
+        """
+        app['websocket_task'] = self.app.loop.create_task(self.websocket())
 
     def __init__(self):
         try:
@@ -171,12 +183,12 @@ class AuctionClient(Agent):
             ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
             for start in ret_start:
                 when = self._calculate_when(start)
-                call = self.loop.call_at(when, self.handle_activate_resource_request_interval, start, ret_start[start], when)
+                call = self.app.loop.call_at(when, self.handle_activate_resource_request_interval, start, ret_start[start], when)
                 self._add_pending_tasks(ret_start[start].get_key(), call, when)
 
             for stop in ret_stop:
                 when = self._calculate_when(stop)
-                call = self.loop.call_at(when, self.handle_remove_resource_request_interval, stop, ret_stop[stop], when)
+                call = self.app.loop.call_at(when, self.handle_remove_resource_request_interval, stop, ret_stop[stop], when)
                 self._add_pending_tasks(ret_stop[stop].get_key(), call, when)
 
         self.logger.debug("Ending _load_resources_request")
@@ -317,9 +329,5 @@ class AuctionClient(Agent):
 
 
 if __name__ == '__main__':
-    try:
-        agent = AuctionClient()
-        agent.run()
-    finally:
-        print('closing event loop')
-        agent.loop.close()
+    agent = AuctionClient()
+    agent.run()

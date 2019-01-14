@@ -106,9 +106,7 @@ class AuctionServer(Agent):
             # self._load_auctions()
 
             # add routers.
-            self.app.add_routes([get('/websockets', self.handle_web_socket),
-                                 get('/terminate', self.terminate)
-                                 ])
+            self.app.add_routes([get('/websockets', self.handle_web_socket)])
 
             # Start list of web sockets connected
             self.app['web_sockets'] = []
@@ -228,15 +226,16 @@ class AuctionServer(Agent):
 
                     # Schedule auction activation
                     if self.immediate_start:
-                        when = self.loop.time()
-                        self.loop.call_soon(functools.partial(self.handle_activate_auction, auction, when))
+                        when = self.app.loop.time()
+                        self.app.loop.call_soon(functools.partial(self.handle_activate_auction, auction, when))
                     else:
                         when = self._calculate_when(auction.get_start())
-                        call = self.loop.call_at(when, self.handle_activate_auction, auction, when)
+                        call = self.app.loop.call_at(when, self.handle_activate_auction, auction, when)
                         self._add_pending_tasks(auction.get_key(), call, when)
+
                     # Schedule auction removal
                     when = self._calculate_when(auction.get_stop())
-                    call = self.loop.call_at(when, self.handle_remove_auction, auction, when)
+                    call = self.app.loop.call_at(when, self.handle_remove_auction, auction, when)
                     self._add_pending_tasks(auction.get_key(), call, when)
                 else:
                     print("The auction with key {0} could not be added".format(auction.get_key()))
@@ -265,7 +264,7 @@ class AuctionServer(Agent):
 
             # Activates its execution
             when = self._calculate_when(auction.get_start())
-            call = self.loop.call_at(when, self.handle_push_execution, auction, start, stop, interval, when)
+            call = self.app.loop.call_at(when, self.handle_push_execution, auction, start, stop, interval, when)
             self._add_pending_tasks(auction.get_key(), call, when)
 
             # Change the state of all auctions to active
@@ -320,7 +319,7 @@ class AuctionServer(Agent):
 
         if stop_tmp < stop:
             when = self._calculate_when(stop_tmp)
-            call = self.loop.call_at(when, self.handle_push_execution, auction, stop_tmp, stop, interval, when)
+            call = self.app.loop.call_at(when, self.handle_push_execution, auction, stop_tmp, stop, interval, when)
             self._add_pending_tasks(auction.get_key(), call, when)
 
         print('interval:', interval.align)
