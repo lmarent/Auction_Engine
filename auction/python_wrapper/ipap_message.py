@@ -1,12 +1,9 @@
 from ctypes import cdll
-from ctypes import c_ubyte
-from ctypes import c_size_t
 from ctypes import c_uint16
 from ctypes import c_uint32
 from ctypes import c_int
 from ctypes import c_bool
-from ctypes import pointer
-from ctypes import POINTER
+from ctypes import c_char_p
 lib = cdll.LoadLibrary('libipap.so')
 
 from python_wrapper.ipap_template import IpapTemplate
@@ -69,6 +66,15 @@ class IpapMessage:
 
     def output(self):
         lib.ipap_message_output(self.obj)
+
+    def get_message(self):
+        get_value_vchar = lib.ipap_message_get_message
+        get_value_vchar.restype = c_char_p
+
+        # we restrict to length to remove the ending null character.
+        lenght = lib.ipap_message_get_message_lenght(self.obj)
+        value =  lib.ipap_message_get_message(self.obj)
+        return value[:lenght]
 
     def __del__(self):
         if self.obj:

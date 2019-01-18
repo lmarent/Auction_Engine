@@ -21,6 +21,8 @@ from auction_client.auction_session_manager import AuctionSessionManager
 from auction_client.resource_request import ResourceRequest
 from auction_client.agent_processor import AgentProcessor
 
+from python_wrapper.ipap_message import IpapMessage
+
 class AuctionClient(Agent):
 
     async def terminate(self, request):
@@ -193,6 +195,21 @@ class AuctionClient(Agent):
 
         self.logger.debug("Ending _load_resources_request")
 
+    async def handle_send_message(self, ipap_message: IpapMessage):
+        """
+        Sends the message given to the market place
+
+        :param message message to be send
+        :return:
+        """
+        if 'session' in self.app:
+            session = self.app['session']
+            if not session.closed:
+                ws = self.app['ws']
+                if not ws.closed:
+                    await ws.send_str(ipap_message.get_message())
+
+
     def handle_activate_resource_request_interval(self, start:datetime,
                                          resource_request: ResourceRequest, when: float):
         self.logger.debug("start handle activate resource request interval")
@@ -230,7 +247,7 @@ class AuctionClient(Agent):
             session.set_stop(interval.stop)
 
             # Sends the message to destination
-            self.handle_send_message(message)
+            await self.handle_send_message(message)
 
             # Add the session in the session container
             session.add_pending_message(message)
@@ -256,7 +273,6 @@ class AuctionClient(Agent):
         try:
             # The task is no longer scheduled.
             self._remove_pending_task(resource_request.get_key(), when)
-
 
             interval = resource_request.get_interval_by_end_time(stop)
 
@@ -297,34 +313,6 @@ class AuctionClient(Agent):
         else:
             print(self.ip_address4, self.source_port)
             run_app(self.app, host=str(self.ip_address4), port=self.source_port)
-
-
-# async def websocket():
-#     session = ClientSession()
-#
-#     HOST = os.getenv('HOST', '127.0.0.1')
-#     PORT = int(os.getenv('PORT', 8080))
-#
-#     # TODO: CONNECT USING A DNS
-#     print('connect to ', HOST, PORT)
-#     http_address = f'http://{HOST}:{PORT}/websockets'
-#
-#     async with session.ws_connect(http_address) as ws:
-#         async for msg in ws:
-#             print(msg.type)
-#             if msg.type == WSMsgType.TEXT:
-#                 print(msg)
-#
-#             elif msg.type == WSMsgType.CLOSED:
-#                 print("websocket closed by the server.")
-#                 break
-#
-#             elif msg.type == WSMsgType.ERROR:
-#                 print("websocket error received.")
-#                 break
-#
-#     print("closed by server request")
-#     # os.kill(os.getpid(), signal.SIGINT)
 
 
 

@@ -2,7 +2,7 @@
 from foundation.auctioning_object import AuctioningObjectState
 
 
-class AuctioningObjectManager():
+class AuctioningObjectManager:
     """
       The auctioningObjectManager class allows to add and remove Auction Objects 
         in the core system. Auctioning objects data are a set of ascii strings that are parsed
@@ -20,6 +20,7 @@ class AuctioningObjectManager():
         self.domain = domain
         self.auctioning_objects = {}
         self.auctioning_objects_done = {}
+        print("estoy en init de auctioning object manager")
 
     def add_auctioning_object(self, auction_object):
         """
