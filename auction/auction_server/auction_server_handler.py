@@ -241,7 +241,6 @@ class HandleSessionRequest(ScheduledTask):
 
         auctions = self.auction_processor.get_applicable_auctions(self.message)
 
-        # TODO: Implement
         session_info = self.auction_processor.get_session_information(self.message)
 
         if self.is_complete(session_info):

@@ -1,8 +1,8 @@
 from python_wrapper.ipap_template import IpapTemplate, ObjectType, TemplateType
-from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_message import IpapMessage
 
 from foundation.field_def_manager import FieldDefManager
+from foundation.config_param import ConfigParam
 
 
 class IpapMessageParser:
@@ -139,3 +139,12 @@ class IpapMessageParser:
         :return: domain
         """
         return self.domain
+
+    def get_misc_val(self, config_items: dict, item_name:str):
+
+        if item_name in config_items:
+            item : ConfigParam = config_items[item_name]
+            value = item.value.lower()
+            return value
+        else:
+            raise ValueError("item with name {0} not found in config items". format(item_name))

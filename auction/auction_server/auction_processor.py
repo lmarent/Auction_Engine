@@ -6,13 +6,17 @@ from foundation.ipap_message_parser import IpapMessageParser
 from foundation.module_loader import ModuleLoader
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.field_def_manager import FieldDefManager
+from foundation.module import Module
 
 from datetime import datetime
 from enum import Enum
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_field_key import IpapFieldKey
-from foundation.module import Module
+from python_wrapper.ipap_template import TemplateType
+
+from utils.auction_utils import log
+
 
 class AgentFieldSet(Enum):
     """
@@ -71,6 +75,8 @@ class AuctionProcessor(IpapMessageParser):
         self.auctions = {}
         self.config = Config().get_config()
         self.field_sets = {}
+        self.logger = log().get_logger()
+        self.field_def_manager = FieldDefManager()
 
         if not module_directory:
             if 'AUMProcessor' in self.config:
@@ -200,28 +206,87 @@ class AuctionProcessor(IpapMessageParser):
 
     def get_set_field(self, set_name: AgentFieldSet):
         if len(self.field_sets) == 0:
-            field_def_manager = FieldDefManager()
 
             # Fill data auctions fields
             agent_session = set()
-            agent_session.add(IpapFieldKey(field_def_manager.get_field('ipversion')['eno'],
-                                           field_def_manager.get_field('ipversion')['ftype']))
-            agent_session.add(IpapFieldKey(field_def_manager.get_field('srcip')['eno'],
-                                           field_def_manager.get_field('srcip')['ftype']))
-            agent_session.add(IpapFieldKey(field_def_manager.get_field('srcipv6')['eno'],
-                                           field_def_manager.get_field('srcipv6')['ftype']))
-            agent_session.add(IpapFieldKey(field_def_manager.get_field('srcport')['eno'],
-                                           field_def_manager.get_field('srcport')['ftype']))
+            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('ipversion')['eno'],
+                                           self.field_def_manager.get_field('ipversion')['ftype']))
+            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcip')['eno'],
+                                           self.field_def_manager.get_field('srcip')['ftype']))
+            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcipv6')['eno'],
+                                           self.field_def_manager.get_field('srcipv6')['ftype']))
+            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcport')['eno'],
+                                           self.field_def_manager.get_field('srcport')['ftype']))
             self.field_sets[AgentFieldSet.SESSION_FIELD_SET_NAME] = agent_session
 
             # Fill option auctions fields
             agent_search_fields = set()
-            agent_search_fields.add(IpapFieldKey(field_def_manager.get_field('start')['eno'],
-                                           field_def_manager.get_field('start')['ftype']))
-            agent_search_fields.add(IpapFieldKey(field_def_manager.get_field('stop')['eno'],
-                                           field_def_manager.get_field('stop')['ftype']))
-            agent_search_fields.add(IpapFieldKey(field_def_manager.get_field('resourceid')['eno'],
-                                           field_def_manager.get_field('resourceid')['ftype']))
+            agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('start')['eno'],
+                                           self.field_def_manager.get_field('start')['ftype']))
+            agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('stop')['eno'],
+                                           self.field_def_manager.get_field('stop')['ftype']))
+            agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('resourceid')['eno'],
+                                           self.field_def_manager.get_field('resourceid')['ftype']))
             self.field_sets[AgentFieldSet.REQUEST_FIELD_SET_NAME] = agent_search_fields
 
         return self.field_sets[set_name]
+
+    def insersect(self, start_dttm: datetime, stop_dttm:datatime, resource_id:str) -> list:
+        """
+        Finds auctions that are executed for the selected resource and for the time range
+
+        :param start_dttm: start of the time interval
+        :param stop_dttm: end of the time interval
+        :param resource_id: resource for which we want to perform bidding.
+        :return: list of applicable auctions
+        """
+        auctions_ret = []
+        for auction in self.auctions:
+            include = True
+            if stop_dttm <= auction.get_start():
+                include = False
+
+            if auction.get_stop() <= start_dttm:
+                include = False
+
+            if (auction.get_resource_key() != resource_id) \
+                    and (resource_id.lower() != "any"):
+                include = False
+
+            if include:
+                auctions_ret.append(auction)
+
+        return auctions_ret
+
+    def get_applicable_auctions(self, message: IpapMessage )-> list:
+        """
+        Gets the auctions applicable given the options within the message.
+
+        :param message:  message with the options to filter.
+        :return: list of application auctions.
+        """
+        try:
+            templ_opt_auction = self.read_template(message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+            data_records = self.read_data_records(message,templ_opt_auction.get_template_id())
+
+            for data_record in data_records:
+                config_items = self.read_misc_data(templ_opt_auction, data_record)
+
+                s_start_dttm = self.get_misc_val(config_items, "start")
+                ipap_field = templ_opt_auction.get_field(self.field_def_manager.get_field("start")['eno'],
+                                            self.field_def_manager.get_field("start")['ftype'])
+                start_dttm = datetime.fromtimestamp(ipap_field.parse(s_start_dttm).get_value_int64())
+
+                s_stop_ddtm = self.get_misc_val(config_items, "stop")
+                ipap_field = templ_opt_auction.get_field(self.field_def_manager.get_field("stop")['eno'],
+                                            self.field_def_manager.get_field("stop")['ftype'])
+                stop_dttm = datetime.fromtimestamp(ipap_field.parse(s_stop_ddtm).get_value_int64())
+
+                resource_id = self.get_misc_val(config_items, "resourceid")
+
+                auctions = self.insersect(start_dttm, stop_dttm, resource_id)
+
+                return auctions
+
+        except ValueError as e:
+            self.logger.error("Error during processing of applicable auctions - error:{0} ".format(str(e)))

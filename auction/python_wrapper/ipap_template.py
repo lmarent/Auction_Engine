@@ -81,7 +81,6 @@ class IpapTemplate:
                                     c_uint8(unknow_field.value), c_int(i_encode_network), field.obj)
 
     def get_type(self) -> TemplateType:
-        print ('template type:', lib.ipap_template_get_type(self.obj))
         return TemplateType(lib.ipap_template_get_type(self.obj))
 
     def _get_object_template_types_size(self, object_type : ObjectType) -> int:
@@ -119,6 +118,14 @@ class IpapTemplate:
             else:
                 raise ValueError('Field key not found')
         return list_return
+
+    def get_field(self, eno: int, ftype: int ) -> IpapField:
+        obj = lib.ipap_template_get_field(self.obj, c_int(eno), c_int(ftype))
+        if obj:  # not null
+            field = IpapField(obj=obj)
+            return field
+        else:
+            raise ValueError('Field with eno {0} and ftype {1} was not found'.format(str(eno)), str(ftype))
 
     def __del__(self):
         if self.obj: # not null
