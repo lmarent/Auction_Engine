@@ -5,9 +5,11 @@ from foundation.auction_file_parser import AuctionXmlFileParser
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 from datetime import datetime
+from foundation.singleton import Singleton
 
 
-class AuctionManager(AuctioningObjectManager):
+
+class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
     """
     This class maintains the auction within the server and client.
     """

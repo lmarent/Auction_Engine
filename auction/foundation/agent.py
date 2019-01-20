@@ -6,7 +6,7 @@ from datetime import datetime
 from foundation.parse_format import ParseFormats
 from foundation.config import Config
 
-from utils.auction_utils import get_logger
+from utils.auction_utils import log
 from abc import ABC
 from abc import abstractmethod
 
@@ -23,7 +23,7 @@ class Agent(ABC):
 
         # Gets the log file
         log_file_name = self.config['DefaultLogFile']
-        self.logger = get_logger(log_file_name)
+        self.logger = log(log_file_name).get_logger()
 
         self.domain = ParseFormats.parse_int(Config().get_config_param('Main', 'Domain'))
         self.immediate_start = ParseFormats.parse_bool(Config().get_config_param('Main', 'ImmediateStart'))

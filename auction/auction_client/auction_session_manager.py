@@ -1,9 +1,10 @@
 from foundation.session_manager import SessionManager
 from auction_client.auction_session import AuctionSession
 import uuid
+from foundation.singleton import Singleton
 
 
-class AuctionSessionManager(SessionManager):
+class AuctionSessionManager(SessionManage, metaclass=Singleton):
 
     def __init__(self):
         super(AuctionSessionManager, self).__init__()

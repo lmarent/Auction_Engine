@@ -1,6 +1,8 @@
 # auctioning_object.py
 
 from enum import Enum
+from foundation.auction_task import AuctionTask
+from foundation.auction_task import ScheduledTask
 
 
 class AuctioningObjectState(Enum):
@@ -35,6 +37,7 @@ class AuctioningObject:
         self.key = key
         self.auctioning_object_type = auctioning_object_type
         self.state = state
+        self.active_tasks = []
 
     def set_state(self, state: AuctioningObjectState):
         """
@@ -60,3 +63,37 @@ class AuctioningObject:
         :return: AuctioningObjectType
         """
         return self.auctioning_object_type
+
+    async def add_task(self, auction_task: AuctionTask):
+        """
+        adds an auction task to the list of pending tasks.
+
+        :param auction_task: auction task to add.
+        :return:
+        """
+        self.active_tasks.append(auction_task)
+        if isinstance(auction_task, ScheduledTask):
+            auction_task.attach(self)
+
+    def remove_task(self, auction_task: AuctionTask):
+        """
+        call back called when an auction task ends.
+
+        :param auction_task: auction task finished.
+        :return:
+        """
+
+        self.active_tasks.remove(auction_task)
+
+    async def stop_tasks(self):
+        """
+        Stops all tasks scheduled for this auction object.
+
+        :return:
+        """
+        while True:
+            try:
+                task = self.active_tasks.pop()
+                await task.stop()
+            except IndexError:
+                break

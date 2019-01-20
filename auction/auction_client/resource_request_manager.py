@@ -5,9 +5,10 @@ from auction_client.resource_request import ResourceRequest
 from auction_client.resource_request_file_parser import ResourceRequestFileParser
 from auction_client.ipap_resource_request_parser import IpapResourceRequestParser
 from datetime import datetime
+from foundation.singleton import Singleton
 
 
-class ResourceRequestManager(AuctioningObjectManager):
+class ResourceRequestManager(AuctioningObjectManager, metaclass=Singleton):
 
     def __init__(self, domain: int):
         super(ResourceRequestManager, self).__init__(domain=domain)

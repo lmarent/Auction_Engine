@@ -151,7 +151,7 @@ class AuctionClient(Agent):
         """
         self.logger.debug("Starting _initialize_managers")
         self.auction_manager = AuctionManager(self.domain)
-        self.bidding_object_manager = BiddingObjectManager()
+        self.bidding_object_manager = BiddingObjectManager(self.domain)
         self.resource_request_manager = ResourceRequestManager(self.domain)
         self.auction_session_manager = AuctionSessionManager()
         self.logger.debug("Ending _initialize_managers")

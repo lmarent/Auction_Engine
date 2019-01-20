@@ -4,6 +4,7 @@ from foundation.module import Module
 from foundation.auction_process_object import AuctionProcessObject
 from foundation.module_loader import ModuleLoader
 from foundation.id_source import IdSource
+from foundation.singleton import Singleton
 
 from datetime import datetime
 
@@ -79,7 +80,7 @@ class RequestProcess(AuctionProcessObject):
         return self.auctions
 
 
-class AgentProcessor:
+class AgentProcessor(metaclass=Singleton):
 
     def __init__(self, domain: int, module_directory: str):
         self.domain = domain
