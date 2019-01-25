@@ -11,8 +11,11 @@ from foundation.session import Session
 from foundation.field_def_manager import FieldDefManager
 
 from python_wrapper.ipap_message import IpapMessage
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from auction_server.auction_processor import AuctionProcessor
+from auction_server.auction_processor import AgentFieldSet
+
 from datetime import datetime
 
 
@@ -207,10 +210,10 @@ class HandleLoadAuction(ScheduledTask):
 
 class HandleSessionRequest(ScheduledTask):
     """
-
+    Handles a session request from an agent.
     """
 
-    def __init__(self, message: IpapMessage, session_key: str, sender_address: str, sender_port: int,
+    def __init__(self, message: IpapMessage, session_key: str, use_ipv6: bool, sender_address: str, sender_port: int,
                   protocol: int, seconds_to_start: float):
         """
 
@@ -222,14 +225,22 @@ class HandleSessionRequest(ScheduledTask):
         self.auction_processor = AuctionProcessor()
         self.field_manager = FieldDefManager()
         self.message_processor = MessageProcessor()
+        self.template_container = IpapTemplateContainer()
         self.session_key = session_key
+        self.use_ipv6 = use_ipv6
         self.sender_address = sender_address
         self.sender_port = sender_port
         self.protocol = protocol
 
-    def is_complete(self, session_info: dic):
-        #TODO: Implement
-        pass
+    def is_complete(self, session_info: dict):
+        """
+        Establishes if the session info given as part of the message is complete.
+
+        :param session_info: session information given.
+        :return: true or false
+        """
+        return len(session_info) == self.auction_processor.get_set_field(
+                                        AgentFieldSet.SESSION_FIELD_SET_NAME)
 
 
     async def _run_specific(self, **kwargs):
@@ -238,9 +249,7 @@ class HandleSessionRequest(ScheduledTask):
         :param kwargs:
         :return:
         """
-
         auctions = self.auction_processor.get_applicable_auctions(self.message)
-
         session_info = self.auction_processor.get_session_information(self.message)
 
         if self.is_complete(session_info):
@@ -251,12 +260,13 @@ class HandleSessionRequest(ScheduledTask):
                 src_address = session_info[FieldDefManager.get_field("srcipv6")]
             scr_port = session_info[FieldDefManager.get_field("srcport")]
 
-        message_to_send = AuctionManager.get_ipap_message(auctions, )
+        message_to_send = AuctionManager.get_ipap_message(auctions,self.template_container,
+                                                          self.use_ipv6, self.sender_address, self.sender_port )
 
         session = Session(session_id=self.session_key, sender_address=self.sender_address,
                           sender_port=self.sender_port, receiver_address=src_address,
                           receiver_port=scr_port, protocol=self.protocol)
 
-        self.message_processor.send_message()
+        self.message_processor.send_message(message_to_send.get_message())
 
 

@@ -98,6 +98,34 @@ class AuctionProcessor(IpapMessageParser):
         else:
             ValueError('Configuration file does not have {0} entry,please include it'.format('AumProcessor'))
 
+        self.build_field_sets()
+
+    def build_field_sets(self):
+        """
+        Builds the field sets required for managing message between the server and the agents.
+        """
+        # Fill data auctions fields
+        agent_session = set()
+        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('ipversion')['eno'],
+                                       self.field_def_manager.get_field('ipversion')['ftype']))
+        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcip')['eno'],
+                                       self.field_def_manager.get_field('srcip')['ftype']))
+        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcipv6')['eno'],
+                                       self.field_def_manager.get_field('srcipv6')['ftype']))
+        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcport')['eno'],
+                                       self.field_def_manager.get_field('srcport')['ftype']))
+        self.field_sets[AgentFieldSet.SESSION_FIELD_SET_NAME] = agent_session
+
+        # Fill option auctions fields
+        agent_search_fields = set()
+        agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('start')['eno'],
+                                             self.field_def_manager.get_field('start')['ftype']))
+        agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('stop')['eno'],
+                                             self.field_def_manager.get_field('stop')['ftype']))
+        agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('resourceid')['eno'],
+                                             self.field_def_manager.get_field('resourceid')['ftype']))
+        self.field_sets[AgentFieldSet.REQUEST_FIELD_SET_NAME] = agent_search_fields
+
     def add_auction_process(self, auction: Auction):
         """
         adds a Auction to auction process list
@@ -187,14 +215,43 @@ class AuctionProcessor(IpapMessageParser):
 
         return self.auctions.get(key)
 
+    def get_set_field(self, set_name: AgentFieldSet):
+        """
+        Returns teh requested field set
+
+        :param set_name: set of field to get
+        :return:
+        """
+        return self.field_sets[set_name]
+
     def get_session_information(self, message: IpapMessage):
         """
-        gets the session information within the message.
+        Gets the session information within the message.
+
+        If the option template is empty then the returned auction must be zero.
+        If the option template has more that a record then we assume all records have the same session information.
 
         :param message message from where to extract the session information.
         :return: map of values that identify the session
         """
-        pass
+        session_info = {}
+        try:
+            templ_opt_auction = self.read_template(message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+            data_records = self.read_data_records(message,templ_opt_auction.get_template_id())
+            for data_record in data_records:
+                config_items = self.read_misc_data(templ_opt_auction, data_record)
+                field_keys = self.get_set_field(AgentFieldSet.SESSION_FIELD_SET_NAME)
+                for field_key in field_keys:
+                    field = self.field_def_manager.get_field_by_code(
+                                                                    field_key.get_eno(), field_key.get_ftype())
+                    session_info[field] = self.get_misc_val(config_items, field)
+
+                break
+            return session_info
+
+        except ValueError as e:
+            self.logger.error("Error during processing of get session information - error:{0} ".format(str(e)))
+
 
     def delete_auction(self, auction: Auction):
         """
@@ -203,33 +260,6 @@ class AuctionProcessor(IpapMessageParser):
         :return:
         """
         self.delete_auction_process(auction.get_key())
-
-    def get_set_field(self, set_name: AgentFieldSet):
-        if len(self.field_sets) == 0:
-
-            # Fill data auctions fields
-            agent_session = set()
-            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('ipversion')['eno'],
-                                           self.field_def_manager.get_field('ipversion')['ftype']))
-            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcip')['eno'],
-                                           self.field_def_manager.get_field('srcip')['ftype']))
-            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcipv6')['eno'],
-                                           self.field_def_manager.get_field('srcipv6')['ftype']))
-            agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcport')['eno'],
-                                           self.field_def_manager.get_field('srcport')['ftype']))
-            self.field_sets[AgentFieldSet.SESSION_FIELD_SET_NAME] = agent_session
-
-            # Fill option auctions fields
-            agent_search_fields = set()
-            agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('start')['eno'],
-                                           self.field_def_manager.get_field('start')['ftype']))
-            agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('stop')['eno'],
-                                           self.field_def_manager.get_field('stop')['ftype']))
-            agent_search_fields.add(IpapFieldKey(self.field_def_manager.get_field('resourceid')['eno'],
-                                           self.field_def_manager.get_field('resourceid')['ftype']))
-            self.field_sets[AgentFieldSet.REQUEST_FIELD_SET_NAME] = agent_search_fields
-
-        return self.field_sets[set_name]
 
     def insersect(self, start_dttm: datetime, stop_dttm:datatime, resource_id:str) -> list:
         """
@@ -290,3 +320,4 @@ class AuctionProcessor(IpapMessageParser):
 
         except ValueError as e:
             self.logger.error("Error during processing of applicable auctions - error:{0} ".format(str(e)))
+
