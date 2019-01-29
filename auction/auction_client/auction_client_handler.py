@@ -3,10 +3,14 @@ from datetime import datetime
 
 from auction_client.resource_request import ResourceRequest
 from auction_client.resource_request_manager import ResourceRequestManager
+from auction_client.client_main_data import ClientMainData
+from auction_client.auction_session_manager import AuctionSessionManager
+from auction_client.agent_processor import AgentProcessor
 
 from foundation.auction_task import ScheduledTask
 from foundation.auction_task import PeriodicTask
 from foundation.config import Config
+from foundation.auction_manager import AuctionManager
 
 
 class HandleAddResourceRequest(ScheduledTask):
@@ -49,6 +53,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         self.start = start
         self.resource_request = resource_request
         self.seconds_to_start = seconds_to_start
+        self.client_data = ClientMainData()
 
     async def _run_specific(self):
         """
@@ -62,21 +67,29 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
             interval = self.resource_request.get_interval_by_start_time(self.start)
 
             # Gets an ask message for the resource
-            message = self.resource_request_manager.get_ipap_message(self.resource_request, self.start,
-                                                                     resource_id, self.use_ipv6,
-                                                                     self.ip_address4, self.ip_address6,
-                                                                     self.port)
+            message = self.resource_request_manager.get_ipap_message(self.resource_request,
+                                                                     self.start, resource_id,
+                                                                     self.client_data.use_ipv6,
+                                                                     self.client_data.ip_address4,
+                                                                     self.client_data.ip_address6,
+                                                                     self.client_data.port)
 
             # Create a new session for sending the request
             session = None
-            if self.use_ipv6:
-                session = self.auction_session_manager.create_agent_session(self.ip_address6, self.destination_address6,
-                                                                            self.source_port, self.destination_port,
-                                                                            self.protocol, self.life_time)
+            if self.client_data.use_ipv6:
+                session = self.auction_session_manager.create_agent_session(self.client_data.ip_address6,
+                                                                            self.client_data.destination_address6,
+                                                                            self.client_data.source_port,
+                                                                            self.client_data.destination_port,
+                                                                            self.client_data.protocol,
+                                                                            self.client_data.life_time)
             else:
-                session = self.auction_session_manager.create_agent_session(self.ip_address4, self.destination_address4,
-                                                                            self.source_port, self.destination_port,
-                                                                            self.protocol, self.life_time)
+                session = self.auction_session_manager.create_agent_session(self.client_data.ip_address4,
+                                                                            self.client_data.destination_address4,
+                                                                            self.client_data.source_port,
+                                                                            self.client_data.destination_port,
+                                                                            self.client_data.protocol,
+                                                                            self.client_data.life_time)
 
             # Gets the new message id
             message_id = session.get_next_message_id()
@@ -107,13 +120,17 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
         self.stop = stop
         self.resource_request = resource_request
         self.seconds_to_start = seconds_to_start
+        self.client_data = ClientMainData()
+        self.auction_session_manager = AuctionSessionManager()
+        self.agent_processor = AgentProcessor()
+        self.auction_manager = AuctionManager(self.client_data.domain)
 
     async def _run_specific(self):
         """
         Handles the removal of a resource request interval.
         """
         try:
-            interval = self.resource_request.get_interval_by_end_time(stop)
+            interval = self.resource_request.get_interval_by_end_time(self.stop)
 
              # Gets the  auctions corresponding with this resource request interval
             session_id = interval.session
@@ -132,7 +149,7 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
 
             # deletes the reference to the auction (a session is not referencing it anymore)
             auctions_to_remove = self.auction_manager.decrement_references(auctions,session_id)
-            for auction in auctions:
+            for auction in auctions_to_remove:
                 self.handle_remove_auction(auction)
 
         except Exception as e:
