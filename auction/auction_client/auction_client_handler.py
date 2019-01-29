@@ -12,6 +12,7 @@ from foundation.auction_task import PeriodicTask
 from foundation.config import Config
 from foundation.auction_manager import AuctionManager
 
+from python_wrapper.ipap_message import IpapMessage
 
 class HandleAddResourceRequest(ScheduledTask):
     """
@@ -54,6 +55,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         self.resource_request = resource_request
         self.seconds_to_start = seconds_to_start
         self.client_data = ClientMainData()
+        self.auction_session_manager = AuctionSessionManager()
 
     async def _run_specific(self):
         """
@@ -154,6 +156,28 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
 
         except Exception as e:
             self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
+
+class HandleAuctionMessage(ScheduledTask):
+    def __init__(self, session_key:str, ipap_message: IpapMessage, seconds_to_start: float):
+        super(HandleActivateSession, self).__init__(seconds_to_start)
+        self.session_key = session_key
+        self.message = ipap_message
+        self.session_manager = AuctionSessionManager()
+
+    def _run_specific(self):
+        session = self.session_manager.get_session(self.session_key)
+
+        type = self.ipap_message.get_type()
+
+        # TODO: Complete this code
+        #if type == auction:
+        #
+        #elif type == bidding_object:
+        #
+        #elif type == allocation:
+        #
+        #else:
+        #    logger.error("invalid type")
 
 
 class HandleActivateSession(ScheduledTask):

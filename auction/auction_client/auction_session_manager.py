@@ -4,7 +4,7 @@ import uuid
 from foundation.singleton import Singleton
 
 
-class AuctionSessionManager(SessionManage, metaclass=Singleton):
+class AuctionSessionManager(SessionManager, metaclass=Singleton):
 
     def __init__(self):
         super(AuctionSessionManager, self).__init__()

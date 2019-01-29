@@ -40,13 +40,13 @@ class AuctionClient(Agent):
 
         self.logger.info('shutdown ended')
 
-    async def on_startup(self, app):
-        """
-        method for connecting to the web server.
-        :param app: application where the loop is taken.
-        :return:
-        """
-        app['websocket_task'] = self.app.loop.create_task(self.websocket())
+    #async def on_startup(self, app):
+    #    """
+    #    method for connecting to the web server.
+    #    :param app: application where the loop is taken.
+    #    :return:
+    #    """
+    #    app['websocket_task'] = self.app.loop.create_task(self.websocket())
 
     def __init__(self):
         try:
@@ -136,8 +136,6 @@ class AuctionClient(Agent):
                 ws = self.app['ws']
                 if not ws.closed:
                     await ws.send_str(ipap_message.get_message())
-
-
 
 
     def run(self):
