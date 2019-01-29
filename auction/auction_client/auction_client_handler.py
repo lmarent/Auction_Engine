@@ -1,164 +1,246 @@
-import asyncio
 import functools
-from .resource_request import ResourceRequest
-from .auction_session import AuctionSession
-import ipaddress
- 
-def event_handler(loop, stop=False):
-    print('Event handler called')
-    if stop:
-        print('stopping the loop')
-        loop.stop()
+from datetime import datetime
+
+from auction_client.resource_request import ResourceRequest
+from auction_client.resource_request_manager import ResourceRequestManager
+
+from foundation.auction_task import ScheduledTask
+from foundation.auction_task import PeriodicTask
+from foundation.config import Config
 
 
-def handle_add_resource_request(app, filename, loop):
+class HandleAddResourceRequest(ScheduledTask):
     """
     Handle a new resource request. It parsers, adds and triggers the activation of the resource request.
     """
-    resource_request = ResourceRequest(app['config']['TimeFormat'])
-    resource_request.from_xml(filename)
-    resource_request_manager = app.get_resource_request_manager()
-    resource_request_manager.add_resource_request(resource_request, loop)
+    def __init__(self, file_name: str, seconds_to_start: float):
+        super(HandleActivateResourceRequestInterval, self).__init__(seconds_to_start)
+        self.config = Config().get_config()
+        self.file_name = file_name
+        self.resource_request_manager = ResourceRequestManager()
+        pass
+
+    async def _run_specific(self, **kwargs):
+        time_format = self.config.get_config_param('Main', 'TimeFormat')
+        resource_request = ResourceRequest(time_format)
+        resource_request.from_xml(self.filename)
+        ret_start, ret_stop = self.resource_request_manager.add_resource_request(resource_request)
+        for start in ret_start:
+            when = self._calculate_when(start)
+            activate_resource_request_int = HandleActivateResourceRequestInterval(start,ret_start[start], when)
+            resource_request.add_task(activate_resource_request_int)
+
+        for stop in ret_stop:
+            when = self._calculate_when(stop)
+            stop_resource_request_int = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
+            resource_request.add_task(stop_resource_request_int)
 
 
-# def handle_remove_resource_request_interval():
+class HandleActivateResourceRequestInterval(ScheduledTask):
 
-def handle_activate_resource_request_interval(app, starttime, resource_request, loop):
-    """
-	Sends a new message to the auction server to establish an 
-    auction session and get the auctions being performed. 
-    """
-    intervals = resource_request.get_interval_by_start_time(starttime)
-    config = app['config']
-    if config['useIPV6']:
-        local_ip = ipaddress.ip_address(config['LocalAddr-V6'])
-    else:
-        local_ip = ipaddress.ip_address(config['LocalAddr-V4'])
-    port = int(config['ControlPort'])
-    session_manager = app.get_session_manager()
-    for interval in intervals:
-        session = AuctionSession(interval.start, interval.stop,resource_request)
-        mid = session.get_next_message_id()
-        # TODO: Create message for requesting auctions
-        message = get_message_request(mid, request)
-        session.add_pending_message(message)
-        session_manager.add_session(session)
-        interval.set_session(session)
-        loop.call_soon(functools.partial(handle_send_message, message, loop))
+    def __init__(self, start: datetime, resource_request: ResourceRequest, seconds_to_start: float):
+        """
+        Method to create the task
+        :param start: date and time when the task should start
+        :param seconds_to_start: seconds for starting the task.
+        :param resource_request: resource request that should be started.
+        """
+        super(HandleActivateResourceRequestInterval, self).__init__(seconds_to_start)
+        self.start = start
+        self.resource_request = resource_request
+        self.seconds_to_start = seconds_to_start
 
-def handle_remove_resource_request_interval(app, stoptime, resource_request, loop):
-    logger.debug('starting handle_remove_resource_request_interval')
+    async def _run_specific(self):
+        """
+        Handles the activation of a resource request interval.
+        :return:
+        """
+        try:
+            # for now we request to any resource,
+            # a protocol to spread resources available must be implemented
+            resource_id = "ANY"
+            interval = self.resource_request.get_interval_by_start_time(self.start)
 
-    intervals = resource_request.get_interval_by_stop_time(stoptime)
-    for interval in intervals:
-        session = interval.session
-        auctions = session.get_auctions()
-        for auction in auctions:
-            # TODO: Teardown session.
+            # Gets an ask message for the resource
+            message = self.resource_request_manager.get_ipap_message(self.resource_request, self.start,
+                                                                     resource_id, self.use_ipv6,
+                                                                     self.ip_address4, self.ip_address6,
+                                                                     self.port)
 
-            # TODO: remove prcess request
+            # Create a new session for sending the request
+            session = None
+            if self.use_ipv6:
+                session = self.auction_session_manager.create_agent_session(self.ip_address6, self.destination_address6,
+                                                                            self.source_port, self.destination_port,
+                                                                            self.protocol, self.life_time)
+            else:
+                session = self.auction_session_manager.create_agent_session(self.ip_address4, self.destination_address4,
+                                                                            self.source_port, self.destination_port,
+                                                                            self.protocol, self.life_time)
 
-            # TODO: If the auction is not being used anymore remove all events.
-            auction.decrement_references(session, loop)
+            # Gets the new message id
+            message_id = session.get_next_message_id()
+            message.set_seqno(message_id)
+            message.set_ackseqno(0)
+            session.set_resource_request(self.resource_request)
+            session.set_start(interval.start)
+            session.set_stop(interval.stop)
 
-    logger.debug('starting handle_remove_resource_request_interval')
+            # Sends the message to destination
+            await self.handle_send_message(message)
 
-def handle_activate_session(app, session_key, loop):
-    logger.debug('starting handle_activate_session')
-    try:
+            # Add the session in the session container
+            session.add_pending_message(message)
+            self.auction_session_manager.add_session(session)
+
+            # Assign the new session to the interval.
+            interval.session = session.get_key()
+        except Exception as e:
+            self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))
+
+
+class HandleRemoveResourceRequestInterval(ScheduledTask):
+
+    def __init__(self, stop:datetime, resource_request: ResourceRequest, seconds_to_start: float):
+
+        super(HandleRemoveResourceRequestInterval, self).__init__(seconds_to_start)
+        self.stop = stop
+        self.resource_request = resource_request
+        self.seconds_to_start = seconds_to_start
+
+    async def _run_specific(self):
+        """
+        Handles the removal of a resource request interval.
+        """
+        try:
+            interval = self.resource_request.get_interval_by_end_time(stop)
+
+             # Gets the  auctions corresponding with this resource request interval
+            session_id = interval.session
+
+            session = self.auction_session_manager.get_session(session_id)
+
+            auctions = session.get_auctions()
+
+            # Teardowns the session created.
+            self.handle_send_teardown_message()
+
+            # Deletes active request process associated with this request interval.
+            resource_request_process_ids = interval.get_resource_request_process()
+            for resurce_request_process_id in resource_request_process_ids:
+                self.agent_processor.delete_request(resurce_request_process_id)
+
+            # deletes the reference to the auction (a session is not referencing it anymore)
+            auctions_to_remove = self.auction_manager.decrement_references(auctions,session_id)
+            for auction in auctions:
+                self.handle_remove_auction(auction)
+
+        except Exception as e:
+            self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
+
+
+class HandleActivateSession(ScheduledTask):
+
+    def __init__(self, seconds_to_start: float, session_key:str):
+        super(HandleActivateSession, self).__init__(seconds_to_start)
+        self.session_key = session_key
+
+    def _run_specific(self):
         session_manager = app.get_session_manager()
         session = session_manager.get_session(session_key)
         session.set_state(SessionState.SS_ACTIVE)
-    except Exception as exp:
-        logger.error('An error occurs - message: {}'.format(str(exp)))
-
-    logger.debug('ending handle_activate_session')
 
 
-def handle_push_execution():
-    logger.debug('starting handle_push_execution')
+class HandleAuctionExecution(PeriodicTask):
 
-    logger.debug('ending handle_push_execution')
+    def __init__(self):
+        pass
 
-def handle_remove_push_execution():
-    logger.debug('starting handle_remove_push_execution')
-
-    logger.debug('ending handle_remove_push_execution')
-
-def handle_add_generate_bidding_objects(app, bidding_objects, loop):
-    logger.debug('starting handle_add_generate_bidding_objects')
-
-    bidding_manager = app.get_bidding_object_manager()
-    for bidding_object in bidding_objects:
-        bidding_manager.add_bidding_object(bidding_object, loop)
-
-    logger.debug('ending handle_add_generate_bidding_objects')
-
-def handle_activate_bidding_objects(app, bidding_objects, loop):
-    logger.debug('starting handle_activate_bidding_objects')
-
-    for bidding_object in bidding_objects:
-        bidding_object.activate(loop)
-
-    logger.debug('ending handle_activate_bidding_objects')
-
-def handle_transmite_bidding_objects(app, bidding_objects, session, loop):
-    logger.debug('starting handle_transmite_bidding_objects')
-
-    for bidding_object in bidding_objects:
-        auction = bidding_object.get_auction()
-        mid = session.get_next_message_id()
-        message = get_message_bidding_object(mid, bidding_object)
-        session.add_pending_message(message)        
-        loop.call_soon(functools.partial(handle_send_message, message, loop))
+    async def _run_specific(self, **kwargs):
+        pass
 
 
-    logger.debug('ending handle_transmite_bidding_objects')
+class HandleAuctionRemove(ScheduledTask):
+
+    def __init__(self):
+        pass
+
+    async def _run_specific(self, **kwargs):
+        pass
 
 
-def hdnale_remove_bidding_objects(app,bidding_objects, loop):
-    logger.debug('starting hdnale_remove_bidding_objects')
+class HandledAddGenerateBiddingObject(ScheduledTask):
 
-    bidding_object_manager = app.get_bidding_object_manager()
-    for bidding_object in bidding_objects:
-        bidding_object_manager.del_bidding_object(bidding_object)
+    def __init__(self):
+        pass
 
-    logger.debug('ending hdnale_remove_bidding_objects')
+    async def _run_specific(self, **kwargs):
+        bidding_manager = app.get_bidding_object_manager()
+        for bidding_object in bidding_objects:
+            bidding_manager.add_bidding_object(bidding_object, loop)
+        pass
 
 
-def handle_activate_auctions(app, auctions, loop):
-    logger.debug('starting handle_activate_auctions')
+class HandleActivateBiddingObject(ScheduledTask):
 
-    for auction in auctions:
-        auction.activate(loop) 
+    def __init__(self):
+        pass
 
-    logger.debug('ending handle_activate_auctions')
+    async def _run_specific(self, **kwargs):
+        for bidding_object in bidding_objects:
+            bidding_object.activate(loop)
 
-def handle_remove_auctions(app, auctions, loop):
-    logger.debug('starting handle_remove_auctions')
 
-    auction_manager = app.get_auction_manager()
-    for auction in auctions:
+class HandleSendBiddingObject(ScheduledTask):
 
-        # remove from processing the auction
-        # TODO: Remove from procesing.
+    def __init__(self):
+        pass
 
-        # delete all binding objects related with the auction
-        # TODO: remove binding objects
+    async def _run_specific(self, **kwargs):
+        for bidding_object in bidding_objects:
+            auction = bidding_object.get_auction()
+            mid = session.get_next_message_id()
+            message = get_message_bidding_object(mid, bidding_object)
+            session.add_pending_message(message)
+            loop.call_soon(functools.partial(handle_send_message, message, loop))
 
-        auction_manager.del_auction(auction)
 
-    logger.debug('ending handle_remove_auctions')
+class HandleRemoveBiddingObject(ScheduledTask):
 
-def handle_send_message(message, loop):
-    """ 
-    Sends a message to the auction server
-    """
+    def __init__(self):
+        pass
 
-def handle_receive_message(message, loop):
-    """
-    Receives a new message from the auction server.
-    """
+    async def _run_specific(self, **kwargs):
+        bidding_object_manager = app.get_bidding_object_manager()
+        for bidding_object in bidding_objects:
+            bidding_object_manager.del_bidding_object(bidding_object)
 
-def hndle_stop(loop):
-    loop.stop()
+
+class HandleActivateAuction(ScheduledTask):
+
+    def __init__(self):
+        pass
+
+    async def _run_specific(self, **kwargs):
+        for auction in auctions:
+            auction.activate(loop)
+
+
+class HandleRemoveAuction(ScheduledTask):
+
+    def __init__(self):
+        pass
+
+    async def _run_specific(self, **kwargs):
+        auction_manager = app.get_auction_manager()
+        for auction in auctions:
+
+            # remove from processing the auction
+            # TODO: Remove from procesing.
+
+            # delete all binding objects related with the auction
+            # TODO: remove binding objects
+
+            auction_manager.del_auction(auction)
+
+

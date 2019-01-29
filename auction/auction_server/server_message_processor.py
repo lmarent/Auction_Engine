@@ -1,33 +1,17 @@
 from aiohttp.web import WebSocketResponse
 from aiohttp import WSMsgType
-from aiohttp import WSCloseCode
 
-from python_wrapper.ipap_message import IpapMessage
+from foundation.auction_message_processor import AuctionMessageProcessor
 
-class MessageProcessor:
+class ServerMessageProcessor(AuctionMessageProcessor):
     """
-    This class take cares of agents' communications.
+    This class takes care of agents' communications.
     """
     def __init__(self):
+
+        super(ServerMessageProcessor,self).__init__()
         pass
 
-    def is_auction_message(self, msg: str) -> IpapMessage:
-        """
-        Establishes whether the given message is a valid auction message.
-
-        :param msg: message to verify
-        :return: An IpapMessage if it is a valid message, None otherwise.
-        """
-        # parse the message
-        ipap_message = IpapMessage()
-        ret = ipap_message.ipap_import(msg)
-
-        if ret:
-            # if the parsing could be done, then it is valid auction message
-            return ipap_message
-        else:
-            # else is not a valid message.
-            return None
 
     async def process_message(self, ws, msg : str):
         """
@@ -41,27 +25,19 @@ class MessageProcessor:
         if ipap_message is not None:
             type = ipap_message.get_type()
 
-            if type == create_session:
+            if type == sync_session:
 
-            elif type == bidding_process:
+            elif type == ack_sync_session:
 
             elif type == disconnect:
 
             else:
-                # invalid message, we do not send anything.
+                # Normal bidding message.
                 pass
         else:
             # invalid message, we do not send anything for the moment
-            self.logger.info("Invalid message from agent with domain {}")
+            self.logger.error("Invalid message from agent with domain {}")
             pass
-
-    async def send_message(self, message: str):
-        """
-        Sends the message for an agent
-
-        :param message: message to be send
-        """
-
 
     async def handle_web_socket(self, request):
         """

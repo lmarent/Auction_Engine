@@ -15,6 +15,7 @@ from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from auction_server.auction_processor import AuctionProcessor
 from auction_server.auction_processor import AgentFieldSet
+from auction_server.server_message_processor import ServerMessageProcessor
 
 from datetime import datetime
 
@@ -224,7 +225,7 @@ class HandleSessionRequest(ScheduledTask):
         self.auction_manager = AuctionManager()
         self.auction_processor = AuctionProcessor()
         self.field_manager = FieldDefManager()
-        self.message_processor = MessageProcessor()
+        self.message_processor = ServerMessageProcessor()
         self.template_container = IpapTemplateContainer()
         self.session_key = session_key
         self.use_ipv6 = use_ipv6

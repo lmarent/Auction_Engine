@@ -12,7 +12,7 @@ import os,signal
 from datetime import datetime, timedelta
 
 from auction_server.auction_processor import AuctionProcessor
-from auction_server.message_processor import MessageProcessor
+from auction_server.server_message_processor import MessageProcessor
 
 from foundation.agent import Agent
 from foundation.resource import Resource

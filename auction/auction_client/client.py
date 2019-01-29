@@ -1,10 +1,6 @@
 from aiohttp.web import Application, run_app
-from aiohttp import web, WSMsgType
-from datetime import datetime
 from aiohttp.web import get
-from aiohttp import ClientSession
 from aiohttp import WSCloseCode
-from aiohttp.client_exceptions import ClientConnectorError
 
 import os,signal
 import pathlib
@@ -44,52 +40,6 @@ class AuctionClient(Agent):
                 await session.close()
 
         self.logger.info('shutdown ended')
-
-    async def callback(self, msg):
-        print(msg)
-
-    async def websocket(self):
-        session = ClientSession()
-
-        if self.use_ipv6:
-            destin_ip_address = str(self.destination_address6)
-        else:
-           destin_ip_address = str(self.destination_address4)
-
-        # TODO: CONNECT USING A DNS
-        print('connect to ', destin_ip_address, self.destination_port)
-        http_address = 'http://{ip}:{port}/{resource}'.format(ip=destin_ip_address,
-                                                    port=str(self.destination_port),
-                                                    resource='websockets')
-
-        try:
-            async with session.ws_connect(http_address) as ws:
-                print("connected")
-                self.app['session'] = session
-                self.app['ws'] = ws
-                async for msg in ws:
-                    print(msg.type)
-                    if msg.type == WSMsgType.TEXT:
-                        await self.callback(msg.data)
-
-                    elif msg.type == WSMsgType.CLOSED:
-                        self.logger.error("websocket closed by the server.")
-                        print("websocket closed by the server.")
-                        break
-
-                    elif msg.type == WSMsgType.ERROR:
-                        self.logger.error("websocket error received.")
-                        print("websocket error received.")
-                        break
-
-            print("closed by server request")
-            os.kill(os.getpid(), signal.SIGINT)
-
-        except ClientConnectorError as e:
-            print(str(e))
-            self.logger.error("Error during server connection - error:{0}".format(str(e)))
-            os.kill(os.getpid(), signal.SIGINT)
-
 
     async def on_startup(self, app):
         """
@@ -210,96 +160,7 @@ class AuctionClient(Agent):
                     await ws.send_str(ipap_message.get_message())
 
 
-    def handle_activate_resource_request_interval(self, start:datetime,
-                                         resource_request: ResourceRequest, when: float):
-        self.logger.debug("start handle activate resource request interval")
 
-        try:
-            # The task is no longer scheduled.
-            self._remove_pending_task(resource_request.get_key(), when)
-
-            # for now we request to any resource,
-            # a protocol to spread resources available must be implemented
-            resource_id = "ANY"
-            interval = resource_request.get_interval_by_start_time(start)
-
-            # Gets an ask message for the resource
-            message = self.resource_request_manager.get_ipap_message(resource_request, start,
-                                                           resource_id, self.use_ipv6,
-                                                           self.ip_address4, self.ip_address6,
-                                                           self.port)
-
-            # Create a new session for sending the request
-            session = None
-            if self.use_ipv6:
-                session = self.auction_session_manager.create_agent_session(self.ip_address6, self.destination_address6,
-                                 self.source_port, self.destination_port, self.protocol, self.life_time)
-            else:
-                session = self.auction_session_manager.create_agent_session(self.ip_address4, self.destination_address4,
-                                 self.source_port, self.destination_port, self.protocol, self.life_time)
-
-            # Gets the new message id
-            message_id = session.get_next_message_id()
-            message.set_seqno(message_id)
-            message.set_ackseqno(0)
-            session.set_resource_request(resource_request)
-            session.set_start(interval.start)
-            session.set_stop(interval.stop)
-
-            # Sends the message to destination
-            await self.handle_send_message(message)
-
-            # Add the session in the session container
-            session.add_pending_message(message)
-            self.auction_session_manager.add_session(session)
-
-            # Assign the new session to the interval.
-            interval.session = session.get_key()
-        except Exception as e:
-            self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))
-
-        self.logger.debug('ending handle activate resource request interval')
-
-    def handle_remove_resource_request_interval(self, stop:datetime,
-                                         resource_request: ResourceRequest, when: float):
-        """
-
-        :param stop:
-        :param resource_request:
-        :param when:
-        :return:
-        """
-        self.logger.debug('start handle activate resource request interval')
-        try:
-            # The task is no longer scheduled.
-            self._remove_pending_task(resource_request.get_key(), when)
-
-            interval = resource_request.get_interval_by_end_time(stop)
-
-             # Gets the  auctions corresponding with this resource request interval
-            session_id = interval.session
-
-            session = self.auction_session_manager.get_session(session_id)
-
-            auctions = session.get_auctions()
-
-            # Teardowns the session created.
-            self.handle_send_teardown_message()
-
-            # Deletes active request process associated with this request interval.
-            resource_request_process_ids = interval.get_resource_request_process()
-            for resurce_request_process_id in resource_request_process_ids:
-                self.agent_processor.delete_request(resurce_request_process_id)
-
-            # deletes the reference to the auction (a session is not referencing it anymore)
-            auctions_to_remove = self.auction_manager.decrement_references(auctions,session_id)
-            for auction in auctions:
-                self.handle_remove_auction(auction)
-
-        except Exception as e:
-            self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
-
-        self.logger.debug('ending handle activate resource request interval')
 
     def run(self):
         """
