@@ -4,14 +4,31 @@ from aiohttp.client_ws import ClientWebSocketResponse
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSCloseCode
 
-from foundation.auction_message_processor import AuctionMessageProcessor
 from ipaddress import ip_address
 import os, signal
+from enum import Enum
+
+from foundation.auction_message_processor import AuctionMessageProcessor
+
+from auction_client.client_main_data import ClientMainData
+from python_wrapper.ipap_message import IpapMessage
+
+class ServerConnectionState(Enum):
+    """
+    States for a server connection.
+    """
+    CLOSED = 0
+    SYN_SENT = 1
+    ESTABLISHED = 2
+    FIN_WAIT_1 = 3
+    FIN_WAIT_2 = 4
+    TIME_WAIT = 5
 
 
 class ServerConnection:
     def __init__(self, key: str):
         self.key = key
+        self.state = ServerConnectionState.CLOSED
         self.task = None
         self.session = None
         self.web_socket = None
@@ -47,15 +64,30 @@ class ServerConnection:
         """
         self.references = self.references - 1
 
+    def set_state(self, state: ServerConnectionState):
+        """
+        Sets the state of the server connection.
+
+        :param state: new state to set
+        """
+        self.state = state
+
+    def get_state(self) -> ServerConnectionState:
+        """
+        Gets the current state of the connection.
+        :return: connection's state
+        """
+        return self.state
+
 
 class ClientMessageProcessor(AuctionMessageProcessor):
     """
     This class takes care of agents' communications.
     """
 
-    def __init__(self, app):
+    def __init__(self, app, domain: int):
 
-        super(ClientMessageProcessor, self).__init__()
+        super(ClientMessageProcessor, self).__init__(domain)
         self.app = app
         self.app['server_connections'] = {}
         self.key_separator = '|'
@@ -77,6 +109,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
             destin_ip_address = str(destination_address4)
 
         return destin_ip_address + self.key_separator + str(destination_port)
+
 
     async def websocket_shutdown(self, server_connection: ServerConnection):
         """
@@ -100,7 +133,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         self.logger.info('server connection shutdown ended - key {0}'.format(server_connection.key))
 
     async def connect(self, use_ipv6: bool, destination_address4: ip_address, destination_address6: ip_address,
-                      destination_port: int, session: str):
+                      destination_port: int, session: str, seq_nbr : int):
         """
         Connects a server, only occurs the first time, in case of already connected increases the reference count.
 
@@ -111,7 +144,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         :param session: auction session for which the server connection is being created
         """
         ipaddress_key = self.get_ip_address_key(use_ipv6)
-        key = session + '|' + ipaddress_key
+        key = session + self.key_separator + ipaddress_key
         server_connection = None
 
         if key not in self.app['server_connections']:
@@ -126,6 +159,10 @@ class ClientMessageProcessor(AuctionMessageProcessor):
             server_connection.add_reference()
         else:
             server_connection = self.app['server_connections'][key]
+
+        message = self.build_syn_message(seq_nbr)
+        self.send_message(server_connection, message.get_message())
+        server_connection.set_state(ServerConnectionState.SYN_SENT)
 
         return server_connection
 
@@ -150,6 +187,23 @@ class ClientMessageProcessor(AuctionMessageProcessor):
                 await self.websocket_shutdown(server_connection)
                 del (server_connection.key)
 
+    async def establish_session(self, server_connection : ServerConnection,  ipap_message: IpapMessage):
+        """
+        Establishes the session
+        :return:
+        """
+        # verifies ack sequence number
+        ack_seqno = ipap_message.get_ackseqno()
+
+        # verifies the connection state
+        if server_connection.state == ServerConnectionState.SYN_SENT:
+            # update new sequence number
+
+            # send the ack message establishing the session.
+        else:
+            pass
+
+
     async def process_message(self, server_connection: ServerConnection, msg: str):
         """
         Process a message arriving from an agent.
@@ -160,12 +214,14 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         """
         ipap_message = self.is_auction_message(msg)
         if ipap_message is not None:
-            type = ipap_message.get_type()
+            syn = ipap_message.get_syn()
+            ack = ipap_message.get_ack()
+            fin = ipap_message.get_fin()
 
-            if type == async_create_session:
-                self.send_ack_create_message()
+            if syn and ack:
+                self.establish_session(ipap_message)
 
-            elif type == disconnect:
+            elif fin:
                 self.senf_ack_disconnect()
 
             else:
@@ -177,12 +233,13 @@ class ClientMessageProcessor(AuctionMessageProcessor):
             self.logger.error("Invalid message from agent with domain {}")
             pass
 
-    async def send_message(self, message: str):
+    async def send_message(self, server_connection: ServerConnection, message: str):
         """
         Sends the message for an agent
 
         :param message: message to be send
         """
+        server_connection.web_socket.send_str(message)
 
     async def websocket(self, use_ipv6: bool, destination_address4: ip_address, destination_address6: ip_address,
                         destination_port: int, server_connection: ServerConnection):

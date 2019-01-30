@@ -6,6 +6,8 @@ class ClientMainData(metaclass=Singleton):
 
     def __init__(self):
         self.logger.debug("Stating _load_main_data auction client")
+
+        self.domain = Config().get_config_param('Main','Domain')
         use_ipv6 = Config().get_config_param('Main','UseIPv6')
         self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
         if self.use_ipv6:

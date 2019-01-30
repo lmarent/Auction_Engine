@@ -9,7 +9,6 @@ lib = cdll.LoadLibrary('libipap.so')
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_data_record import IpapDataRecord
-from python_wrapper.ipap_field import IpapField
 
 class IpapMessage:
 
@@ -63,6 +62,42 @@ class IpapMessage:
             return IpapDataRecord(obj=obj)
         else:
             raise ValueError("Data record at pos {0} was not found".format(str(int)) )
+
+    def set_syn(self, syn: bool ):
+        lib.ipap_message_set_syn(self.obj, c_bool(syn))
+
+    def get_syn(self) -> bool:
+        return lib.ipap_message_get_syn(self.obj)
+
+    def set_ack(self, ack: bool):
+        lib.ipap_message_set_ack(self.obj, c_bool(ack))
+
+    def get_ack(self) -> bool:
+        return lib.ipap_message_get_ack(self.obj)
+
+    def set_fin(self, fin: bool):
+        lib.ipap_message_set_fin(self.obj, c_bool(fin))
+
+    def get_fin(self):
+        return lib.ipap_message_get_fin(self.obj)
+
+    def get_seqno(self) -> int:
+        get_value_uint32 = lib.ipap_message_get_seqno
+        get_value_uint32.restype = c_uint32
+
+        return lib.ipap_message_get_seqno(self.obj)
+
+    def set_seqno(self, seq_no:int):
+        lib.ipap_message_set_seqno(self.obj, c_uint32(seq_no))
+
+    def get_ackseqno(self, ack_seq_no : int):
+        get_value_uint32 = lib.ipap_message_get_seqno
+        get_value_uint32.restype = c_uint32
+
+        return lib.ipap_message_get_ackseqno(self.obj)
+
+    def set_ack_seq_no(self, ack_seq_no : int):
+        lib.ipap_message_set_ackseqno(self.obj, c_uint32(ack_seq_no))
 
     def output(self):
         lib.ipap_message_output(self.obj)

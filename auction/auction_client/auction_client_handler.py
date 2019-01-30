@@ -22,7 +22,8 @@ class HandleAddResourceRequest(ScheduledTask):
         super(HandleActivateResourceRequestInterval, self).__init__(seconds_to_start)
         self.config = Config().get_config()
         self.file_name = file_name
-        self.resource_request_manager = ResourceRequestManager()
+        self.client_data = ClientMainData()
+        self.resource_request_manager = ResourceRequestManager(self.client_data.domain)
         pass
 
     async def _run_specific(self, **kwargs):
@@ -56,6 +57,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         self.seconds_to_start = seconds_to_start
         self.client_data = ClientMainData()
         self.auction_session_manager = AuctionSessionManager()
+        self.resource_request_manager = ResourceRequestManager(domain=self.client_data.domain)
 
     async def _run_specific(self):
         """
