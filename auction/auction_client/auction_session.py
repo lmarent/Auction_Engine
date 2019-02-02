@@ -1,6 +1,7 @@
 from foundation.session import Session
 from datetime import datetime
 from auction_client.resource_request import ResourceRequest
+from auction_client.client_message_processor import ServerConnection
 
 
 class AuctionSession(Session):
@@ -20,6 +21,7 @@ class AuctionSession(Session):
         self.start_time = datetime.now()
         self.stop_time = datetime.now()
         self.resource_request = None
+        self.server_connection = None
         
         # Sets of auction identifiers. 
         self.auction_set = set()
@@ -60,3 +62,9 @@ class AuctionSession(Session):
         """
         for auction_key in auctions:
             self.auction_set.add(auction_key)
+
+    def set_server_connection(self, server_connection : ServerConnection):
+        """
+        Sets the server connection established for the session.
+        """
+        self.server_connection = server_connection

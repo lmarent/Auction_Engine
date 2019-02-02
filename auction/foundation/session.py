@@ -1,6 +1,7 @@
 from enum import Enum
 import ipaddress
 import random
+from python_wrapper.ipap_message import IpapMessage
 
 U32INT_MAX = 4294967295
 
@@ -59,11 +60,11 @@ class Session:
         else:
             raise ValueError('Message with key: {0} is not pending in tne session'.format(str(uid)))
 
-    def add_pending_message(self, message):
+    def add_pending_message(self, message : IpapMessage):
         """
         Adds a new message to be acknowledged by the auction server
         """
-        self.pending_messages[message.get_key()] = message
+        self.pending_messages[message.get_seqno()] = message
 
     def get_next_message_id(self):
         """
