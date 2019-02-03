@@ -9,12 +9,12 @@ class ConfigParam:
     attributes
     ----------
     name : str : name of the configuration param
-    type: str: type of the configuration param
+    p_type: str: type of the configuration param
     value : str: value as string.
     """
-    def __init__(self, name:str=None, type:str=None, value:str=None):
+    def __init__(self, name: str=None, p_type: str=None, value: str=None):
         self.name = name
-        self.type = type
+        self.type = p_type
         self.value = value
 
     def get_name(self):

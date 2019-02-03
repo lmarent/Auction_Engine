@@ -2,7 +2,6 @@ from ctypes import cdll
 from ctypes import c_int
 from ctypes import c_uint16
 from ctypes import c_uint8
-from ctypes import POINTER
 from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_field import IpapField
 from enum import Enum
@@ -43,28 +42,28 @@ class IpapTemplate:
         else:
             self.obj = lib.ipap_template_new()
 
-    def set_id(self, id : int):
-        return lib.ipap_template_set_id(self.obj,c_uint16(id))
+    def set_id(self, id_template: int):
+        return lib.ipap_template_set_id(self.obj, c_uint16(id_template))
 
     def get_template_id(self) -> int:
         return lib.ipap_template_get_template_id(self.obj)
 
-    def set_max_fields(self, max_fields : int):
-        lib.ipap_template_set_maxfields(self.obj,c_int(max_fields))
+    def set_max_fields(self, max_fields: int):
+        lib.ipap_template_set_maxfields(self.obj, c_int(max_fields))
 
-    def set_type(self, type: TemplateType):
-        lib.ipap_template_set_type(self.obj, c_int(type.value))
+    def set_type(self, templ_type: TemplateType):
+        lib.ipap_template_set_type(self.obj, c_int(templ_type.value))
 
     def _get_template_type_mandatory_field_size(self, temp_type: TemplateType) -> int:
         return lib.ipap_template_get_template_type_mandatory_field_size(self.obj, c_int(temp_type.value))
 
-    def get_template_type_mandatory_field(self, temp_type : TemplateType) -> list:
+    def get_template_type_mandatory_field(self, temp_type: TemplateType) -> list:
         size = self._get_template_type_mandatory_field_size(temp_type)
         list_return = []
 
-        for i in range(0,size):
+        for i in range(0, size):
             obj = lib.ipap_template_get_template_type_mandatory_field(self.obj, c_int(temp_type.value), c_int(i))
-            if obj: # not null
+            if obj:  # not null
                 field_key = IpapFieldKey(obj=obj)
                 list_return.append(field_key)
             else:
@@ -83,21 +82,22 @@ class IpapTemplate:
     def get_type(self) -> TemplateType:
         return TemplateType(lib.ipap_template_get_type(self.obj))
 
-    def _get_object_template_types_size(self, object_type : ObjectType) -> int:
+    def _get_object_template_types_size(self, object_type: ObjectType) -> int:
         if object_type == ObjectType.IPAP_INVALID:
             return -1
         else:
             return lib.ipap_template_get_object_template_types_size(self.obj, c_uint8(object_type.value))
 
-    def get_object_template_types(self, object_type : ObjectType):
-        if object_type== ObjectType.IPAP_INVALID:
+    def get_object_template_types(self, object_type: ObjectType):
+        if object_type == ObjectType.IPAP_INVALID:
             raise ValueError("Invalid object type")
 
         size = self._get_object_template_types_size(object_type)
         list_return = []
 
-        for i in range(0,size):
-            templ_type = TemplateType(lib.ipap_template_get_object_template_types_at_pos(self.obj, c_int(object_type.value), c_int(i)))
+        for i in range(0, size):
+            templ_type = TemplateType(lib.ipap_template_get_object_template_types_at_pos(
+                self.obj, c_int(object_type.value), c_int(i)))
 
             if templ_type == object_type.IPAP_INVALID:
                 raise ValueError('Object type requested but not found')
@@ -110,23 +110,23 @@ class IpapTemplate:
         size = lib.ipap_template_get_numfields(self.obj)
         list_return = []
 
-        for i in range(0,size):
+        for i in range(0, size):
             obj = lib.ipap_template_get_field_by_pos(self.obj, c_int(i))
-            if obj: # not null
+            if obj:  # not null
                 field = IpapField(obj=obj)
                 list_return.append(field)
             else:
                 raise ValueError('Field key not found')
         return list_return
 
-    def get_field(self, eno: int, ftype: int ) -> IpapField:
+    def get_field(self, eno: int, ftype: int) -> IpapField:
         obj = lib.ipap_template_get_field(self.obj, c_int(eno), c_int(ftype))
         if obj:  # not null
             field = IpapField(obj=obj)
             return field
         else:
-            raise ValueError('Field with eno {0} and ftype {1} was not found'.format(str(eno)), str(ftype))
+            raise ValueError('Field with eno {0} and ftype {1} was not found'.format(str(eno), str(ftype)))
 
     def __del__(self):
-        if self.obj: # not null
+        if self.obj:  # not null
             lib.ipap_template_destroy(self.obj)

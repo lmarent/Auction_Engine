@@ -4,9 +4,6 @@ from abc import ABC
 from abc import abstractmethod
 from utils.auction_utils import log
 
-from foundation.auctioning_object import AuctioningObject
-
-
 class AuctionTask(ABC):
     """
     Represents a task to be executed for an auction bidding object.
@@ -54,7 +51,7 @@ class ScheduledTask(AuctionTask):
         super(ScheduledTask, self).__init__(time)
         self._observers = []
 
-    def attach(self, observer: AuctioningObject):
+    def attach(self, observer):
         """
         Attach an observer
 
@@ -64,7 +61,7 @@ class ScheduledTask(AuctionTask):
         if observer not in self._observers:
             self._observers.append(observer)
 
-    def detach(self, observer: AuctioningObject):
+    def detach(self, observer):
         """
         Removes an observer from the list
 

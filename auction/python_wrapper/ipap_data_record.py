@@ -2,9 +2,8 @@ from ctypes import cdll
 from ctypes import c_uint16
 from ctypes import c_int
 
-from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_value_field import IpapValueField
-from python_wrapper.ipap_template import TemplateType
+from python_wrapper.ipap_field_key import IpapFieldKey
 
 lib = cdll.LoadLibrary('libipap.so')
 
@@ -26,7 +25,15 @@ class IpapDataRecord:
     def get_num_fields(self) -> int:
         return lib.ipap_data_record_get_num_fields(self.obj)
 
-    def get_field(self, eno: int, ftype: int):
+    def get_field_at_pos(self, pos: int) -> IpapFieldKey:
+        obj = lib.ipap_data_record_get_field_at_pos(self.obj, c_int(pos))
+        if obj:
+            value = IpapFieldKey(obj=obj)
+            return value
+        else:
+            raise ValueError("Field at pos {0} was not found in data record".format(str(pos)))
+
+    def get_field(self, eno: int, ftype: int) -> IpapValueField:
         obj = lib.ipap_data_record_get_field(self.obj, c_int(eno), c_int(ftype))
         if obj:
             value = IpapValueField(obj=obj)

@@ -7,6 +7,7 @@ from foundation.module_loader import ModuleLoader
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.field_def_manager import FieldDefManager
 from foundation.module import Module
+from foundation.config_param import ConfigParam
 
 from datetime import datetime
 from enum import Enum
@@ -14,6 +15,8 @@ from enum import Enum
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_template import TemplateType
+from python_wrapper.ipap_template import IpapTemplate
+from python_wrapper.ipap_data_record import IpapDataRecord
 
 from utils.auction_utils import log
 
@@ -24,6 +27,7 @@ class AgentFieldSet(Enum):
     """
     SESSION_FIELD_SET_NAME = 0
     REQUEST_FIELD_SET_NAME = 1
+
 
 class AuctionProcess(AuctionProcessObject):
 
@@ -100,6 +104,33 @@ class AuctionProcessor(IpapMessageParser):
 
         self.build_field_sets()
 
+    def read_misc_data(self, ipap_template: IpapTemplate, ipap_record: IpapDataRecord) -> dict:
+        """
+        read the data given in the data record
+
+        :param ipap_template: templete followed by data record
+        :param ipap_record: record with the data.
+        :return: dictionary with config values.
+        """
+        config_params = {}
+        num_fields = ipap_record.get_num_fields()
+        for pos in range(0, num_fields):
+            field_key = ipap_record.get_field_at_pos(pos)
+            try:
+                field_def = self.field_def_manager.get_field_by_code(field_key.get_eno(), field_key.get_ftype())
+                field = ipap_template.get_field(field_key.get_eno(), field_key.get_ftype())
+                config_param = ConfigParam(field_def['name'], field_def['type'],
+                                           field.write_value(ipap_record.get_field(
+                                               field_key.get_eno(), field_key.get_ftype())))
+
+                config_params[config_param.name] = config_param
+            except ValueError as e:
+                self.logger.error("Field with eno {0} and ftype {1} was \
+                                    not parametrized".format(str(field_key.get_eno()),
+                                                             str(field_key.get_ftype())))
+                raise e
+        return config_params
+
     def build_field_sets(self):
         """
         Builds the field sets required for managing message between the server and the agents.
@@ -136,7 +167,7 @@ class AuctionProcessor(IpapMessageParser):
         action = auction.get_action()
         module_name = action.name
         module = self.module_loader.get_module(module_name)
-        action_process = AuctionProcess(key, module, action.get_config_params(), auction)
+        action_process = AuctionProcess(key, module, auction, action.get_config_params())
         module.init_module(action.get_config_params())
         self.auctions[key] = action_process
         return key
@@ -204,7 +235,7 @@ class AuctionProcessor(IpapMessageParser):
         if action_process:
             self.module_loader.release_module(action_process.get_module().get_module_name())
 
-    def get_auction_process(self, key:str) -> AuctionProcess:
+    def get_auction_process(self, key: str) -> AuctionProcess:
         """
         Gets the auction process with the key given
         :param key: key to find
@@ -237,13 +268,13 @@ class AuctionProcessor(IpapMessageParser):
         session_info = {}
         try:
             templ_opt_auction = self.read_template(message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-            data_records = self.read_data_records(message,templ_opt_auction.get_template_id())
+            data_records = self.read_data_records(message, templ_opt_auction.get_template_id())
             for data_record in data_records:
                 config_items = self.read_misc_data(templ_opt_auction, data_record)
                 field_keys = self.get_set_field(AgentFieldSet.SESSION_FIELD_SET_NAME)
                 for field_key in field_keys:
                     field = self.field_def_manager.get_field_by_code(
-                                                                    field_key.get_eno(), field_key.get_ftype())
+                        field_key.get_eno(), field_key.get_ftype())
                     session_info[field] = self.get_misc_val(config_items, field)
 
                 break
@@ -251,7 +282,6 @@ class AuctionProcessor(IpapMessageParser):
 
         except ValueError as e:
             self.logger.error("Error during processing of get session information - error:{0} ".format(str(e)))
-
 
     def delete_auction(self, auction: Auction):
         """
@@ -261,7 +291,7 @@ class AuctionProcessor(IpapMessageParser):
         """
         self.delete_auction_process(auction.get_key())
 
-    def insersect(self, start_dttm: datetime, stop_dttm:datatime, resource_id:str) -> list:
+    def insersect(self, start_dttm: datetime, stop_dttm: datetime, resource_id: str) -> list:
         """
         Finds auctions that are executed for the selected resource and for the time range
 
@@ -288,7 +318,7 @@ class AuctionProcessor(IpapMessageParser):
 
         return auctions_ret
 
-    def get_applicable_auctions(self, message: IpapMessage )-> list:
+    def get_applicable_auctions(self, message: IpapMessage) -> list:
         """
         Gets the auctions applicable given the options within the message.
 
@@ -297,20 +327,20 @@ class AuctionProcessor(IpapMessageParser):
         """
         try:
             templ_opt_auction = self.read_template(message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
-            data_records = self.read_data_records(message,templ_opt_auction.get_template_id())
+            data_records = self.read_data_records(message, templ_opt_auction.get_template_id())
 
             for data_record in data_records:
                 config_items = self.read_misc_data(templ_opt_auction, data_record)
 
                 s_start_dttm = self.get_misc_val(config_items, "start")
                 ipap_field = templ_opt_auction.get_field(self.field_def_manager.get_field("start")['eno'],
-                                            self.field_def_manager.get_field("start")['ftype'])
-                start_dttm = datetime.fromtimestamp(ipap_field.parse(s_start_dttm).get_value_int64())
+                                                         self.field_def_manager.get_field("start")['ftype'])
+                start_dttm = datetime.fromtimestamp(ipap_field.parse(s_start_dttm).get_value_uint64())
 
-                s_stop_ddtm = self.get_misc_val(config_items, "stop")
+                s_stop_dttm = self.get_misc_val(config_items, "stop")
                 ipap_field = templ_opt_auction.get_field(self.field_def_manager.get_field("stop")['eno'],
-                                            self.field_def_manager.get_field("stop")['ftype'])
-                stop_dttm = datetime.fromtimestamp(ipap_field.parse(s_stop_ddtm).get_value_int64())
+                                                         self.field_def_manager.get_field("stop")['ftype'])
+                stop_dttm = datetime.fromtimestamp(ipap_field.parse(s_stop_dttm).get_value_uint64())
 
                 resource_id = self.get_misc_val(config_items, "resourceid")
 
@@ -320,4 +350,3 @@ class AuctionProcessor(IpapMessageParser):
 
         except ValueError as e:
             self.logger.error("Error during processing of applicable auctions - error:{0} ".format(str(e)))
-

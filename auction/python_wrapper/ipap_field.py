@@ -10,8 +10,6 @@ from ctypes import c_double
 
 from ctypes import c_size_t
 from ctypes import c_char_p
-from ctypes import c_wchar_p
-from ctypes import pointer
 lib = cdll.LoadLibrary('libipap.so')
 
 
@@ -129,6 +127,14 @@ class IpapField:
     #     else:
     #         raise ValueError('Field value could not be created')
 
+    def write_value(self, value: IpapValueField):
+        write_value = lib.ipap_field_write_value
+        write_value.restype = c_char_p
+
+        return lib.ipap_field_write_value(self.obj, value.obj)
+
+    def parse(self, value:str) -> IpapValueField:
+        return lib.ipap_field_parse(self.obj, c_char_p(value))
 
     def __del__(self):
         if self.obj: # not null
