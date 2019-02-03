@@ -2,7 +2,7 @@ from aiohttp.web import Application, run_app
 from aiohttp.web import get
 from aiohttp import WSCloseCode
 
-import os,signal
+import os, signal
 import pathlib
 import random
 
@@ -31,19 +31,10 @@ class AuctionClient(Agent):
     async def on_shutdown(self, app):
         self.logger.info('shutdown started')
 
-        # Close open sockets
-        if 'session' in self.app:
-            session = self.app['session']
-            if not session.closed:
-                ws = self.app['ws']
-                if not ws.closed:
-                    await ws.close(code=WSCloseCode.GOING_AWAY,
-                                message='Client shutdown')
-                await session.close()
 
         self.logger.info('shutdown ended')
 
-    #async def on_startup(self, app):
+    # async def on_startup(self, app):
     #    """
     #    method for connecting to the web server.
     #    :param app: application where the loop is taken.
@@ -61,13 +52,12 @@ class AuctionClient(Agent):
             self._load_resources_request()
 
             # add routers.
-            self.app.add_routes([get('/terminate', self.terminate),])
+            self.app.add_routes([get('/terminate', self.terminate), ])
 
-            self.app.on_startup.append(self.on_startup)
             self.app.on_shutdown.append(self.on_shutdown)
 
         except Exception as e:
-            self.logger.error("Error during server initialization - message: {0}".format(str(e)) )
+            self.logger.error("Error during server initialization - message: {0}".format(str(e)))
 
     def _load_main_data(self):
         """
@@ -118,11 +108,14 @@ class AuctionClient(Agent):
             for start in ret_start:
                 when = self._calculate_when(start)
                 handle_activate = HandleActivateResourceRequestInterval(start, ret_start[start], when)
+                handle_activate.start()
                 request.add_task(handle_activate)
 
             for stop in ret_stop:
                 when = self._calculate_when(stop)
                 handle_remove = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
+                handle_remove.start()
+                request.add_task(handle_remove)
 
         self.logger.debug("Ending _load_resources_request")
 
@@ -131,14 +124,13 @@ class AuctionClient(Agent):
         Runs the application.
         :return:
         """
-        self.source_port = random.randint(1024, 65000)
-        if self.use_ipv6:
-            print(self.ip_address6, self.source_port)
-            run_app(self.app, host=str(self.ip_address6), port=self.source_port)
+        self.client_data.source_port = random.randint(1024, 65000)
+        if self.client_data.use_ipv6:
+            print(self.client_data.ip_address6, self.client_data.source_port)
+            run_app(self.app, host=str(self.client_data.ip_address6), port=self.client_data.source_port)
         else:
-            print(self.ip_address4, self.source_port)
-            run_app(self.app, host=str(self.ip_address4), port=self.source_port)
-
+            print(self.client_data.ip_address4, self.client_data.source_port)
+            run_app(self.app, host=str(self.client_data.ip_address4), port=self.client_data.source_port)
 
 
 if __name__ == '__main__':

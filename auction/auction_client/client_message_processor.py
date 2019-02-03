@@ -1,3 +1,4 @@
+from asyncio import sleep
 from aiohttp import ClientSession
 from aiohttp import WSMsgType
 from aiohttp.client_ws import ClientWebSocketResponse
@@ -91,7 +92,6 @@ class ClientMessageProcessor(AuctionMessageProcessor):
     """
     This class takes care of agents' communications.
     """
-
     def __init__(self, app):
 
         self.client_data = ClientMainData()
@@ -237,6 +237,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
                 await self.send_message(server_connection, message.get_message())
                 await self._disconnect_socket(session.get_key())
                 self.auction_session_manager.del_session(session.get_key())
+                server_connection.set_state(ServerConnectionState.CLOSED)
 
             except ValueError:
                 # The message ack is not the expected, so ignore the message
@@ -272,7 +273,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         else:
             when = 0
             handle_auction_message = HandleAuctionMessage(session, ipap_message, when)
-            await handle_auction_message.start()
+            handle_auction_message.start()
 
         self.logger.debug('End method handle_ack')
 
@@ -300,7 +301,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
 
             else:
                 handle_auction_message = HandleAuctionMessage(session, ipap_message, 0)
-                await handle_auction_message.start()
+                handle_auction_message.start()
         else:
             # invalid message, we do not send anything for the moment
             self.logger.error("Invalid message from agent with domain {}")
@@ -386,3 +387,25 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         except ClientConnectorError as e:
             self.logger.error("Error during server connection - error:{0}".format(str(e)))
             os.kill(os.getpid(), signal.SIGINT)
+
+    async def shutdown(self):
+        """
+        Shutdown the message processor, disconnects all connections.
+
+        """
+        # Close open sockets
+        if 'server_connections' in self.app:
+            for server_connection in self.app['server_connections']:
+                await self.process_disconnect(server_connection.key)
+
+            # Sleeps until all sockets has been closed.
+            while True:
+                await sleep(3)
+
+                num_open = 0
+                for server_connection in self.app['server_connections']:
+                    if server_connection.state != ServerConnectionState.CLOSED:
+                        num_open = num_open + 1
+
+                if num_open == 0:
+                    break
