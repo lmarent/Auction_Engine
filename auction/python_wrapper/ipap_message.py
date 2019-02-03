@@ -90,7 +90,7 @@ class IpapMessage:
     def set_seqno(self, seq_no:int):
         lib.ipap_message_set_seqno(self.obj, c_uint32(seq_no))
 
-    def get_ackseqno(self, ack_seq_no : int):
+    def get_ackseqno(self):
         get_value_uint32 = lib.ipap_message_get_seqno
         get_value_uint32.restype = c_uint32
 
@@ -102,7 +102,7 @@ class IpapMessage:
     def output(self):
         lib.ipap_message_output(self.obj)
 
-    def get_message(self):
+    def get_message(self) -> str:
         get_value_vchar = lib.ipap_message_get_message
         get_value_vchar.restype = c_char_p
 

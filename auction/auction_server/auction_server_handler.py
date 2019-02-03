@@ -271,3 +271,22 @@ class HandleSessionRequest(ScheduledTask):
         self.message_processor.send_message(message_to_send.get_message())
 
 
+class HandleAuctionMessage(ScheduledTask):
+    def __init__(self, session: Session, ipap_message: IpapMessage, seconds_to_start: float):
+        super(HandleAuctionMessage, self).__init__(seconds_to_start)
+        self.session = session
+        self.message = ipap_message
+
+    def _run_specific(self):
+
+        type = self.ipap_message.get_type()
+
+        # TODO: Complete this code
+        #if type == auction:
+        #
+        #elif type == bidding_object:
+        #
+        #elif type == allocation:
+        #
+        #else:
+        #    logger.error("invalid type")

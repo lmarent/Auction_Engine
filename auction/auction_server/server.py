@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 
 from auction_server.auction_processor import AuctionProcessor
 from auction_server.server_message_processor import MessageProcessor
+from auction_server.server_main_data import ServerMainData
 
 from foundation.agent import Agent
 from foundation.resource import Resource
@@ -96,23 +97,7 @@ class AuctionServer(Agent):
         """
         Sets the main data defined in the configuration file
         """
-        self.logger.debug("Stating _load_main_data")
-
-
-        use_ipv6 = Config().get_config_param('Main','UseIPv6')
-        self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
-        if self.use_ipv6:
-            self.ip_address6 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V6'))
-        else:
-            self.ip_address4 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V4'))
-
-        # Gets default ports (origin, destination)
-        self.local_port = ParseFormats.parse_uint16(Config().get_config_param('Main','LocalPort'))
-        self.protocol = ParseFormats.parse_uint8( Config().get_config_param('Main','DefaultProtocol'))
-        self.life_time = ParseFormats.parse_uint8( Config().get_config_param('Main','LifeTime'))
-
-        self.logger.debug("ending _load_main_data")
-
+        self.server_data = ServerMainData()
 
     def _initialize_managers(self):
         """
@@ -166,15 +151,13 @@ class AuctionServer(Agent):
         self.handle_load_auctions(auction_file)
         self.logger.debug("Ending _load_resources")
 
-
-
     def run(self):
         """
         Runs the application.
         :return:
         """
         if self.use_ipv6:
-            run_app(self.app, host=str(self.ip_address6), port=self.local_port)
+            run_app(self.app, host=str(self.server_data.ip_address6), port=self.server_data.local_port)
         else:
-            run_app(self.app, host=str(self.ip_address4), port=self.local_port)
+            run_app(self.app, host=str(self.server_data.ip_address4), port=self.server_data.local_port)
 

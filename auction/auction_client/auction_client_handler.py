@@ -160,14 +160,12 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
             self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
 
 class HandleAuctionMessage(ScheduledTask):
-    def __init__(self, session_key:str, ipap_message: IpapMessage, seconds_to_start: float):
-        super(HandleActivateSession, self).__init__(seconds_to_start)
-        self.session_key = session_key
+    def __init__(self, session: AuctionSession, ipap_message: IpapMessage, seconds_to_start: float):
+        super(HandleAuctionMessage, self).__init__(seconds_to_start)
+        self.session = session
         self.message = ipap_message
-        self.session_manager = AuctionSessionManager()
 
     def _run_specific(self):
-        session = self.session_manager.get_session(self.session_key)
 
         type = self.ipap_message.get_type()
 
