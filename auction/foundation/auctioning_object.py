@@ -64,7 +64,7 @@ class AuctioningObject:
         """
         return self.auctioning_object_type
 
-    async def add_task(self, auction_task: AuctionTask):
+    def add_task(self, auction_task: AuctionTask):
         """
         adds an auction task to the list of pending tasks.
 

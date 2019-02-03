@@ -262,3 +262,13 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         client_connection.web_socket.send_str(message)
 
         self.logger.debug('End send message')
+
+    async def send_message_to_session(self, session_key: str, message: str):
+        """
+        Sends the message for an agent given the session.
+
+        :param session_key: session key used to find the websocket
+        :param message: message to be send
+        """
+        # TODO: implement the method.
+        pass

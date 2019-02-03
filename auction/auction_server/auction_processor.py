@@ -74,7 +74,7 @@ class AuctionProcessor(IpapMessageParser):
     ----------
     """
 
-    def __init__(self, domain: int, module_directory: str):
+    def __init__(self, domain: int, module_directory: str=None):
         super(AuctionProcessor, self).__init__(domain)
         self.auctions = {}
         self.config = Config().get_config()
@@ -255,7 +255,7 @@ class AuctionProcessor(IpapMessageParser):
         """
         return self.field_sets[set_name]
 
-    def get_session_information(self, message: IpapMessage):
+    def get_session_information(self, message: IpapMessage) -> dict:
         """
         Gets the session information within the message.
 
