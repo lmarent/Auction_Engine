@@ -1,11 +1,12 @@
 from aiohttp import ClientSession
-from aiohttp import web, WSMsgType
+from aiohttp import WSMsgType
 from aiohttp.client_ws import ClientWebSocketResponse
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSCloseCode
 
 from ipaddress import ip_address
-import os, signal
+import os
+import signal
 from enum import Enum
 
 from foundation.auction_message_processor import AuctionMessageProcessor
@@ -103,6 +104,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
     async def websocket_shutdown(self, server_connection: ServerConnection):
         """
         Disconnects the websocket from the server
+
         :param server_connection: server to disconnect
         :return:
         """
@@ -142,8 +144,6 @@ class ClientMessageProcessor(AuctionMessageProcessor):
                                                                         self.client_data.life_time)
 
         key = session.get_key()
-        server_connection = None
-
         if key not in self.app['server_connections']:
             server_connection = ServerConnection(key)
             self.app['server_connections'][key] = server_connection
@@ -203,7 +203,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
                 msg = syn_ack_message.get_message()
                 await self.send_message(server_connection, msg)
 
-            except ValueError as e:
+            except ValueError:
                 self.logger.error("Invalid ack nbr from the server, the session is going to be teardown")
                 await self._disconnect_socket(session.get_key())
                 self.auction_session_manager.del_session(session.get_key())
@@ -238,7 +238,7 @@ class ClientMessageProcessor(AuctionMessageProcessor):
                 await self._disconnect_socket(session.get_key())
                 self.auction_session_manager.del_session(session.get_key())
 
-            except ValueError as e:
+            except ValueError:
                 # The message ack is not the expected, so ignore the message
                 self.logger.info("A msg with ack nbr not expected was received, ignoring it")
         else:
@@ -255,8 +255,8 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         :param session:session: object that waas created to manage this connection
         :param server_connection: websocket and aiohttp session created for the connection
         :param ipap_message: message sent from the server.
-        :return:
         """
+        self.logger.debug('start method handle_ack')
         # verifies ack sequence number
         ack_seqno = ipap_message.get_ackseqno()
 
@@ -266,13 +266,15 @@ class ClientMessageProcessor(AuctionMessageProcessor):
                 session.confirm_message(ack_seqno)
                 server_connection.set_state(ServerConnectionState.FIN_WAIT_2)
 
-            except ValueError as e:
-                # The message ack is not the expected, so ignore the message
-                pass
+            except ValueError:
+                self.logger.info("A msg with ack nbr not expected was received, ignoring it")
+
         else:
             when = 0
             handle_auction_message = HandleAuctionMessage(session, ipap_message, when)
-            handle_auction_message.start()
+            await handle_auction_message.start()
+
+        self.logger.debug('End method handle_ack')
 
     async def process_message(self, server_connection: ServerConnection, msg: str):
         """
@@ -280,25 +282,24 @@ class ClientMessageProcessor(AuctionMessageProcessor):
 
         :param server_connection: websocket and aiohttp session created for the connection
         :param msg: message received
-        :return:
         """
         ipap_message = self.is_auction_message(msg)
         if ipap_message is not None:
             syn = ipap_message.get_syn()
             ack = ipap_message.get_ack()
             fin = ipap_message.get_fin()
-            session = self.auction_session_manager.get(server_connection.key)
+            session: AuctionSession = self.auction_session_manager.get_session(server_connection.key)
             if syn and ack:
                 await self.handle_syn_ack_message(session, server_connection, ipap_message)
 
             elif fin:
                 await self.send_ack_disconnect(session, server_connection, ipap_message)
 
-            elif (ack and (not fin and not syn)):
+            elif ack and (not fin and not syn):
                 await self.handle_ack(session, server_connection, ipap_message)
 
             else:
-                handle_auction_message = HandleAuctionMessage(ipap_message, 0)
+                handle_auction_message = HandleAuctionMessage(session, ipap_message, 0)
                 await handle_auction_message.start()
         else:
             # invalid message, we do not send anything for the moment
@@ -311,14 +312,14 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         :param session_key: session key to teardown
         :return:
         """
-        session : AuctionSession = self.auction_session_manager.get_session(session_key)
+        session: AuctionSession = self.auction_session_manager.get_session(session_key)
 
         # verifies the connection state
         if session.server_connection.state == ServerConnectionState.ESTABLISHED:
 
             # send the ack message establishing the session.
             message = self.build_fin_message(session.get_next_message_id(), 0)
-            self.send_message(session.server_connection, message.get_message())
+            await self.send_message(session.server_connection, message.get_message())
             session.server_connection.set_state(ServerConnectionState.FIN_WAIT_1)
 
         else:
@@ -329,9 +330,14 @@ class ClientMessageProcessor(AuctionMessageProcessor):
         """
         Sends the message for an agent
 
+        :param server_connection: Server connection where we are going to sendthe message
         :param message: message to be send
         """
+        self.logger.debug("start method send message")
+
         server_connection.web_socket.send_str(message)
+
+        self.logger.debug("end method send message")
 
     async def websocket(self, use_ipv6: bool, destination_address4: ip_address, destination_address6: ip_address,
                         destination_port: int, server_connection: ServerConnection):

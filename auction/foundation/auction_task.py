@@ -4,6 +4,8 @@ from abc import ABC
 from abc import abstractmethod
 from utils.auction_utils import log
 
+from foundation.auctioning_object import AuctioningObject
+
 
 class AuctionTask(ABC):
     """
@@ -17,7 +19,7 @@ class AuctionTask(ABC):
         self._task = None
         self.logger = log().get_logger()
 
-    async def start(self):
+    def start(self):
         if not self.is_started:
             self.logger.debug("Starting {0}".format(type(self).__name__))
             self.is_started = True
@@ -33,6 +35,14 @@ class AuctionTask(ABC):
             with suppress(asyncio.CancelledError):
                 await self._task
 
+    @abstractmethod
+    async def _run(self):
+        """
+        Method for executing the tasks, first wait the scheduled time and then
+        executes the task.
+        """
+        pass
+
 
 class ScheduledTask(AuctionTask):
     """
@@ -40,12 +50,11 @@ class ScheduledTask(AuctionTask):
 
     It implements the observer pattern to inform observers about the task's ending.
     """
-
-    def __init__(self):
-        super(ScheduledTask, self).__init__()
+    def __init__(self, time: float):
+        super(ScheduledTask, self).__init__(time)
         self._observers = []
 
-    def attach(self, observer ):
+    def attach(self, observer: AuctioningObject):
         """
         Attach an observer
 
@@ -55,7 +64,7 @@ class ScheduledTask(AuctionTask):
         if observer not in self._observers:
             self._observers.append(observer)
 
-    def detach(self, observer):
+    def detach(self, observer: AuctioningObject):
         """
         Removes an observer from the list
 
@@ -77,26 +86,24 @@ class ScheduledTask(AuctionTask):
             observer.remove_task(self)
 
     @abstractmethod
-    async def _run_specific(self, **kwargs):
+    async def _run_specific(self):
         """
         To be overwritten with the actual logic to execute within the task
-        :param kwargs: dictionary of parameters for executing the task.
         :return:
         """
         pass
 
-    async def _run(self, **kwargs):
+    async def _run(self):
         """
         Method for executing the tasks, first wait the scheduled time and then
         executes the task.
-        :param kwargs: dictionary of parameters for executing the task.
-        :return:
         """
         await asyncio.sleep(self.time)
         self.logger.debug("processing {0}".format(type(self).__name__))
-        await self._run_specific(kwargs)
+        await self._run_specific()
         self.notify()
         self.logger.debug("ending process for {0}".format(type(self).__name__))
+
 
 class PeriodicTask(AuctionTask):
     """
@@ -104,26 +111,20 @@ class PeriodicTask(AuctionTask):
     """
 
     @abstractmethod
-    async def _run_specific(self, **kwargs):
+    async def _run_specific(self):
         """
         To be overwritten with the actual logic to execute within the task
-        :param kwargs: dictionary of parameters for executing the task.
-        :return:
         """
         pass
 
-
-    async def _run(self, **kwargs):
+    async def _run(self):
         """
         Method for executing the tasks. First, it waits the scheduled time and then
         executes the task. After that execution, it waits again and continues like so
         until it is stopped.
-
-        :param kwargs: dictionary of parameters for executing the task.
-        :return:
         """
         while True:
             await asyncio.sleep(self.time)
             self.logger.debug("starting {0}".format(type(self).__name__))
-            await self._run_specific(kwargs)
+            await self._run_specific()
             self.logger.debug("ending {0}".format(type(self).__name__))

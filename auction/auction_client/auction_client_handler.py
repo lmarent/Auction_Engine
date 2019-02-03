@@ -6,11 +6,13 @@ from auction_client.resource_request_manager import ResourceRequestManager
 from auction_client.client_main_data import ClientMainData
 from auction_client.auction_session_manager import AuctionSessionManager
 from auction_client.agent_processor import AgentProcessor
+from auction_client.auction_session import AuctionSession
 
 from foundation.auction_task import ScheduledTask
 from foundation.auction_task import PeriodicTask
 from foundation.config import Config
 from foundation.auction_manager import AuctionManager
+from foundation.session import SessionState
 
 from python_wrapper.ipap_message import IpapMessage
 
@@ -185,10 +187,11 @@ class HandleActivateSession(ScheduledTask):
     def __init__(self, seconds_to_start: float, session_key:str):
         super(HandleActivateSession, self).__init__(seconds_to_start)
         self.session_key = session_key
+        self.auction_session_manager = AuctionSessionManager()
+
 
     def _run_specific(self):
-        session_manager = app.get_session_manager()
-        session = session_manager.get_session(session_key)
+        session = self.auction_session_manager.get_session(self.session_key)
         session.set_state(SessionState.SS_ACTIVE)
 
 
@@ -210,71 +213,78 @@ class HandleAuctionRemove(ScheduledTask):
         pass
 
 
-class HandledAddGenerateBiddingObject(ScheduledTask):
 
-    def __init__(self):
-        pass
-
-    async def _run_specific(self, **kwargs):
-        bidding_manager = app.get_bidding_object_manager()
-        for bidding_object in bidding_objects:
-            bidding_manager.add_bidding_object(bidding_object, loop)
-        pass
-
-
-class HandleActivateBiddingObject(ScheduledTask):
-
-    def __init__(self):
-        pass
-
-    async def _run_specific(self, **kwargs):
-        for bidding_object in bidding_objects:
-            bidding_object.activate(loop)
+# class HandledAddGenerateBiddingObject(ScheduledTask):
+#
+#     def __init__(self):
+#         pass
+#
+#     async def _run_specific(self, **kwargs):
+#         bidding_manager = app.get_bidding_object_manager()
+#         for bidding_object in bidding_objects:
+#             bidding_manager.add_bidding_object(bidding_object, loop)
+#         pass
 
 
-class HandleSendBiddingObject(ScheduledTask):
-
-    def __init__(self):
-        pass
-
-    async def _run_specific(self, **kwargs):
-        for bidding_object in bidding_objects:
-            auction = bidding_object.get_auction()
-            mid = session.get_next_message_id()
-            message = get_message_bidding_object(mid, bidding_object)
-            session.add_pending_message(message)
-            loop.call_soon(functools.partial(handle_send_message, message, loop))
+# class HandleActivateBiddingObject(ScheduledTask):
+#
+#     def __init__(self):
+#         pass
+#
+#     async def _run_specific(self, **kwargs):
+#         for bidding_object in bidding_objects:
+#             bidding_object.activate(loop)
 
 
-class HandleRemoveBiddingObject(ScheduledTask):
+# class HandleSendBiddingObject(ScheduledTask):
+#
+#     def __init__(self):
+#         pass
+#
+#     async def _run_specific(self, **kwargs):
+#         for bidding_object in bidding_objects:
+#             auction = bidding_object.get_auction()
+#             mid = session.get_next_message_id()
+#             message = get_message_bidding_object(mid, bidding_object)
+#             session.add_pending_message(message)
+#             loop.call_soon(functools.partial(handle_send_message, message, loop))
+#
 
-    def __init__(self):
-        pass
+# class HandleRemoveBiddingObject(ScheduledTask):
+#
+#     def __init__(self):
+#         pass
+#
+#     async def _run_specific(self, **kwargs):
+#         bidding_object_manager = app.get_bidding_object_manager()
+#         for bidding_object in bidding_objects:
+#             bidding_object_manager.del_bidding_object(bidding_object)
 
-    async def _run_specific(self, **kwargs):
-        bidding_object_manager = app.get_bidding_object_manager()
-        for bidding_object in bidding_objects:
-            bidding_object_manager.del_bidding_object(bidding_object)
 
-
-class HandleActivateAuction(ScheduledTask):
-
-    def __init__(self):
-        pass
-
-    async def _run_specific(self, **kwargs):
-        for auction in auctions:
-            auction.activate(loop)
+# class HandleActivateAuction(ScheduledTask):
+#
+#     def __init__(self):
+#         pass
+#
+#     async def _run_specific(self, **kwargs):
+#         for auction in auctions:
+#             auction.activate(loop)
 
 
 class HandleRemoveAuction(ScheduledTask):
 
-    def __init__(self):
-        pass
+    def __init__(self, auctions: list):
+        """
+
+        :param auctions: List of auctions to remove.
+        """
+        self.client_data = ClientMainData()
+        self.auction_manager = AuctionManager(self.client_data.domain)
+        self.auctions = auctions
 
     async def _run_specific(self, **kwargs):
-        auction_manager = app.get_auction_manager()
-        for auction in auctions:
+
+        for auction in self.auctions:
 
             # remove from processing the auction
             # TODO: Remove from procesing.
@@ -282,6 +292,6 @@ class HandleRemoveAuction(ScheduledTask):
             # delete all binding objects related with the auction
             # TODO: remove binding objects
 
-            auction_manager.del_auction(auction)
+            self.auction_manager.del_auction(auction)
 
 

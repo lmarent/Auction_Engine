@@ -15,8 +15,11 @@ from auction_client.resource_request_manager import ResourceRequestManager
 from auction_client.auction_session_manager import AuctionSessionManager
 from auction_client.agent_processor import AgentProcessor
 from auction_client.client_main_data import ClientMainData
+from auction_client.client_message_processor import ClientMessageProcessor
+from auction_client.auction_client_handler import HandleActivateResourceRequestInterval
+from auction_client.auction_client_handler import HandleRemoveResourceRequestInterval
+from auction_client.resource_request import ResourceRequest
 
-from python_wrapper.ipap_message import IpapMessage
 
 class AuctionClient(Agent):
 
@@ -92,6 +95,7 @@ class AuctionClient(Agent):
         self.logger.debug("Starting _initilize_processors")
         module_directory = Config().get_config_param('AGNTProcessor', 'ModuleDir')
         self.agent_processor = AgentProcessor(self.domain, module_directory)
+        self.message_processor = ClientMessageProcessor(self.app)
         self.logger.debug("Ending _initilize_processors")
 
     def _load_resources_request(self):
@@ -113,30 +117,14 @@ class AuctionClient(Agent):
             ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
             for start in ret_start:
                 when = self._calculate_when(start)
-                call = self.app.loop.call_at(when, self.handle_activate_resource_request_interval, start, ret_start[start], when)
-                self._add_pending_tasks(ret_start[start].get_key(), call, when)
+                handle_activate = HandleActivateResourceRequestInterval(start, ret_start[start], when)
+                request.add_task(handle_activate)
 
             for stop in ret_stop:
                 when = self._calculate_when(stop)
-                call = self.app.loop.call_at(when, self.handle_remove_resource_request_interval, stop, ret_stop[stop], when)
-                self._add_pending_tasks(ret_stop[stop].get_key(), call, when)
+                handle_remove = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
 
         self.logger.debug("Ending _load_resources_request")
-
-    async def handle_send_message(self, ipap_message: IpapMessage):
-        """
-        Sends the message given to the market place
-
-        :param message message to be send
-        :return:
-        """
-        if 'session' in self.app:
-            session = self.app['session']
-            if not session.closed:
-                ws = self.app['ws']
-                if not ws.closed:
-                    await ws.send_str(ipap_message.get_message())
-
 
     def run(self):
         """

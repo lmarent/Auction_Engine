@@ -12,7 +12,7 @@ from python_wrapper.ipap_data_record import IpapDataRecord
 
 class IpapMessage:
 
-    def __init__(self, domain_id : int, ipap_version : int, _encode_network : bool):
+    def __init__(self, domain_id : int, ipap_version : int,  _encode_network : bool):
         self.obj = lib.ipap_message_new(c_int(domain_id), c_int(ipap_version), c_bool(_encode_network))
 
     def new_data_template(self, nfields : int, template_type_id : TemplateType) -> c_uint16:
@@ -110,6 +110,9 @@ class IpapMessage:
         lenght = lib.ipap_message_get_message_lenght(self.obj)
         value =  lib.ipap_message_get_message(self.obj)
         return value[:lenght]
+
+    def ipap_import(self, value: str, lenght : int):
+        lib.ipap_message_ipap_import(self.obj, c_char_p(value), c_int(lenght) )
 
     def __del__(self):
         if self.obj:
