@@ -10,7 +10,10 @@ from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_data_record import IpapDataRecord
 
+
 class IpapMessage:
+
+    IPAP_VERSION = 0x01
 
     def __init__(self, domain_id : int, ipap_version : int,  _encode_network : bool):
         self.obj = lib.ipap_message_new(c_int(domain_id), c_int(ipap_version), c_bool(_encode_network))
@@ -113,6 +116,9 @@ class IpapMessage:
 
     def ipap_import(self, value: str, lenght : int):
         lib.ipap_message_ipap_import(self.obj, c_char_p(value), c_int(lenght) )
+
+    def make_template(self, template: IpapTemplate):
+        # TODO: to implement.
 
     def __del__(self):
         if self.obj:

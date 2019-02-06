@@ -87,8 +87,6 @@ class HandleActivateAuction(ScheduledTask):
             # creates the auction processor
             self.auction_processor.add_auction_process(self.auction)
             start = self.auction.get_start()
-            stop = self.auction.get_stop()
-            interval = self.auction.get_interval()
 
             # Activates its execution
             when = self.auction.get_start() - datetime.now()
@@ -205,7 +203,7 @@ class HandleLoadAuction(ScheduledTask):
                     auction.add_task(activate_task)
 
                     seconds_to_start = auction.get_stop() - datetime.now()
-                    removal_task = HandleRemoveAuction(auction=auction, seconds_to_start=0)
+                    removal_task = HandleRemoveAuction(auction=auction, seconds_to_start=seconds_to_start)
                     auction.add_task(removal_task)
 
                 else:
@@ -220,9 +218,9 @@ class HandleSessionRequest(ScheduledTask):
     """
 
     def __init__(self, message: IpapMessage,
-                       session_key: str, use_ipv6: bool,
-                       sender_address: str, sender_port: int,
-                        protocol: int, seconds_to_start: float):
+                 session_key: str, use_ipv6: bool,
+                 sender_address: str, sender_port: int,
+                 protocol: int, seconds_to_start: float):
         """
 
         :param seconds_to_start:
@@ -272,14 +270,13 @@ class HandleSessionRequest(ScheduledTask):
             field_scr_port = self.field_manager.get_field('srcport')
             scr_port = session_info[field_scr_port]
 
-            message_to_send = AuctionManager.get_ipap_message(auctions, self.template_container,
-                                                              self.use_ipv6, self.sender_address,
+            message_to_send = self.auction_manager.get_ipap_message(auctions, self.template_container,
+                                                              self.sender_address,
                                                               self.sender_port)
 
             session = Session(session_id=self.session_key, sender_address=self.sender_address,
                               sender_port=self.sender_port, receiver_address=src_address,
                               receiver_port=scr_port, protocol=self.protocol)
-
 
             await self.message_processor.send_message_to_session(self.session_key, message_to_send.get_message())
         else:

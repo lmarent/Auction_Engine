@@ -85,16 +85,14 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         """
         pass
 
-    def get_ipap_message(self, auctions: list, temaplate_container: IpapTemplateContainer, use_ipv6: bool,
-                         saddress_ipv4: str, saddress_ipv6: str, port: int) -> IpapMessage:
+    def get_ipap_message(self, auctions: list, temaplate_container: IpapTemplateContainer,
+                         saddress:str , port: int) -> IpapMessage:
         """
         get the ipap_message that contains all the auctions within the list given
 
         :param auctions:
         :param temaplate_container:
-        :param use_ipv6:
-        :param saddress_ipv4:
-        :param saddress_ipv6:
+        :param saddress:
         :param port:
         :return:
         """

@@ -322,6 +322,7 @@ class AuctionProcessor(IpapMessageParser):
         """
         Gets the auctions applicable given the options within the message.
 
+        :rtype: list
         :param message:  message with the options to filter.
         :return: list of application auctions.
         """
