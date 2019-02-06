@@ -118,7 +118,7 @@ class IpapMessage:
         lib.ipap_message_ipap_import(self.obj, c_char_p(value), c_int(lenght) )
 
     def make_template(self, template: IpapTemplate):
-        # TODO: to implement.
+        lib.ipap_message_make_template(self.obj, template.obj)
 
     def __del__(self):
         if self.obj:
