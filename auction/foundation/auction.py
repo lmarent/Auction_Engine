@@ -398,7 +398,7 @@ class Auction(AuctioningObject):
         """
         self.sessions.discard(session_id)
 
-    def get_start(self):
+    def get_start(self) -> datetime:
         """
         Gets the start datetime for the auction
         :return:

@@ -141,7 +141,7 @@ field_def:
     Eno: 0
     Ftype: 10
     Name: SrcIP
-  dstip:
+  dstipv4:
     Type: IpAddr
     Eno: 0
     Ftype: 12
