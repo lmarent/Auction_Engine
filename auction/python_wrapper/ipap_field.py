@@ -117,6 +117,24 @@ class IpapField:
         else:
             raise ValueError('Field value could not be created')
 
+    def get_ipap_field_value_ipv6(self, value: str):
+        obj = lib.ipap_field_get_ipap_value_field_ipv6(self.obj, c_char_p(value), c_int(len(value)))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
+    def get_ipap_field_value_ipv4(self, value: str):
+        obj = lib.ipap_field_get_ipap_value_field_ipv4(self.obj, c_char_p(value), c_int(len(value)))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be created')
+
     # TODO: Create the function.
     # def get_ipap_field_value_ubytes(self, value:str):
     #     obj = lib.ipap_field_get_ipap_value_field_bytes(self.obj, c_char_p(value), c_int(len(value)))

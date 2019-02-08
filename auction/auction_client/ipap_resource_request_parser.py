@@ -3,15 +3,12 @@ from datetime import datetime
 from auction_client.resource_request import ResourceRequest
 
 from foundation.ipap_message_parser import IpapMessageParser
-from foundation.field_def_manager import FieldDefManager
 from foundation.interval import Interval
 
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_data_record import IpapDataRecord
-from python_wrapper.ipap_field import IpapField
-from python_wrapper.ipap_field_container import IpapFieldContainer
 
 
 class IpapResourceRequestParser(IpapMessageParser):
@@ -34,8 +31,7 @@ class IpapResourceRequestParser(IpapMessageParser):
 
         return template_id
 
-    @staticmethod
-    def _add_option_record(record_id: str, resource_id: str, interval: Interval, use_ipv6: bool,
+    def _add_option_record(self, record_id: str, resource_id: str, interval: Interval, use_ipv6: bool,
                            ip_address4: str, ip_address6: str, port: int, template_id: int, message: IpapMessage):
         """
         Adds the field of all auction relationship into option message's template
@@ -43,83 +39,52 @@ class IpapResourceRequestParser(IpapMessageParser):
         """
         data_option = IpapDataRecord(templ_id=template_id)
 
-        field_def_manager = FieldDefManager()
-
-        ipap_field_container = IpapFieldContainer()
-        ipap_field_container.initialize_forward()
-        ipap_field_container.initialize_reverse()
-
         # Add the record Id
-        record_id_def = field_def_manager.get_field('recordid')
-        record_field: IpapField = ipap_field_container.get_field(
-            int(record_id_def['eno']), int(record_id_def['ftype']))
-
-        data_option.insert_field(int(record_id_def['eno']), int(record_id_def['ftype']),
-                                 record_field.get_ipap_field_value_string(record_id))
+        record_id_def = self.field_def_manager.get_field('recordid')
+        self.insert_string_field(record_id_def, record_id, data_option)
 
         # Add the Resource Id
-        resource_id_def = field_def_manager.get_field('resourceid')
-        resource_field: IpapField = ipap_field_container.get_field(
-            int(resource_id_def['eno']), int(resource_id_def['ftype']))
-
-        data_option.insert_field(int(resource_id_def['eno']), int(resource_id_def['ftype']),
-                                 resource_field.get_ipap_field_value_string(resource_id))
+        resource_id_def = self.field_def_manager.get_field('resourceid')
+        self.insert_string_field(resource_id_def, resource_id, data_option)
 
         # Add the start datetime
-        start = field_def_manager.get_field('start')
-        start_field = ipap_field_container.get_field(int(start['eno']), int(start['ftype']))
+        start = self.field_def_manager.get_field('start')
         seconds = (interval.start - datetime.fromtimestamp(0)).total_seconds()
-        data_option.insert_field(int(start['eno']), int(start['ftype']),
-                                 start_field.get_ipap_field_value_uint64(seconds))
+        self.insert_integer_field(start, seconds, data_option)
 
         # Add the endtime
-        stop = field_def_manager.get_field('stop')
-        stop_field = ipap_field_container.get_field(int(stop['eno']), int(stop['ftype']))
+        stop = self.field_def_manager.get_field('stop')
         seconds = (interval.stop - datetime.fromtimestamp(0)).total_seconds()
-        data_option.insert_field(int(stop['eno']), int(stop['ftype']),
-                                 stop_field.get_ipap_field_value_uint64(seconds))
+        self.insert_integer_field(stop, seconds, data_option)
 
         # Add the interval.
-        interval_def = field_def_manager.get_field('interval')
-        interval_field = ipap_field_container.get_field(int(interval_def['eno']), int(interval_def['ftype']))
-        data_option.insert_field(int(interval_def['eno']), int(interval_def['ftype']),
-                                 interval_field.get_ipap_field_value_uint64(interval.interval))
+        interval_def = self.field_def_manager.get_field('interval')
+        self.insert_integer_field(interval_def, interval.interval, data_option)
 
         # Add the IPversion
-        ip_version = field_def_manager.get_field('ipversion')
-        ip_version_field = ipap_field_container.get_field(int(ip_version['eno']), int(ip_version['ftype']))
+        ip_version = self.field_def_manager.get_field('ipversion')
         if use_ipv6:
-            data_option.insert_field(int(ip_version['eno']), int(ip_version['ftype']),
-                                     ip_version_field.get_ipap_field_value_uint8(6))
+            self.insert_integer_field(ip_version, 6, data_option)
         else:
-            data_option.insert_field(int(ip_version['eno']), int(ip_version['ftype']),
-                                     ip_version_field.get_ipap_field_value_uint8(4))
+            self.insert_integer_field(ip_version, 4, data_option)
 
         # Add the Ipv6 Address value
-        scr_ipv6 = field_def_manager.get_field('srcipv6')
-        scr_ipv6_field = ipap_field_container.get_field(int(scr_ipv6['eno']), int(scr_ipv6['ftype']))
+        scr_ipv6 = self.field_def_manager.get_field('srcipv6')
         if use_ipv6:
-            data_option.insert_field(int(scr_ipv6['eno']), int(scr_ipv6['ftype']),
-                                     scr_ipv6_field.get_ipap_field_value_ipv6(ip_address6))
+            self.insert_ipv6_field(scr_ipv6, ip_address6, data_option)
         else:
-            data_option.insert_field(int(scr_ipv6['eno']), int(scr_ipv6['ftype']),
-                                     scr_ipv6_field.get_ipap_field_value_ipv6("0:0:0:0:0:0:0:0"))
+            self.insert_ipv4_field(scr_ipv6, '0:0:0:0:0:0:0:0', data_option)
 
         # Add the Ipv4 Address value
-        scr_ipv4 = field_def_manager.get_field('srcip')
-        scr_ipv4_field = ipap_field_container.get_field(int(scr_ipv4['eno']), int(scr_ipv4['ftype']))
+        scr_ipv4 = self.field_def_manager.get_field('srcip')
         if use_ipv6:
-            data_option.insert_field(int(scr_ipv4['eno']), int(scr_ipv4['ftype']),
-                                     scr_ipv4_field.get_ipap_field_value_ipv4("0.0.0.0"))
+            self.insert_ipv4_field(scr_ipv4, '0.0.0.0', data_option)
         else:
-            data_option.insert_field(int(scr_ipv4['eno']), int(scr_ipv4['ftype']),
-                                     scr_ipv4_field.get_ipap_field_value_ipv4(ip_address4))
+            self.insert_ipv4_field(scr_ipv4, ip_address4, data_option)
 
         # Add the destination port
-        scr_port = field_def_manager.get_field('srcport')
-        scr_port_field = ipap_field_container.get_field(int(scr_port['eno']), int(scr_port['ftype']))
-        data_option.insert_field(int(scr_port['eno']), int(scr_port['ftype']),
-                                 scr_port_field.get_ipap_field_value_uint16(port))
+        scr_port = self.field_def_manager.get_field('srcport')
+        self.insert_integer_field(scr_port, port, data_option)
 
         message.include_data(template_id, data_option)
 
