@@ -136,7 +136,7 @@ field_def:
     Eno: 0
     Ftype: 50
     Name: Status
-  srcip:
+  srcipv4:
     Type: IpAddr
     Eno: 0
     Ftype: 10

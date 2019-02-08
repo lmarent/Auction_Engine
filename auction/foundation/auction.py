@@ -368,7 +368,7 @@ class Auction(AuctioningObject):
         """
         return self.template_option_id
 
-    def get_bidding_object_template(self, object_type, templ_type):
+    def get_bidding_object_template(self, object_type: ObjectType, templ_type: TemplateType ) -> int:
         """
         Gets the identifier of a bidding object template
         :param object_type: The object type (i.e., bid, allocation) for which we want to get the template
@@ -435,3 +435,25 @@ class Auction(AuctioningObject):
 
     def get_session_references(self):
         return len(self.sessions)
+
+    def get_template_list(self) -> str:
+        """
+        Gets the list of templates applicable for the auction.
+        :return:list of template ids separated by comma.
+        """
+        first_time: bool  = True
+        template = IpapTemplate()
+        ret = ""
+
+        for object_type in range(1, ObjectType.IPAP_MAX_OBJECT_TYPE.value):
+
+            list_templates = template.get_object_template_types(ObjectType(object_type));
+            for templ_type in list_templates:
+                template_id = self.get_bidding_object_template( ObjectType(object_type), templ_type)
+                if first_time:
+                    ret = ret + "{0}".format(str(template_id))
+                    first_time = False
+                else:
+                    ret = ret + ",{0}".format(str(template_id))
+
+        return ret

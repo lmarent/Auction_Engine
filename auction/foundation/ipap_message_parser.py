@@ -6,6 +6,7 @@ from python_wrapper.ipap_field_container import IpapFieldContainer
 
 from foundation.field_def_manager import FieldDefManager
 from foundation.config_param import ConfigParam
+from datetime import datetime
 
 
 class IpapMessageParser:
@@ -145,36 +146,38 @@ class IpapMessageParser:
         """
         return self.domain
 
-    def get_misc_val(self, config_items: dict, item_name:str):
+    def get_misc_val(self, config_items: dict, item_name: str):
 
         if item_name in config_items:
-            item : ConfigParam = config_items[item_name]
+            item: ConfigParam = config_items[item_name]
             value = item.value.lower()
             return value
         else:
-            raise ValueError("item with name {0} not found in config items". format(item_name))
+            raise ValueError("item with name {0} not found in config items".format(item_name))
 
-    def insert_string_field(self, field_def, value: str, record: IpapDataRecord):
+    def insert_string_field(self, field_name: str, value: str, record: IpapDataRecord):
         """
         Inserts a field value in the data record given as parameter
 
-        :param field_def: field to be inserted
+        :param field_name: field to be inserted
         :param value: value to insert
         :param record: data record where the field is going to be inserted.
         """
+        field_def = self.field_def_manager.get_field(field_name)
         field: IpapField = self.field_container.get_field(
             int(field_def['eno']), int(field_def['ftype']))
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                                 field.get_ipap_field_value_string(value))
+                            field.get_ipap_field_value_string(value))
 
-    def insert_integer_field(self, field_def, value: int, record: IpapDataRecord):
+    def insert_integer_field(self, field_name: str, value: int, record: IpapDataRecord):
         """
         Inserts a field value in the data record given as parameter
 
-        :param field_def: field to be inserted
+        :param field_name: field to be inserted
         :param value: value to insert
         :param record: data record where the field is going to be inserted.
         """
+        field_def = self.field_def_manager.get_field(field_name)
         field: IpapField = self.field_container.get_field(
             int(field_def['eno']), int(field_def['ftype']))
 
@@ -191,54 +194,69 @@ class IpapMessageParser:
             record.insert_field(int(field_def['eno']), int(field_def['ftype']),
                                 field.get_ipap_field_value_uint64(value))
 
-    def insert_float_field(self, field_def, value: float, record: IpapDataRecord):
+    def insert_float_field(self, field_name: str, value: float, record: IpapDataRecord):
         """
         Inserts a field value in the data record given as parameter
 
-        :param field_def: field to be inserted
+        :param field_name: field to be inserted
         :param value: value to insert
         :param record: data record where the field is going to be inserted.
         """
+        field_def = self.field_def_manager.get_field(field_name)
         field: IpapField = self.field_container.get_field(
             int(field_def['eno']), int(field_def['ftype']))
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                    field.get_ipap_field_value_float(value))
+                            field.get_ipap_field_value_float(value))
 
-    def insert_double_field(self, field_def, value: float, record: IpapDataRecord):
+    def insert_double_field(self, field_name: str, value: float, record: IpapDataRecord):
         """
         Inserts a field value (double) in the data record given as parameter
 
-        :param field_def: field to be inserted
+        :param field_name: field to be inserted
         :param value: value to insert
         :param record: data record where the field is going to be inserted.
         """
+        field_def = self.field_def_manager.get_field(field_name)
         field: IpapField = self.field_container.get_field(
             int(field_def['eno']), int(field_def['ftype']))
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                    field.get_ipap_field_value_double(value))
+                            field.get_ipap_field_value_double(value))
 
-    def insert_ipv4_field(self, field_def, value: str, record: IpapDataRecord):
+    def insert_ipv4_field(self, field_name: str, value: str, record: IpapDataRecord):
         """
         Inserts a field value (ip address 4) in the data record given as parameter
 
-        :param field_def: field to be inserted
+        :param field_name: field to be inserted
         :param value: value to insert
         :param record: data record where the field is going to be inserted.
         """
+        field_def = self.field_def_manager.get_field(field_name)
         field: IpapField = self.field_container.get_field(
             int(field_def['eno']), int(field_def['ftype']))
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                    field.get_ipap_field_value_ipv4(value))
+                            field.get_ipap_field_value_ipv4(value))
 
-    def insert_ipv6_field(self, field_def, value: str, record: IpapDataRecord):
+    def insert_ipv6_field(self, field_name: str, value: str, record: IpapDataRecord):
         """
         Inserts a field value (ip address 6) in the data record given as parameter
 
-        :param field_def: field to be inserted
+        :param field_name: field to be inserted
         :param value: value to insert
         :param record: data record where the field is going to be inserted.
         """
+        field_def = self.field_def_manager.get_field(field_name)
         field: IpapField = self.field_container.get_field(
             int(field_def['eno']), int(field_def['ftype']))
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                    field.get_ipap_field_value_ipv6(value))
+                            field.get_ipap_field_value_ipv6(value))
+
+    def insert_datetime_field(self, field_name: str, value: datetime, record: IpapDataRecord):
+        """
+        Inserts a field value (datetime) in the data record given as parameter
+
+        :param field_name: field to be inserted
+        :param value: value to insert
+        :param record: data record where the field is going to be inserted.
+        """
+        seconds = int((value - datetime.fromtimestamp(0)).total_seconds())
+        self.insert_integer_field(field_name, seconds, record)

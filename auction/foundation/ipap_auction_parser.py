@@ -12,8 +12,6 @@ from foundation.auction import Auction
 from foundation.auction import Action
 from foundation.ipap_message_parser import IpapMessageParser
 
-from datetime import datetime
-
 
 class IpapAuctionParser(IpapMessageParser):
 
@@ -21,13 +19,12 @@ class IpapAuctionParser(IpapMessageParser):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainer()
 
-    def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list, message: IpapMessage) -> list:
+    def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list) -> list:
         """
         Gets non mandatory fields from the action's config items.
 
         :param action: action associated with the auction
         :param mandatory_fields: mandatory fields for an option template.
-        :param message: message being built.
         :return: non_mandatory field list.
         """
         non_mandatory = []
@@ -49,77 +46,67 @@ class IpapAuctionParser(IpapMessageParser):
         return non_mandatory
 
     def insert_auction_data_record(self, template: IpapTemplate, auction: Auction,
-                                   message: IpapMessage, useIpv6: bool, saddress_ipv4: str, saddress_ipv6: str,
+                                   message: IpapMessage, use_ipv6: bool, saddress_ipv4: str, saddress_ipv6: str,
                                    port: int):
         """
         Adds the option data record template associated with the option data auction template
 
-        :param message:    message being built.
-        :return:
+        :param template template used for the data record.
+        :param auction  auction being included in the message.
+        :param message: message being built.
+        :param use_ipv6: whether or not it use ipv6
+        :param saddress_ipv4: source address in ipv4
+        :param saddress_ipv6: source address in ipv6
+        :param port: source port
         """
         ipap_data_record = IpapDataRecord(template.get_template_id())
 
         # Insert the auction id field.
-        field_def = self.field_def_manager.get_field('auctionid')
-        self.insert_string_field(field_def, auction.get_key(), ipap_data_record)
+        self.insert_string_field('auctionid', auction.get_key(), ipap_data_record)
 
         # Add the Record Id
-        field_def = self.field_def_manager.get_field('recordid')
-        self.insert_string_field(field_def, "Record_1", ipap_data_record)
+        self.insert_string_field('recordid', "Record_1", ipap_data_record)
 
         # Add the Status
-        field_def = self.field_def_manager.get_field('status')
-        self.insert_integer_field(field_def, auction.get_state().value, ipap_data_record)
+        self.insert_integer_field('status', auction.get_state().value, ipap_data_record)
 
         # Add the IP Version
-        field_def = self.field_def_manager.get_field('ipversion')
-        if useIpv6:
+        if use_ipv6:
             ipversion = 6
         else:
             ipversion = 4
-        self.insert_integer_field(field_def, ipversion, ipap_data_record)
+        self.insert_integer_field('ipversion', ipversion, ipap_data_record)
 
         # Add the Ipv6 Address value
-        field_def = self.field_def_manager.get_field('dstipv6')
-        if useIpv6:
-            self.insert_ipv6_field(field_def, saddress_ipv6, ipap_data_record)
+        if use_ipv6:
+            self.insert_ipv6_field('dstipv6', saddress_ipv6, ipap_data_record)
         else:
-            self.insert_ipv6_field(field_def, "0:0:0:0:0:0:0:0", ipap_data_record)
+            self.insert_ipv6_field('dstipv6', "0:0:0:0:0:0:0:0", ipap_data_record)
 
         # Add the Ipv4 Address value
-        field_def = self.field_def_manager.get_field('dstipv4')
-        if useIpv6:
-            self.insert_ipv4_field(field_def, "0.0.0.0", ipap_data_record)
+        if use_ipv6:
+            self.insert_ipv4_field('dstipv4', "0.0.0.0", ipap_data_record)
         else:
-            self.insert_ipv4_field(field_def, saddress_ipv4, ipap_data_record)
+            self.insert_ipv4_field('dstipv4', saddress_ipv4, ipap_data_record)
 
         # Add destination port
-        field_def = self.field_def_manager.get_field('dstauctionport')
-        self.insert_integer_field(field_def, port, ipap_data_record)
+        self.insert_integer_field('dstauctionport', port, ipap_data_record)
 
         # Add the resource Id.
-        field_def = self.field_def_manager.get_field('resourceid')
-        self.insert_string_field(field_def, auction.get_resource_key(), ipap_data_record)
+        self.insert_string_field('resourceid', auction.get_resource_key(), ipap_data_record)
 
         # Add the start time - Unix time is seconds from 1970-1-1 .
-        field_def = self.field_def_manager.get_field('start')
-        seconds = (auction.get_start() - datetime.fromtimestamp(0)).total_seconds()
-        self.insert_integer_field(field_def, seconds, ipap_data_record)
+        self.insert_datetime_field('start', auction.get_start(), ipap_data_record)
 
         # Add the end time.
-        field_def = self.field_def_manager.get_field('stop')
-        seconds = (auction.get_stop() - datetime.fromtimestamp(0)).total_seconds()
-        self.insert_integer_field(field_def, seconds, ipap_data_record)
+        self.insert_datetime_field('stop', auction.get_stop(), ipap_data_record)
 
         # Add the interval. How much time between executions (seconds).
-        field_def = self.field_def_manager.get_field('interval')
         u_interval = auction.get_interval().interval
-        self.insert_integer_field(field_def, u_interval, ipap_data_record)
+        self.insert_integer_field('interval', u_interval, ipap_data_record)
 
         # Add the template list.
-        field_def = self.field_def_manager.get_field('templatelist')
-        template_list = auction.get_template_list()
-        self.insert_string_field(field_def, template_list, ipap_data_record)
+        self.insert_string_field('templatelist', auction.get_template_list(), ipap_data_record)
 
         message.include_data(template.get_template_id(), ipap_data_record)
 
@@ -135,16 +122,13 @@ class IpapAuctionParser(IpapMessageParser):
         ipap_options_record = IpapDataRecord(template.get_template_id())
 
         # Add the auction Id
-        field_def = self.field_def_manager.get_field('auctionid')
-        self.insert_string_field(field_def, auction.get_key(), ipap_options_record)
+        self.insert_string_field('auctionid', auction.get_key(), ipap_options_record)
 
         # Add the Record Id
-        field_def = self.field_def_manager.get_field('recordid')
-        self.insert_string_field(field_def, "Record_1", ipap_options_record)
+        self.insert_string_field('recordid', "Record_1", ipap_options_record)
 
         # Add the action
-        field_def = self.field_def_manager.get_field('algoritmname')
-        self.insert_string_field(field_def, auction.action.name, ipap_options_record)
+        self.insert_string_field('algoritmname', auction.action.name, ipap_options_record)
 
         # Adds non mandatory fields.
         option_fields = template.get_template_type_mandatory_field(TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
@@ -178,19 +162,19 @@ class IpapAuctionParser(IpapMessageParser):
         :return:
         """
         for i in range(1, ObjectType.IPAP_MAX_OBJECT_TYPE.value):
-            list_types = template.get_object_template_types(i)
+            list_types = template.get_object_template_types(ObjectType(i))
             for templ_type in list_types:
-                templ_id = auction.get_bidding_object_template(templ_type)
+                templ_id = auction.get_bidding_object_template(ObjectType(i), templ_type)
                 message.make_template(self.ipap_template_container.get_template(templ_id))
 
-    def get_ipap_message_auction(self, auction: Auction, useIpv6: bool,
+    def get_ipap_message_auction(self, auction: Auction, use_ipv6: bool,
                                  saddress_ipv4: str, saddress_ipv6: str,
                                  port: int, message: IpapMessage):
         """
         Updates the ipap_message given as parameter with the infomation of the auction
 
         :param auction: auction to include in the message
-        :param useIpv6: whether or not it use ipv6
+        :param use_ipv6: whether or not it use ipv6
         :param saddress_ipv4: source address in ipv4
         :param saddress_ipv6: source address in ipv6
         :param port: source port
@@ -205,7 +189,7 @@ class IpapAuctionParser(IpapMessageParser):
 
         # Following lines are used for inserting only non mandatory fields
         mandatory_fields = option_template.get_template_type_mandatory_field(option_template.get_type())
-        optional_fields = self.get_non_mandatoty_fields(auction.action, mandatory_fields, message)
+        optional_fields = self.get_non_mandatoty_fields(auction.action, mandatory_fields)
 
         option_template.set_max_fields(option_template.get_num_fields() + len(optional_fields))
         for field in optional_fields:
@@ -214,26 +198,27 @@ class IpapAuctionParser(IpapMessageParser):
 
         message.make_template(option_template)
         self.insert_auction_templates(auction_template, auction, message)
-        self.insert_auction_data_record(auction_template, auction, message, useIpv6, saddress_ipv4, saddress_ipv6, port)
-        self.insert_option_data_record(self, option_template, auction, message)
+        self.insert_auction_data_record(auction_template, auction, message,
+                                        use_ipv6, saddress_ipv4, saddress_ipv6, port)
+        self.insert_option_data_record(option_template, auction, message)
 
-    def get_ipap_message(self, auctions: list, useIpv6: bool,
-                         sAddressIpv4: str, sAddressIpv6: str,
+    def get_ipap_message(self, auctions: list, use_ipv6: bool,
+                         s_address_ipv4: str, s_address_ipv6: str,
                          port: int) -> IpapMessage:
         """
         Gets an ipap_message to transmit the information of the auctions given as parameter.
 
         :param auctions: List of auctions to convert to a message
-        :param useIpv6: whether or not it use ipv6
-        :param sAddressIpv4: source address in ipv4
-        :param sAddressIpv6: source address in ipv6
+        :param use_ipv6: whether or not it use ipv6
+        :param s_address_ipv4: source address in ipv4
+        :param s_address_ipv6: source address in ipv6
         :param port: source port
         :return: ipap message with auction information.
         """
         message = IpapMessage(self.domain, IpapMessage.IPAP_VERSION, True)
 
         for auction in auctions:
-            self.get_ipap_message_auction(message)
+            self.get_ipap_message_auction(auction, use_ipv6, s_address_ipv4, s_address_ipv6, port, message)
 
         message.output()
         return message

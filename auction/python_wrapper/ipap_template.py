@@ -127,6 +127,9 @@ class IpapTemplate:
         else:
             raise ValueError('Field with eno {0} and ftype {1} was not found'.format(str(eno), str(ftype)))
 
+    def get_num_fields(self) -> int:
+        return lib.ipap_template_get_numfields(self.obj)
+
     def __del__(self):
         if self.obj:  # not null
             lib.ipap_template_destroy(self.obj)

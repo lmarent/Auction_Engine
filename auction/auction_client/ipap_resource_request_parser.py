@@ -40,51 +40,40 @@ class IpapResourceRequestParser(IpapMessageParser):
         data_option = IpapDataRecord(templ_id=template_id)
 
         # Add the record Id
-        record_id_def = self.field_def_manager.get_field('recordid')
-        self.insert_string_field(record_id_def, record_id, data_option)
+        self.insert_string_field('recordid', record_id, data_option)
 
         # Add the Resource Id
-        resource_id_def = self.field_def_manager.get_field('resourceid')
-        self.insert_string_field(resource_id_def, resource_id, data_option)
+        self.insert_string_field('resourceid', resource_id, data_option)
 
         # Add the start datetime
-        start = self.field_def_manager.get_field('start')
-        seconds = (interval.start - datetime.fromtimestamp(0)).total_seconds()
-        self.insert_integer_field(start, seconds, data_option)
+        self.insert_datetime_field('start', interval.start, data_option)
 
         # Add the endtime
-        stop = self.field_def_manager.get_field('stop')
-        seconds = (interval.stop - datetime.fromtimestamp(0)).total_seconds()
-        self.insert_integer_field(stop, seconds, data_option)
+        self.insert_datetime_field('stop', interval.stop, data_option)
 
         # Add the interval.
-        interval_def = self.field_def_manager.get_field('interval')
-        self.insert_integer_field(interval_def, interval.interval, data_option)
+        self.insert_integer_field('interval', interval.interval, data_option)
 
         # Add the IPversion
-        ip_version = self.field_def_manager.get_field('ipversion')
         if use_ipv6:
-            self.insert_integer_field(ip_version, 6, data_option)
+            self.insert_integer_field('ipversion', 6, data_option)
         else:
-            self.insert_integer_field(ip_version, 4, data_option)
+            self.insert_integer_field('ipversion', 4, data_option)
 
         # Add the Ipv6 Address value
-        scr_ipv6 = self.field_def_manager.get_field('srcipv6')
         if use_ipv6:
-            self.insert_ipv6_field(scr_ipv6, ip_address6, data_option)
+            self.insert_ipv6_field('srcipv6', ip_address6, data_option)
         else:
-            self.insert_ipv4_field(scr_ipv6, '0:0:0:0:0:0:0:0', data_option)
+            self.insert_ipv4_field('srcipv6', '0:0:0:0:0:0:0:0', data_option)
 
         # Add the Ipv4 Address value
-        scr_ipv4 = self.field_def_manager.get_field('srcip')
         if use_ipv6:
-            self.insert_ipv4_field(scr_ipv4, '0.0.0.0', data_option)
+            self.insert_ipv4_field('srcipv4', '0.0.0.0', data_option)
         else:
-            self.insert_ipv4_field(scr_ipv4, ip_address4, data_option)
+            self.insert_ipv4_field('srcipv4', ip_address4, data_option)
 
         # Add the destination port
-        scr_port = self.field_def_manager.get_field('srcport')
-        self.insert_integer_field(scr_port, port, data_option)
+        self.insert_integer_field('srcport', port, data_option)
 
         message.include_data(template_id, data_option)
 
