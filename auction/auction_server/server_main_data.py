@@ -19,5 +19,6 @@ class ServerMainData(metaclass=Singleton):
         self.local_port = ParseFormats.parse_uint16(Config().get_config_param('Main','LocalPort'))
         self.protocol = ParseFormats.parse_uint8( Config().get_config_param('Main','DefaultProtocol'))
         self.life_time = ParseFormats.parse_uint8( Config().get_config_param('Main','LifeTime'))
+        self.inmediate_start = ParseFormats.parse_bool( Config().get_config_param('Main','ImmediateStart'))
 
         self.logger.debug("ending _load_main_data")

@@ -1,30 +1,23 @@
 from aiohttp.web import run_app
-from aiohttp.web import WebSocketResponse
 from aiohttp.web import get
-from aiohttp import WSMsgType
 from aiohttp import WSCloseCode
 from aiohttp import web
 
-import functools
 import pathlib
-import yaml
-import os,signal
-from datetime import datetime, timedelta
+import os
+import signal
 
 from auction_server.auction_processor import AuctionProcessor
-from auction_server.server_message_processor import MessageProcessor
+from auction_server.server_message_processor import ServerMessageProcessor
 from auction_server.server_main_data import ServerMainData
+from auction_server.auction_server_handler import HandleLoadAuction
+from auction_server.auction_server_handler import HandleLoadResourcesFromFile
 
 from foundation.agent import Agent
-from foundation.resource import Resource
 from foundation.auction_manager import AuctionManager
 from foundation.session_manager import SessionManager
 from foundation.resource_manager import ResourceManager
-from foundation.auction_file_parser import AuctionXmlFileParser
-from foundation.auction import Auction
-from foundation.interval import Interval
 from foundation.config import Config
-from foundation.parse_format import ParseFormats
 
 
 class AuctionServer(Agent):
@@ -45,7 +38,7 @@ class AuctionServer(Agent):
             print('closing websocket')
 
             await ws.close(code=WSCloseCode.GOING_AWAY,
-                            message='Server shutdown')
+                           message='Server shutdown')
             print('websocket closed')
 
         # Close pending tasks
@@ -119,7 +112,7 @@ class AuctionServer(Agent):
         self.logger.debug("Starting _initilize_processors")
         module_directory = Config().get_config_param('AUMProcessor', 'ModuleDir')
         self.auction_processor = AuctionProcessor(self.domain, module_directory)
-        self.message_processor = MessageProcessor()
+        self.message_processor = ServerMessageProcessor()
         self.logger.debug("Ending _initilize_processors")
 
     def _load_resources(self):
@@ -133,7 +126,8 @@ class AuctionServer(Agent):
             resource_file = Config().get_config_param('Main', 'ResourceFile')
             base_dir = pathlib.Path(__file__).parent.parent
             resource_file = base_dir / 'config' / resource_file
-            self.handle_load_resources(resource_file)
+            handle = HandleLoadResourcesFromFile(resource_file, 0)
+            handle.start()
         except Exception as e:
             self.logger.error("An error occours during load resource", str(e))
         self.logger.debug("Ending _load_resources")
@@ -148,7 +142,8 @@ class AuctionServer(Agent):
         base_dir = pathlib.Path(__file__).parent.parent
         auction_file = base_dir / 'xmls' / auction_file
         auction_file = str(auction_file)
-        self.handle_load_auctions(auction_file)
+        handle = HandleLoadAuction(auction_file, 0)
+        handle.start()
         self.logger.debug("Ending _load_resources")
 
     def run(self):
@@ -156,8 +151,7 @@ class AuctionServer(Agent):
         Runs the application.
         :return:
         """
-        if self.use_ipv6:
+        if self.server_data.use_ipv6:
             run_app(self.app, host=str(self.server_data.ip_address6), port=self.server_data.local_port)
         else:
             run_app(self.app, host=str(self.server_data.ip_address4), port=self.server_data.local_port)
-

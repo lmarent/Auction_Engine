@@ -165,8 +165,7 @@ class HandleLoadAuction(ScheduledTask):
 
     """
 
-    def __init__(self, file_name: str, seconds_to_start: float,
-                 domain: int, immediate_start: bool):
+    def __init__(self, file_name: str, seconds_to_start: float):
         """
         Method to create the task
         :param file_name: file name to load. The file name includes the absolute path.
@@ -177,8 +176,8 @@ class HandleLoadAuction(ScheduledTask):
         self.server_main_data = ServerMainData()
         self.resource_manager = ResourceManager(self.server_main_data.domain)
         self.auction_manager = AuctionManager(self.server_main_data.domain)
-        self.domain = domain
-        self.immediate_start = immediate_start
+        self.domain = self.server_main_data.domain
+        self.immediate_start = self.server_main_data.inmediate_start
 
     async def _run_specific(self):
         """

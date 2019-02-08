@@ -5,7 +5,6 @@ import uuid
 from enum import Enum
 
 from auction_server.server_main_data import ServerMainData
-from auction_server.auction_server_handler import HandleAuctionMessage
 
 from foundation.auction_message_processor import AuctionMessageProcessor
 from foundation.session_manager import SessionManager
@@ -79,7 +78,6 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         self.server_data = ServerMainData()
         super(ServerMessageProcessor, self).__init__(self.server_data.domain)
         self.session_manager = SessionManager()
-
         self.logger = log().get_logger()
 
     async def handle_syn(self, session: Session,
@@ -115,6 +113,8 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         :param ipap_message: message sent from the server.
         :return:
         """
+        from auction_server.auction_server_handler import HandleAuctionMessage
+
         # verifies ack sequence number
         ack_seqno = ipap_message.get_ackseqno()
 
