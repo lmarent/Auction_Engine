@@ -1,7 +1,7 @@
 from foundation.session import Session
 from datetime import datetime
 from auction_client.resource_request import ResourceRequest
-from auction_client.client_message_processor import ServerConnection
+from auction_client.server_connection import ServerConnection
 
 
 class AuctionSession(Session):

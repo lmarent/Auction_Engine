@@ -139,8 +139,8 @@ class AuctionProcessor(IpapMessageParser):
         agent_session = set()
         agent_session.add(IpapFieldKey(self.field_def_manager.get_field('ipversion')['eno'],
                                        self.field_def_manager.get_field('ipversion')['ftype']))
-        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcip')['eno'],
-                                       self.field_def_manager.get_field('srcip')['ftype']))
+        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcipv4')['eno'],
+                                       self.field_def_manager.get_field('srcipv4')['ftype']))
         agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcipv6')['eno'],
                                        self.field_def_manager.get_field('srcipv6')['ftype']))
         agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcport')['eno'],

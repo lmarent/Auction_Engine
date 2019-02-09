@@ -19,8 +19,34 @@ from foundation.session_manager import SessionManager
 from foundation.resource_manager import ResourceManager
 from foundation.config import Config
 
+from utils.auction_utils import log
 
 class AuctionServer(Agent):
+
+    def __init__(self):
+        try:
+            super(AuctionServer, self).__init__('auction_server.yaml')
+
+            self.logger.debug('Startig init')
+
+            self._initialize_managers()
+            self._initilize_processors()
+
+            self._load_resources()
+            self._load_auctions()
+
+            # Start list of web sockets connected
+            self.app['web_sockets'] = []
+
+            # add routers.
+            self.app.add_routes([get('/websockets', self.message_processor.handle_web_socket)])
+
+            self.app.on_shutdown.append(self.on_shutdown)
+            self.logger.debug('ending init')
+
+        except Exception as e:
+            self.logger.error("Error during server initialization - message:", str(e))
+
 
     async def terminate(self, request):
         """
@@ -62,35 +88,14 @@ class AuctionServer(Agent):
 
         print("ending remove auction tasks")
 
-    def __init__(self):
-        try:
-            super(AuctionServer, self).__init__('auction_server.yaml')
-
-            self.logger.debug('Startig init')
-
-            self._initialize_managers()
-            self._initilize_processors()
-
-            self._load_resources()
-            self._load_auctions()
-
-            # Start list of web sockets connected
-            self.app['web_sockets'] = []
-
-            # add routers.
-            self.app.add_routes([get('/websockets', self.message_processor.handle_web_socket)])
-
-            self.app.on_shutdown.append(self.on_shutdown)
-            self.logger.debug('ending init')
-
-        except Exception as e:
-            self.logger.error("Error during server initialization - message:", str(e))
 
     def _load_main_data(self):
         """
         Sets the main data defined in the configuration file
         """
+        self.logger.debug("Starting _load_main_data")
         self.server_data = ServerMainData()
+        self.logger.debug("Ending _load_main_data")
 
     def _initialize_managers(self):
         """
@@ -137,14 +142,14 @@ class AuctionServer(Agent):
         Loads auctions from file
         :return:
         """
-        self.logger.debug("Starting _load_resources")
+        self.logger.debug("Starting _load_auctions")
         auction_file = Config().get_config_param('Main', 'AuctionFile')
         base_dir = pathlib.Path(__file__).parent.parent
         auction_file = base_dir / 'xmls' / auction_file
         auction_file = str(auction_file)
         handle = HandleLoadAuction(auction_file, 0)
         handle.start()
-        self.logger.debug("Ending _load_resources")
+        self.logger.debug("Ending _load_auctions")
 
     def run(self):
         """

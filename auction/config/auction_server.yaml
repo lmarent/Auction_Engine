@@ -54,4 +54,4 @@ AUMProcessor:
       Type: UInt32
       Value: 100
 
-DefaultLogFile: netaum.log
+DefaultLogFile: netaum

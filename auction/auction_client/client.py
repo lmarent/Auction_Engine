@@ -1,6 +1,5 @@
-from aiohttp.web import Application, run_app
+from aiohttp.web import run_app
 from aiohttp.web import get
-from aiohttp import WSCloseCode
 
 import os, signal
 import pathlib
@@ -18,10 +17,25 @@ from auction_client.client_main_data import ClientMainData
 from auction_client.client_message_processor import ClientMessageProcessor
 from auction_client.auction_client_handler import HandleActivateResourceRequestInterval
 from auction_client.auction_client_handler import HandleRemoveResourceRequestInterval
-from auction_client.resource_request import ResourceRequest
 
 
 class AuctionClient(Agent):
+
+    def __init__(self):
+        try:
+            super(AuctionClient, self).__init__('auction_agent.yaml')
+
+            self._initialize_managers()
+            self._initilize_processors()
+            self._load_resources_request()
+
+            # add routers.
+            self.app.add_routes([get('/terminate', self.terminate), ])
+
+            self.app.on_shutdown.append(self.on_shutdown)
+
+        except Exception as e:
+            self.logger.error("Error during server initialization - message: {0}".format(str(e)))
 
     async def terminate(self, request):
         print('Send signal termination')
@@ -42,28 +56,13 @@ class AuctionClient(Agent):
     #    """
     #    app['websocket_task'] = self.app.loop.create_task(self.websocket())
 
-    def __init__(self):
-        try:
-            super(AuctionClient, self).__init__('auction_agent.yaml')
-
-            self._initialize_managers()
-            self._initilize_processors()
-
-            self._load_resources_request()
-
-            # add routers.
-            self.app.add_routes([get('/terminate', self.terminate), ])
-
-            self.app.on_shutdown.append(self.on_shutdown)
-
-        except Exception as e:
-            self.logger.error("Error during server initialization - message: {0}".format(str(e)))
-
     def _load_main_data(self):
         """
         Sets the main data defined in the configuration file
         """
+        self.logger.debug("starting _load_main_data")
         self.client_data = ClientMainData()
+        self.logger.debug("ending _load_main_data")
 
     def _initialize_managers(self):
         """
@@ -100,7 +99,7 @@ class AuctionClient(Agent):
         resource_request_file = str(resource_request_file)
         resource_requests = self.resource_request_manager.parse_resource_request_from_file(resource_request_file)
 
-        self.logger.debug("resource_request to read:{0}".format(len(resource_requests)))
+        self.logger.debug("Nbr resource requests to read:{0}".format(len(resource_requests)))
 
         # schedule the new events.
         for request in resource_requests:
@@ -108,14 +107,14 @@ class AuctionClient(Agent):
             for start in ret_start:
                 when = self._calculate_when(start)
                 handle_activate = HandleActivateResourceRequestInterval(start, ret_start[start], when)
-                handle_activate.start()
                 request.add_task(handle_activate)
+                handle_activate.start()
 
             for stop in ret_stop:
                 when = self._calculate_when(stop)
                 handle_remove = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
-                handle_remove.start()
                 request.add_task(handle_remove)
+                handle_remove.start()
 
         self.logger.debug("Ending _load_resources_request")
 

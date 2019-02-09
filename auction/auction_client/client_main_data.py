@@ -5,7 +5,6 @@ from foundation.parse_format import  ParseFormats
 class ClientMainData(metaclass=Singleton):
 
     def __init__(self):
-        self.logger.debug("Stating _load_main_data auction client")
 
         self.domain = Config().get_config_param('Main','Domain')
         use_ipv6 = Config().get_config_param('Main','UseIPv6')
@@ -21,10 +20,7 @@ class ClientMainData(metaclass=Singleton):
 
         # Gets default ports (origin, destination)
         self.source_port = ParseFormats.parse_uint16(Config().get_config_param('Main','DefaultSourcePort'))
-        print('self.source_port', self.source_port, Config().get_config_param('Main','DefaultSourcePort'))
         self.destination_port = ParseFormats.parse_uint16(
                                 Config().get_config_param('Main','DefaultDestinationPort'))
         self.protocol = ParseFormats.parse_uint8( Config().get_config_param('Main','DefaultProtocol'))
         self.life_time = ParseFormats.parse_uint8( Config().get_config_param('Main','LifeTime'))
-
-        self.logger.debug("ending _load_main_data auction client")

@@ -49,7 +49,7 @@ class ResourceRequestFileParser:
 
         new_interval = Interval()
         new_interval.parse_interval(interval_dict, start_at_least)
-        return new_interval.start, new_interval
+        return new_interval.stop, new_interval
 
     def _parse_resource_request(self, node: Element, global_set: str, time_format: str):
         """

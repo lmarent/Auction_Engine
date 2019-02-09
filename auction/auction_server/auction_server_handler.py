@@ -20,6 +20,7 @@ from auction_server.server_main_data import ServerMainData
 
 from datetime import datetime
 from datetime import timedelta
+from utils.auction_utils import log
 
 
 class HandleAuctionExecution(PeriodicTask):
@@ -40,6 +41,7 @@ class HandleAuctionExecution(PeriodicTask):
         self.start = start
         self.server_main_data = ServerMainData()
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
+        self.logger = log().get_logger()
 
     def _run_specific(self, **kwargs):
         """
@@ -75,6 +77,7 @@ class HandleActivateAuction(ScheduledTask):
         self.auction = auction
         self.server_main_data = ServerMainData()
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
+        self.logger = log().get_logger()
 
     async def _run_specific(self, **kwargs):
         """
@@ -113,6 +116,7 @@ class HandleRemoveAuction(ScheduledTask):
         """
         super(HandleRemoveAuction, self).__init__(seconds_to_start)
         self.auction = auction
+        self.logger = log().get_logger()
 
     async def _run_specific(self, **kwargs):
         """
@@ -140,6 +144,7 @@ class HandleLoadResourcesFromFile(ScheduledTask):
         self.file_name = file_name
         self.server_main_data = ServerMainData()
         self.resource_manager = ResourceManager(self.server_main_data.domain)
+        self.logger = log().get_logger()
 
     async def _run_specific(self):
         """
@@ -153,7 +158,7 @@ class HandleLoadResourcesFromFile(ScheduledTask):
                     for resource in resource_sets[resource_set]:
                         resource = Resource(resource_set.lower() + '.' + resource.lower())
                         self.resource_manager.add_auctioning_object(resource)
-
+                        self.logger.info("resource with key {0} added".format(resource.get_key()))
         except IOError as e:
             self.logger.error("Error opening file - Message: {0}".format(str(e)))
             raise ValueError("Error opening file - Message:", str(e))
@@ -178,6 +183,7 @@ class HandleLoadAuction(ScheduledTask):
         self.auction_manager = AuctionManager(self.server_main_data.domain)
         self.domain = self.server_main_data.domain
         self.immediate_start = self.server_main_data.inmediate_start
+        self.logger = log().get_logger()
 
     async def _run_specific(self):
         """
@@ -205,6 +211,7 @@ class HandleLoadAuction(ScheduledTask):
                     removal_task = HandleRemoveAuction(auction=auction, seconds_to_start=seconds_to_start)
                     auction.add_task(removal_task)
 
+                    self.logger.info("auction with key {0} added".format(auction.get_key()))
                 else:
                     self.logger.error("The auction with key {0} could not be added".format(auction.get_key()))
         except Exception as e:
@@ -237,6 +244,7 @@ class HandleSessionRequest(ScheduledTask):
         self.sender_address = sender_address
         self.sender_port = sender_port
         self.protocol = protocol
+        self.logger = log().get_logger()
 
     def is_complete(self, session_info: dict):
         """
@@ -288,6 +296,7 @@ class HandleAuctionMessage(ScheduledTask):
         super(HandleAuctionMessage, self).__init__(seconds_to_start)
         self.session = session
         self.message = ipap_message
+        self.logger = log().get_logger()
 
     def _run_specific(self):
         type = self.ipap_message.get_type()

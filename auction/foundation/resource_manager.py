@@ -1,13 +1,17 @@
 from foundation.resource import Resource
 from foundation.auctioning_object_manager import AuctioningObjectManager
 from foundation.auction import Auction
+from foundation.singleton import Singleton
+
+from utils.auction_utils import log
 
 
-class ResourceManager(AuctioningObjectManager):
+class ResourceManager(AuctioningObjectManager, metaclass=Singleton):
 
     def __init__(self, domain: int):
         super(ResourceManager, self).__init__(domain)
         self.time_idx = {}
+        self.logger = log().get_logger()
 
     def add_resource(self, resource: Resource):
         """
@@ -64,5 +68,6 @@ class ResourceManager(AuctioningObjectManager):
             return resource.verify_auction(auction)
 
         except ValueError as e:
-            print('The resource given was not found, so the auction is invalid.')
+            self.logger.error("The resource with key {0} was not found, \
+                                so the auction is invalid.".format(resource_key))
             return False

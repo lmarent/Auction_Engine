@@ -14,23 +14,22 @@ class log(metaclass=Singleton):
         self.logger = None
         self.file_name = file_name
 
-    def create_logger(name) -> Logger:
+    def create_logger(self):
         """
         Creates a logger object with the format
 
-        :param name: the name of the logger
         :return: the logger object with format and handler
         """
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logger = logging.getLogger(name)
+        logger = logging.getLogger(self.file_name)
         logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(base_dir + '/' + name + '.log')
+        file_handler = logging.FileHandler(base_dir + '/' + self.file_name + '.log')
         file_handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('[L:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s',
                                       datefmt='%d-%m-%Y %H:%M:%S')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-        return logger
+        self.logger = logger
 
     def get_logger(self) -> Logger:
         """
@@ -39,6 +38,6 @@ class log(metaclass=Singleton):
         :return:
         """
         if self.logger is None:
-            self.logger = self.create_logger(self.file_name)
+            self.create_logger()
 
         return self.logger

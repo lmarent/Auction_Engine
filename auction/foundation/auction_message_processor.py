@@ -2,11 +2,10 @@ from abc import ABC
 from python_wrapper.ipap_message import IpapMessage
 
 
-class AuctionMessageProcessor(metaclass=ABC):
+class AuctionMessageProcessor(ABC):
 
     def __init__(self, domain: int):
         self.domain = domain
-        pass
 
     @staticmethod
     def is_auction_message(msg: str) -> IpapMessage:
