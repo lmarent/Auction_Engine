@@ -45,14 +45,19 @@ class IpapResourceRequestParser(IpapMessageParser):
         # Add the Resource Id
         self.insert_string_field('resourceid', resource_id, data_option)
 
+        print(data_option.get_num_fields())
+
         # Add the start datetime
         self.insert_datetime_field('start', interval.start, data_option)
 
         # Add the endtime
         self.insert_datetime_field('stop', interval.stop, data_option)
 
+        print(data_option.get_num_fields())
+
         # Add the interval.
         self.insert_integer_field('interval', interval.interval, data_option)
+
 
         # Add the IPversion
         if use_ipv6:
@@ -64,7 +69,7 @@ class IpapResourceRequestParser(IpapMessageParser):
         if use_ipv6:
             self.insert_ipv6_field('srcipv6', ip_address6, data_option)
         else:
-            self.insert_ipv4_field('srcipv6', '0:0:0:0:0:0:0:0', data_option)
+            self.insert_ipv6_field('srcipv6', '0:0:0:0:0:0:0:0', data_option)
 
         # Add the Ipv4 Address value
         if use_ipv6:
@@ -73,7 +78,9 @@ class IpapResourceRequestParser(IpapMessageParser):
             self.insert_ipv4_field('srcipv4', ip_address4, data_option)
 
         # Add the destination port
-        self.insert_integer_field('srcport', port, data_option)
+        self.insert_integer_field('srcauctionport', port, data_option)
+
+        print(data_option.get_num_fields())
 
         message.include_data(template_id, data_option)
 

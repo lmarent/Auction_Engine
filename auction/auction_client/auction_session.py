@@ -13,10 +13,10 @@ class AuctionSession(Session):
     """	
 
     def __init__(self, session_id: str, s_sender_address: str, s_destin_address:str,
-                 sender_port: int, destin_port: int, protocol: int, lifetime: int):
+                 sender_port: int, destin_port: int, protocol: int):
 
         super(AuctionSession,self).__init__(session_id, s_sender_address, sender_port,
-                                            s_destin_address, destin_port, protocol, lifetime)
+                                            s_destin_address, destin_port, protocol)
 
         self.start_time = datetime.now()
         self.stop_time = datetime.now()

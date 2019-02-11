@@ -83,22 +83,22 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
             message = self.resource_request_manager.get_ipap_message(self.resource_request,
                                                                      self.start_datetime, resource_id,
                                                                      self.client_data.use_ipv6,
-                                                                     self.client_data.ip_address4,
-                                                                     self.client_data.ip_address6,
+                                                                     str(self.client_data.ip_address4),
+                                                                     str(self.client_data.ip_address6),
                                                                      self.client_data.source_port)
 
             # Create a new session for sending the request
             session = None
             if self.client_data.use_ipv6:
-                session = self.auction_session_manager.create_agent_session(self.client_data.ip_address6,
-                                                                            self.client_data.destination_address6,
+                session = self.auction_session_manager.create_agent_session(str(self.client_data.ip_address6),
+                                                                            str(self.client_data.destination_address6),
                                                                             self.client_data.source_port,
                                                                             self.client_data.destination_port,
                                                                             self.client_data.protocol,
                                                                             self.client_data.life_time)
             else:
-                session = self.auction_session_manager.create_agent_session(self.client_data.ip_address4,
-                                                                            self.client_data.destination_address4,
+                session = self.auction_session_manager.create_agent_session(str(self.client_data.ip_address4),
+                                                                            str(self.client_data.destination_address4),
                                                                             self.client_data.source_port,
                                                                             self.client_data.destination_port,
                                                                             self.client_data.protocol,

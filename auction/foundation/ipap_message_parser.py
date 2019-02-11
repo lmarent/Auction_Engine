@@ -164,9 +164,12 @@ class IpapMessageParser:
         :param record: data record where the field is going to be inserted.
         """
         field_def = self.field_def_manager.get_field(field_name)
-        field: IpapField = self.field_container.get_field( int(field_def['eno']), int(field_def['ftype']))
-        field_val = field.get_ipap_field_value_string(value)
-        record.insert_field(int(field_def['eno']), int(field_def['ftype']), field_val )
+        field: IpapField = self.field_container.get_field(int(field_def['eno']), int(field_def['ftype']))
+
+        # It is required to encode as ascii because the C++ wrapper requires it.
+        value_encoded = value.encode('ascii')
+        field_val = field.get_ipap_field_value_string(value_encoded)
+        record.insert_field(int(field_def['eno']), int(field_def['ftype']), field_val)
 
     def insert_integer_field(self, field_name: str, value: int, record: IpapDataRecord):
         """
@@ -230,10 +233,10 @@ class IpapMessageParser:
         :param record: data record where the field is going to be inserted.
         """
         field_def = self.field_def_manager.get_field(field_name)
-        field: IpapField = self.field_container.get_field(
-            int(field_def['eno']), int(field_def['ftype']))
+        field: IpapField = self.field_container.get_field(int(field_def['eno']), int(field_def['ftype']))
+        value_encoded = value.encode('ascii')
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                            field.get_ipap_field_value_ipv4(value))
+                            field.get_ipap_field_value_ipv4(value_encoded))
 
     def insert_ipv6_field(self, field_name: str, value: str, record: IpapDataRecord):
         """
@@ -244,10 +247,10 @@ class IpapMessageParser:
         :param record: data record where the field is going to be inserted.
         """
         field_def = self.field_def_manager.get_field(field_name)
-        field: IpapField = self.field_container.get_field(
-            int(field_def['eno']), int(field_def['ftype']))
+        field: IpapField = self.field_container.get_field(int(field_def['eno']), int(field_def['ftype']))
+        value_encoded = value.encode('ascii')
         record.insert_field(int(field_def['eno']), int(field_def['ftype']),
-                            field.get_ipap_field_value_ipv6(value))
+                            field.get_ipap_field_value_ipv6(value_encoded))
 
     def insert_datetime_field(self, field_name: str, value: datetime, record: IpapDataRecord):
         """

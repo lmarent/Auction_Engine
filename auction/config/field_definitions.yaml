@@ -83,7 +83,7 @@ field_def:
   refbiddingobjectid:
     Type: String
     Eno: 0
-    Ftype: 26
+    Ftype: 25
     Name: RefBiddingObjectID
   refbiddingobjectid:
     Type: String
@@ -116,7 +116,7 @@ field_def:
     Length: 8
     Type: UInt64
     Eno: 0
-    Ftype: 27
+    Ftype: 28
     Name: Stop
   interval:
     Length: 8
@@ -184,7 +184,7 @@ field_def:
     Length: 1
     Type: Uint8
     Eno: 0
-    Ftype: 48
+    Ftype: 49
     Name: IpVesion
   # Bandwidth Fields.
   bandwidth:
