@@ -9,13 +9,11 @@ class ClientMainData(metaclass=Singleton):
         self.domain = Config().get_config_param('Main','Domain')
         use_ipv6 = Config().get_config_param('Main','UseIPv6')
         self.use_ipv6 = ParseFormats.parse_bool(use_ipv6)
-        if self.use_ipv6:
-            self.ip_address6 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V6'))
-            self.destination_address6 = ParseFormats.parse_ipaddress(
+        self.ip_address6 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V6'))
+        self.destination_address6 = ParseFormats.parse_ipaddress(
                             Config().get_config_param('Main','DefaultDestinationAddr-V6'))
-        else:
-            self.ip_address4 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V4'))
-            self.destination_address4 = ParseFormats.parse_ipaddress(
+        self.ip_address4 = ParseFormats.parse_ipaddress(Config().get_config_param('Main','LocalAddr-V4'))
+        self.destination_address4 = ParseFormats.parse_ipaddress(
                             Config().get_config_param('Main','DefaultDestinationAddr-V4'))
 
         # Gets default ports (origin, destination)

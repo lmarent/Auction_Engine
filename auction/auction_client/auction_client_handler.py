@@ -85,7 +85,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                                                                      self.client_data.use_ipv6,
                                                                      self.client_data.ip_address4,
                                                                      self.client_data.ip_address6,
-                                                                     self.client_data.port)
+                                                                     self.client_data.source_port)
 
             # Create a new session for sending the request
             session = None

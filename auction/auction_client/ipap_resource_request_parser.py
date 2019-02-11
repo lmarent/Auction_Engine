@@ -84,9 +84,13 @@ class IpapResourceRequestParser(IpapMessageParser):
         :return:
         """
 
-        message = IpapMessage(domain_id=self.domain, ipap_version=0, _encode_network=True)
+        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         interval = resource_request.get_interval_by_start_time(start)
         template_id = self._add_fields_option_template(message)
+
+        if template_id < 0:
+            self.logger.error("error creating the template")
+            return None
 
         # Build the recordId as the resourceRequestSet + resourceRequestName
         record_id = resource_request.get_key()

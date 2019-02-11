@@ -108,7 +108,7 @@ class IpapField:
         else:
             raise ValueError('Field value could not be created')
 
-    def get_ipap_field_value_string(self, value:str):
+    def get_ipap_field_value_string(self, value:str) -> IpapValueField:
         obj = lib.ipap_field_get_ipap_value_field_string(self.obj, c_char_p(value), c_int(len(value)))
 
         if obj:  # not null

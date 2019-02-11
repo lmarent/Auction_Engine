@@ -67,9 +67,10 @@ class Agent(ABC):
         :param start: datetime when the event should start
         :return: time in milliseconds when we should start the new event
         """
-        diff_start = start - datetime.now()
-        when = self.app.loop.time() + diff_start.total_seconds()
-        return when
+        if start <= datetime.now():
+            return 0
+        else:
+            return (start - datetime.now()).total_seconds()
 
     def _load_control_data(self):
         """

@@ -59,6 +59,9 @@ class IpapTemplate:
 
     def get_template_type_mandatory_field(self, temp_type: TemplateType) -> list:
         size = self._get_template_type_mandatory_field_size(temp_type)
+        if size < 0:
+            raise ValueError('The template type given is not valid')
+
         list_return = []
 
         for i in range(0, size):
