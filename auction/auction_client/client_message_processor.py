@@ -87,18 +87,40 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                                          server_connection)
             task = asyncio.ensure_future(self.websocket_read(server_connection))
             server_connection.set_task(task)
-            server_connection.add_reference()
+            server_connection.set_auction_session(session)
         else:
             server_connection = self.app['server_connections'][key]
 
-        # maybe we need to wait until the connection is ready
+        # we need to wait until the connection is ready
         message = self.build_syn_message(session.get_next_message_id())
         str_msg = message.get_message()
         await self.send_message(server_connection, str_msg)
         server_connection.set_state(ServerConnectionState.SYN_SENT)
         session.add_pending_message(message)
         session.set_server_connection(server_connection)
+
         return session
+
+    async def connection_established(self, session):
+        """
+        Sleeps until the session is acknowledged or a timeout is reached.
+
+        :param session: session to be acknowledged
+        :raises Connection error when not acknowledged
+        """
+        timeout = self.TIMEOUT_SYN
+        while timeout > 0:
+            if session.server_connection.get_state() == ServerConnectionState.ESTABLISHED:
+                break
+            await asyncio.sleep(0.01)
+            timeout = timeout - 10
+
+        if timeout <= 0:
+            # teardown the web socket connection
+            await self.websocket_shutdown(session.server_connection)
+
+            # Raise an exception to inform the error when connecting to the server.
+            raise ConnectionError("The connection could not be established")
 
     async def _disconnect_socket(self, session_key: str):
         """
@@ -115,46 +137,48 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                 await self.websocket_shutdown(server_connection)
                 self.app['server_connections'].pop(server_connection.key)
 
-    async def handle_syn_ack_message(self, session: AuctionSession,
-                                     server_connection: ServerConnection,
+    async def handle_syn_ack_message(self, server_connection: ServerConnection,
                                      ipap_message: IpapMessage):
         """
         Establishes the session
-        :param session:session: object that waas created to manage this connection
         :param server_connection: websocket and aiohttp session created for the connection
         :param ipap_message: message sent from the server.
         :return:
         """
+        self.logger.debug("Starting handle_syn_ack_message")
         # verifies ack sequence number
         ack_seqno = ipap_message.get_ackseqno()
+
+        self.logger.debug("ack_seqno:{0}".format(str(ack_seqno)))
 
         # verifies the connection state
         if server_connection.state == ServerConnectionState.SYN_SENT:
             try:
-                session.confirm_message(ack_seqno)
+                server_connection.get_auction_session().confirm_message(ack_seqno)
 
                 # send the ack message establishing the session.
-                syn_ack_message = self.build_syn_ack_message(session.get_next_message_id(), ipap_message.get_seqno())
+                syn_ack_message = self.build_syn_ack_message(server_connection.session.get_next_message_id(),
+                                                             ipap_message.get_seqno())
                 msg = syn_ack_message.get_message()
                 await self.send_message(server_connection, msg)
 
             except ValueError:
                 self.logger.error("Invalid ack nbr from the server, the session is going to be teardown")
-                await self._disconnect_socket(session.get_key())
-                self.auction_session_manager.del_session(session.get_key())
+                await self._disconnect_socket(server_connection.session.get_key())
+                self.auction_session_manager.del_session(server_connection.session.get_key())
 
         else:
             # The server is not in syn sent state, so ignore the message
             self.logger.info("a message with syn and ack was received, but the session \
                                 is not in SYN_SENT. Ignoring the message")
 
-    async def send_ack_disconnect(self, session: AuctionSession,
-                                  server_connection: ServerConnection,
+        self.logger.debug("Ending handle_syn_ack_message")
+
+    async def send_ack_disconnect(self, server_connection: ServerConnection,
                                   ipap_message: IpapMessage):
         """
         Sends the ack disconnect message.
 
-        :param session:session: object that waas created to manage this connection
         :param server_connection: websocket and aiohttp session created for the connection
         :param ipap_message: message sent from the server.
         :return:
@@ -165,13 +189,14 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         # verifies the connection state
         if server_connection.state == ServerConnectionState.FIN_WAIT_2:
             try:
-                session.confirm_message(ack_seqno)
+                server_connection.session.confirm_message(ack_seqno)
 
                 # send the ack message establishing the session.
-                message = self.build_ack_message(session.get_next_message_id(), ipap_message.get_seqno())
+                message = self.build_ack_message(server_connection.session.get_next_message_id(),
+                                                 ipap_message.get_seqno())
                 await self.send_message(server_connection, message.get_message())
-                await self._disconnect_socket(session.get_key())
-                self.auction_session_manager.del_session(session.get_key())
+                await self._disconnect_socket(server_connection.session.get_key())
+                self.auction_session_manager.del_session(server_connection.session.get_key())
                 server_connection.set_state(ServerConnectionState.CLOSED)
 
             except ValueError:
@@ -181,14 +206,12 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             # The server is not in syn sent state, so ignore the message
             self.logger.info("A msg with fin state was received,but the server is not in fin_wait state, ignoring it")
 
-    async def handle_ack(self, session: AuctionSession,
-                         server_connection: ServerConnection,
+    async def handle_ack(self, server_connection: ServerConnection,
                          ipap_message: IpapMessage):
         """
         The agent received a message witn the ack flag active, it can be a auction message or a disconnect
         message
 
-        :param session:session: object that waas created to manage this connection
         :param server_connection: websocket and aiohttp session created for the connection
         :param ipap_message: message sent from the server.
         """
@@ -199,15 +222,16 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         # verifies the connection state
         if server_connection.state == ServerConnectionState.FIN_WAIT_1:
             try:
-                session.confirm_message(ack_seqno)
+                server_connection.session.confirm_message(ack_seqno)
                 server_connection.set_state(ServerConnectionState.FIN_WAIT_2)
 
             except ValueError:
                 self.logger.info("A msg with ack nbr not expected was received, ignoring it")
 
         else:
+            from auction_client.auction_client_handler import HandleAuctionMessage
             when = 0
-            handle_auction_message = HandleAuctionMessage(session, ipap_message, when)
+            handle_auction_message = HandleAuctionMessage(server_connection.session, ipap_message, when)
             handle_auction_message.start()
 
         self.logger.debug('End method handle_ack')
@@ -219,28 +243,33 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         :param server_connection: websocket and aiohttp session created for the connection
         :param msg: message received
         """
-        ipap_message = self.is_auction_message(msg)
-        if ipap_message is not None:
-            syn = ipap_message.get_syn()
-            ack = ipap_message.get_ack()
-            fin = ipap_message.get_fin()
-            session: AuctionSession = self.auction_session_manager.get_session(server_connection.key)
-            if syn and ack:
-                await self.handle_syn_ack_message(session, server_connection, ipap_message)
+        try:
 
-            elif fin:
-                await self.send_ack_disconnect(session, server_connection, ipap_message)
+            ipap_message = self.is_auction_message(msg)
 
-            elif ack and (not fin and not syn):
-                await self.handle_ack(session, server_connection, ipap_message)
-
-            else:
-                from auction_client.auction_client_handler import HandleAuctionMessage
-                handle_auction_message = HandleAuctionMessage(session, ipap_message, 0)
-                handle_auction_message.start()
-        else:
+        except ValueError as e:
             # invalid message, we do not send anything for the moment
-            self.logger.error("Invalid message from agent with domain {}")
+            self.logger.error("Invalid message from agent - Received msg: {0}".format(msg))
+            return
+
+        syn = ipap_message.get_syn()
+        ack = ipap_message.get_ack()
+        fin = ipap_message.get_fin()
+
+        if syn and ack:
+            print('handle_syn_ack_message')
+            await self.handle_syn_ack_message(server_connection, ipap_message)
+
+        elif fin:
+            await self.send_ack_disconnect(server_connection, ipap_message)
+
+        elif ack and (not fin and not syn):
+            await self.handle_ack(server_connection, ipap_message)
+
+        else:
+            from auction_client.auction_client_handler import HandleAuctionMessage
+            handle_auction_message = HandleAuctionMessage(server_connection.session, ipap_message, 0)
+            handle_auction_message.start()
 
     async def process_disconnect(self, session_key: str):
         """
@@ -303,21 +332,22 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         server_connection.set_web_socket(session, ws)
 
     async def websocket_read(self, server_connection: ServerConnection):
+        print('starting websocket read')
         try:
             async for msg in server_connection.web_socket:
-                    if msg.type == WSMsgType.TEXT:
-                        print('arriving data:', msg.data)
-                        await self.process_message(server_connection, msg.data)
+                if msg.type == WSMsgType.TEXT:
+                    print('arriving data:', msg.data)
+                    await self.process_message(server_connection, msg.data)
 
-                    elif msg.type == WSMsgType.CLOSED:
-                        self.logger.error("websocket closed by the server.")
-                        print("websocket closed by the server.")
-                        break
+                elif msg.type == WSMsgType.CLOSED:
+                    self.logger.error("websocket closed by the server.")
+                    print("websocket closed by the server.")
+                    break
 
-                    elif msg.type == WSMsgType.ERROR:
-                        self.logger.error("websocket error received.")
-                        print("websocket error received.")
-                        break
+                elif msg.type == WSMsgType.ERROR:
+                    self.logger.error("websocket error received.")
+                    print("websocket error received.")
+                    break
 
         except ClientConnectorError as e:
             self.logger.error("Error during server connection - error:{0}".format(str(e)))

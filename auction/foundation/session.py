@@ -64,6 +64,7 @@ class Session:
         """
         Adds a new message to be acknowledged by the auction server
         """
+        print('Adding pending message:', message.get_seqno())
         self.pending_messages[message.get_seqno()] = message
 
     def get_next_message_id(self):

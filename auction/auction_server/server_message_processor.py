@@ -89,9 +89,12 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         :param ipap_message: message sent from the server.
         :return:
         """
+        self.logger.debug("starting handle_syn")
         # verifies the connection state
         if client_connection.state == ClientConnectionState.LISTEN:
             # send the ack message establishing the session.
+
+            print('send message syn ack')
             message = self.build_syn_ack_message(client_connection.session.get_next_message_id(),
                                                  ipap_message.get_seqno())
 
@@ -101,6 +104,8 @@ class ServerMessageProcessor(AuctionMessageProcessor):
             # The server is not in syn sent state, so ignore the message
             self.logger.info("a message with syn was received, but the session \
                                 is not in LISTEN. Ignoring the message")
+
+        self.logger.debug("Ending handle_syn")
 
     async def handle_ack(self, client_connection: ClientConnection,
                          ipap_message: IpapMessage):
@@ -264,6 +269,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         self.logger.debug('Start send message')
 
         await client_connection.web_socket.send_str(message)
+        print('message sent- len:', len(message))
 
         self.logger.debug('End send message')
 

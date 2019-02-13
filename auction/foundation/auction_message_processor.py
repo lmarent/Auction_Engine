@@ -3,6 +3,9 @@ from python_wrapper.ipap_message import IpapMessage
 
 class AuctionMessageProcessor:
 
+    # time in milliseconds
+    TIMEOUT_SYN = 3000
+
     def __init__(self, domain: int):
         self.domain = domain
 
@@ -49,6 +52,7 @@ class AuctionMessageProcessor:
         :param ack_nbr: ack number to send within the message
         :return:
         """
+        print('build syn ack message {0}.{1}'.format(str(sequence_nbr), str(ack_nbr)))
         message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_syn(True)
         message.set_ack(True)

@@ -1,6 +1,7 @@
 from aiohttp import ClientSession
 from aiohttp.client_ws import ClientWebSocketResponse
 from enum import Enum
+from foundation.session import Session
 
 
 class ServerConnectionState(Enum):
@@ -20,6 +21,7 @@ class ServerConnection:
         self.key = key
         self.state = ServerConnectionState.CLOSED
         self.task = None
+        self.auction_session = None
         self.session = None
         self.web_socket = None
         self.references = 0
@@ -68,3 +70,19 @@ class ServerConnection:
         :return: connection's state
         """
         return self.state
+
+    def set_auction_session(self, session: Session):
+        """
+        Sets the auction session for which we create the server connection.
+
+        :param session: session to set
+        """
+        self.auction_session = session
+
+    def get_auction_session(self,) -> Session:
+        """
+        Gets the auction session for which we create the server connection.
+
+        :param session: session to set
+        """
+        return self.auction_session

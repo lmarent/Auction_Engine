@@ -109,8 +109,8 @@ class IpapMessage:
     def set_seqno(self, seq_no:int):
         lib.ipap_message_set_seqno(self.obj, c_uint32(seq_no))
 
-    def get_ackseqno(self):
-        get_value_uint32 = lib.ipap_message_get_seqno
+    def get_ackseqno(self) -> int:
+        get_value_uint32 = lib.ipap_message_get_ackseqno
         get_value_uint32.restype = c_uint32
 
         return lib.ipap_message_get_ackseqno(self.obj)

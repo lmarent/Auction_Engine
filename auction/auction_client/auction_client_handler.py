@@ -91,6 +91,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
 
             # Create a new session for sending the request
             session = await self.client_message_processor.connect()
+            await self.client_message_processor.connection_established(session)
 
             # Gets the new message id
             message_id = session.get_next_message_id()
@@ -100,16 +101,18 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
             session.set_start(interval.start)
             session.set_stop(interval.stop)
 
-            # Sends the message to destination
+            # Add the session in the session container
+            self.auction_session_manager.add_session(session)
 
+            # Sends the message to destination
             await self.handle_send_message(message)
 
-            # Add the session in the session container
+            # Add the pending message.
             session.add_pending_message(message)
-            self.auction_session_manager.add_session(session)
 
             # Assign the new session to the interval.
             interval.session = session.get_key()
+
         except Exception as e:
             self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))
 
