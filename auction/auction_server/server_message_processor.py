@@ -80,13 +80,11 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         self.session_manager = SessionManager()
         self.logger = log().get_logger()
 
-    async def handle_syn(self, session: Session,
-                         client_connection: ClientConnection,
+    async def handle_syn(self, client_connection: ClientConnection,
                          ipap_message: IpapMessage):
         """
         Handles the arrival of a syn message.
 
-        :param session:session: object that waas created to manage this connection
         :param client_connection: client connection object created for manage the connection
         :param ipap_message: message sent from the server.
         :return:
@@ -94,7 +92,9 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         # verifies the connection state
         if client_connection.state == ClientConnectionState.LISTEN:
             # send the ack message establishing the session.
-            message = self.build_syn_ack_message(session.get_next_message_id(), ipap_message.get_seqno())
+            message = self.build_syn_ack_message(client_connection.session.get_next_message_id(),
+                                                 ipap_message.get_seqno())
+
             await self.send_message(client_connection, message.get_message())
 
         else:
@@ -102,13 +102,11 @@ class ServerMessageProcessor(AuctionMessageProcessor):
             self.logger.info("a message with syn was received, but the session \
                                 is not in LISTEN. Ignoring the message")
 
-    async def handle_ack(self, session: Session,
-                         client_connection: ClientConnection,
+    async def handle_ack(self, client_connection: ClientConnection,
                          ipap_message: IpapMessage):
         """
         Handles the arrival of a ack message.
 
-        :param session:session: object that waas created to manage this connection
         :param client_connection: client connection object created for manage the connection
         :param ipap_message: message sent from the server.
         :return:
@@ -121,7 +119,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         # verifies the connection state
         if client_connection.state == ClientConnectionState.SYN_RCVD:
             try:
-                session.confirm_message(ack_seqno)
+                client_connection.session.confirm_message(ack_seqno)
                 client_connection.set_state(ClientConnectionState.ESTABLISHED)
 
             except ValueError:
@@ -129,7 +127,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
 
         elif client_connection.state == ClientConnectionState.LAST_ACK:
             try:
-                session.confirm_message(ack_seqno)
+                client_connection.session.confirm_message(ack_seqno)
                 client_connection.set_state(ClientConnectionState.CLOSE)
 
             except ValueError:
@@ -137,16 +135,14 @@ class ServerMessageProcessor(AuctionMessageProcessor):
 
         else:
             when = 0
-            handle_auction_message = HandleAuctionMessage(session, ipap_message, when)
+            handle_auction_message = HandleAuctionMessage(client_connection.session, ipap_message, when)
             await handle_auction_message.start()
 
-    async def handle_fin(self, session: Session,
-                         client_connection: ClientConnection,
+    async def handle_fin(self, client_connection: ClientConnection,
                          ipap_message: IpapMessage):
         """
         Handles the arrival of a ack message.
 
-        :param session:session: object that waas created to manage this connection
         :param client_connection: client connection object created for manage the connection
         :param ipap_message: message sent from the server.
         :return:
@@ -157,14 +153,16 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         # verifies the connection state
         if client_connection.state == ClientConnectionState.ESTABLISHED:
             try:
-                session.confirm_message(ack_seqno)
-                message = self.build_ack_message(session.get_next_message_id(), ipap_message.get_seqno())
+                client_connection.session.confirm_message(ack_seqno)
+                message = self.build_ack_message(client_connection.session.get_next_message_id(),
+                                                 ipap_message.get_seqno())
+
                 await self.send_message(client_connection, message.get_message())
                 client_connection.set_state(ClientConnectionState.CLOSE_WAIT)
 
                 # TODO: CALL THE APP TO SHUTDOWN
 
-                message = self.build_fin_message(session.get_next_message_id(), 0)
+                message = self.build_fin_message(client_connection.session.get_next_message_id(), 0)
                 await self.send_message(client_connection, message.get_message())
                 client_connection.set_state(ClientConnectionState.LAST_ACK)
 
@@ -184,28 +182,29 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         :param msg: message
         :return:
         """
-        ipap_message = self.is_auction_message(msg)
-        if ipap_message is not None:
-            syn = ipap_message.get_syn()
-            ack = ipap_message.get_ack()
-            fin = ipap_message.get_fin()
-            session = self.session_manager.get_session(client_connection.key)
+        try:
 
-            if syn:
-                await self.handle_syn(session, client_connection, ipap_message)
+            ipap_message = self.is_auction_message(msg)
 
-            elif ack:
-                await self.handle_ack(session, client_connection, ipap_message)
-
-            elif fin:
-                await self.handle_fin(session, client_connection, ipap_message)
-
-            else:
-                # Normal bidding message.
-                pass
-        else:
+        except ValueError as e:
             # invalid message, we do not send anything for the moment
-            self.logger.error("Invalid message from agent")
+            self.logger.error("Invalid message from agent - Received msg: {0}".format(msg))
+            return
+
+        syn = ipap_message.get_syn()
+        ack = ipap_message.get_ack()
+        fin = ipap_message.get_fin()
+        if syn:
+            await self.handle_syn(client_connection, ipap_message)
+
+        elif ack:
+            await self.handle_ack(client_connection, ipap_message)
+
+        elif fin:
+            await self.handle_fin(client_connection, ipap_message)
+
+        else:
+            # Normal bidding message.
             pass
 
     async def handle_web_socket(self, request):
@@ -215,6 +214,8 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         :param request: request received.
         :return:
         """
+        self.logger.debug('starting handle_web_socket')
+        print('starting handle_web_socket')
         ws = WebSocketResponse()
         await ws.prepare(request)
 
@@ -232,12 +233,15 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         client_connection = ClientConnection(session_id)
         client_connection.set_web_socket(ws)
         client_connection.set_session(session)
+        self.session_manager.add_session(session)
         # Put in the list the new connection from the client.
+        if 'client_connections' not in request.app:
+            request.app['client_connections'] = []
         request.app['client_connections'].append(client_connection)
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.text:
-                    await self.process_message(client_connection, msg)
+                    await self.process_message(client_connection, msg.data)
 
                 elif msg.type == WSMsgType.error:
                     self.logger.debug('ws connection closed with exception %s' % ws.exception())
@@ -259,7 +263,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         """
         self.logger.debug('Start send message')
 
-        client_connection.web_socket.send_str(message)
+        await client_connection.web_socket.send_str(message)
 
         self.logger.debug('End send message')
 

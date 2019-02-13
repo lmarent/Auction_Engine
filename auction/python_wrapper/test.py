@@ -369,6 +369,7 @@ class IpapMessageTest(unittest.TestCase):
     """
     def setUp(self):
         self.ipap_message = IpapMessage(1,1,False)
+        self.ipap_message2 = IpapMessage(1,1,True)
 
     def test_new_data_template(self):
         val = self.ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
@@ -464,3 +465,15 @@ class IpapMessageTest(unittest.TestCase):
         self.ipap_message.include_data(template_id, ipap_data_record)
         ipap_data_record2 = self.ipap_message.get_data_record_at_pos(0)
 
+    def test_import(self):
+        print('In test import')
+        self.ipap_message2.set_syn(True)
+        self.ipap_message2.set_seqno(300)
+        self.ipap_message2.output()
+
+        str_msg = self.ipap_message2.get_message()
+        ipap_message3 = IpapMessage(1,1,True, str_msg)
+
+        str_msg = 'aqui estoy'
+        with self.assertRaises(ValueError):
+            ipap_message4 = IpapMessage(1, 1, True, str_msg)

@@ -93,7 +93,8 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         # maybe we need to wait until the connection is ready
         message = self.build_syn_message(session.get_next_message_id())
-        await self.send_message(server_connection, message.get_message())
+        str_msg = message.get_message()
+        await self.send_message(server_connection, str_msg)
         server_connection.set_state(ServerConnectionState.SYN_SENT)
         session.add_pending_message(message)
         session.set_server_connection(server_connection)
@@ -271,6 +272,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         """
         self.logger.debug("start method send message")
 
+        print('sending message')
         await server_connection.web_socket.send_str(message)
 
         self.logger.debug("end method send message")
@@ -300,11 +302,11 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         ws= await session.ws_connect(http_address)
         server_connection.set_web_socket(session, ws)
 
-
     async def websocket_read(self, server_connection: ServerConnection):
         try:
             async for msg in server_connection.web_socket:
                     if msg.type == WSMsgType.TEXT:
+                        print('arriving data:', msg.data)
                         await self.process_message(server_connection, msg.data)
 
                     elif msg.type == WSMsgType.CLOSED:

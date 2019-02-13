@@ -12,21 +12,10 @@ class AuctionMessageProcessor:
         Establishes whether the given message is a valid auction message.
 
         :param msg: message to verify
-        :return: An IpapMessage if it is a valid message, None otherwise.
+        :return: An IpapMessage if it is a valid message, raise ValueError otherwise.
         """
-        # parse the message
+        return IpapMessage(0, 0, True, msg)
 
-        # Messages are always sent network encoded.
-
-        ipap_message = IpapMessage(0, 0, True)
-        ret = ipap_message.ipap_import(msg, len(msg))
-
-        if ret:
-            # if the parsing could be done, then it is valid auction message
-            return ipap_message
-        else:
-            # else is not a valid message.
-            raise ValueError("Not a ipap message")
 
     def build_syn_message(self, sequence_nbr: int) -> IpapMessage:
         """

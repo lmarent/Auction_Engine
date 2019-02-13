@@ -1,9 +1,12 @@
+from array import array
+
 from ctypes import cdll
 from ctypes import c_uint16
 from ctypes import c_uint32
 from ctypes import c_int
 from ctypes import c_bool
-from ctypes import c_char_p
+from ctypes import POINTER
+from ctypes import c_ubyte
 lib = cdll.LoadLibrary('libipap.so')
 
 from python_wrapper.ipap_template import IpapTemplate
@@ -15,8 +18,21 @@ class IpapMessage:
 
     IPAP_VERSION = 0x01
 
-    def __init__(self, domain_id : int, ipap_version : int,  _encode_network : bool):
-        self.obj = lib.ipap_message_new(c_int(domain_id), c_int(ipap_version), c_bool(_encode_network))
+    def __init__(self, domain_id : int, ipap_version : int, _encode_network : bool, value:str =None):
+        if value:
+            lst = []
+            array_unsigned_char = c_ubyte * len(value)
+            mes = array_unsigned_char()
+            for i in range(0, len(value)):
+                mes[i] = ord(value[i])
+
+            obj = lib.ipap_message_new_message(mes, c_int(len(value)), c_bool(_encode_network))
+            if obj:
+                self.obj = obj
+            else:
+                raise ValueError("Not a Ipap Message")
+        else:
+            self.obj = lib.ipap_message_new(c_int(domain_id), c_int(ipap_version), c_bool(_encode_network))
 
     def new_data_template(self, nfields : int, template_type_id : TemplateType) -> c_uint16:
         return lib.ipap_message_new_data_template(self.obj, c_int(nfields), c_int(template_type_id.value))
@@ -105,9 +121,9 @@ class IpapMessage:
     def output(self):
         lib.ipap_message_output(self.obj)
 
-    def get_message(self) -> str:
+    def get_message(self) -> list:
         get_value_vchar = lib.ipap_message_get_message
-        get_value_vchar.restype = c_char_p
+        get_value_vchar.restype=POINTER(c_ubyte)
 
         # we restrict to length to remove the ending null character.
         # Here we make sure that the message is the buffers.
@@ -115,11 +131,10 @@ class IpapMessage:
 
         lenght = lib.ipap_message_get_message_length(self.obj)
         value =  lib.ipap_message_get_message(self.obj)
-        value = value[:lenght]
-        return value
 
-    def ipap_import(self, value: str, lenght : int):
-        lib.ipap_message_ipap_import(self.obj, c_char_p(value), c_int(lenght) )
+        ret_lst = [chr(value[x]) for x in range(0,lenght)]
+        ret = ''.join(ret_lst)
+        return ret
 
     def make_template(self, template: IpapTemplate):
         lib.ipap_message_make_template(self.obj, template.obj)
