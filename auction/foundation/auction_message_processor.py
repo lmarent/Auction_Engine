@@ -1,8 +1,7 @@
-from abc import ABC
 from python_wrapper.ipap_message import IpapMessage
 
 
-class AuctionMessageProcessor(ABC):
+class AuctionMessageProcessor:
 
     def __init__(self, domain: int):
         self.domain = domain
@@ -36,7 +35,7 @@ class AuctionMessageProcessor(ABC):
         :param sequence_nbr: sequence number for the message
         :return: message with the syn flag set
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=0, _encode_network=True)
+        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_syn(True)
         message.set_seqno(sequence_nbr)
         return message
@@ -48,7 +47,7 @@ class AuctionMessageProcessor(ABC):
         :param ack_nbr: ack number to send within the message
         :return: message with the fin flag set
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=0, _encode_network=True)
+        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_fin(True)
         message.set_seqno(sequence_nbr)
         message.set_ack_seq_no(ack_nbr)
@@ -61,7 +60,7 @@ class AuctionMessageProcessor(ABC):
         :param ack_nbr: ack number to send within the message
         :return:
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=0, _encode_network=True)
+        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_syn(True)
         message.set_ack(True)
         message.set_seqno(sequence_nbr)
@@ -75,7 +74,7 @@ class AuctionMessageProcessor(ABC):
         :param ack_nbr: ack number to send within the message
         :return:
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=0, _encode_network=True)
+        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_ack(True)
         message.set_seqno(sequence_nbr)
         message.set_ack_seq_no(ack_nbr)

@@ -110,9 +110,13 @@ class IpapMessage:
         get_value_vchar.restype = c_char_p
 
         # we restrict to length to remove the ending null character.
-        lenght = lib.ipap_message_get_message_lenght(self.obj)
+        # Here we make sure that the message is the buffers.
+        lib.ipap_message_output(self.obj)
+
+        lenght = lib.ipap_message_get_message_length(self.obj)
         value =  lib.ipap_message_get_message(self.obj)
-        return value[:lenght]
+        value = value[:lenght]
+        return value
 
     def ipap_import(self, value: str, lenght : int):
         lib.ipap_message_ipap_import(self.obj, c_char_p(value), c_int(lenght) )

@@ -6,6 +6,7 @@ from auction_client.client_main_data import ClientMainData
 from auction_client.auction_session_manager import AuctionSessionManager
 from auction_client.agent_processor import AgentProcessor
 from auction_client.auction_session import AuctionSession
+from auction_client.client_message_processor import ClientMessageProcessor
 
 from foundation.auction_task import ScheduledTask
 from foundation.auction_task import PeriodicTask
@@ -32,7 +33,7 @@ class HandleAddResourceRequest(ScheduledTask):
 
     async def _run_specific(self, **kwargs):
         self.logger.debug('starting run HandleAddResourceRequest')
-        resource_requests = self.resource_request_manager.parse_resource_request_from_file(self.filename)
+        resource_requests = self.resource_request_manager.parse_resource_request_from_file(self.file_name)
         for resource_request in resource_requests:
             ret_start, ret_stop = self.resource_request_manager.add_resource_request(resource_request)
             for start in ret_start:
@@ -54,7 +55,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
     def __init__(self, start_datetime: datetime, resource_request: ResourceRequest, seconds_to_start: float):
         """
         Method to create the task
-        :param start: date and time when the task should start
+        :param start_datetime: date and time when the task should start
         :param seconds_to_start: seconds for starting the task.
         :param resource_request: resource request that should be started.
         """
@@ -65,6 +66,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         self.client_data = ClientMainData()
         self.auction_session_manager = AuctionSessionManager()
         self.resource_request_manager = ResourceRequestManager(domain=self.client_data.domain)
+        self.client_message_processor = ClientMessageProcessor()
         self.logger = log().get_logger()
 
     async def _run_specific(self):
@@ -88,31 +90,18 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                                                                      self.client_data.source_port)
 
             # Create a new session for sending the request
-            session = None
-            if self.client_data.use_ipv6:
-                session = self.auction_session_manager.create_agent_session(str(self.client_data.ip_address6),
-                                                                            str(self.client_data.destination_address6),
-                                                                            self.client_data.source_port,
-                                                                            self.client_data.destination_port,
-                                                                            self.client_data.protocol,
-                                                                            self.client_data.life_time)
-            else:
-                session = self.auction_session_manager.create_agent_session(str(self.client_data.ip_address4),
-                                                                            str(self.client_data.destination_address4),
-                                                                            self.client_data.source_port,
-                                                                            self.client_data.destination_port,
-                                                                            self.client_data.protocol,
-                                                                            self.client_data.life_time)
+            session = await self.client_message_processor.connect()
 
             # Gets the new message id
             message_id = session.get_next_message_id()
             message.set_seqno(message_id)
-            message.set_ackseqno(0)
+            message.set_ack_seq_no(0)
             session.set_resource_request(self.resource_request)
             session.set_start(interval.start)
             session.set_stop(interval.stop)
 
             # Sends the message to destination
+
             await self.handle_send_message(message)
 
             # Add the session in the session container
@@ -126,17 +115,24 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
 
         self.logger.debug("ending to run HandleActivateResourceRequestInterval")
 
+
 class HandleRemoveResourceRequestInterval(ScheduledTask):
 
-    def __init__(self, stop_datetime: datetime, resource_request: ResourceRequest, seconds_to_start: float):
 
+    def __init__(self, stop_datetime: datetime, resource_request: ResourceRequest, seconds_to_start: float):
+        """
+        Method to create the task remove resource request interval
+        :param stop_datetime: date and time when the resource request interval should be removed.
+        :param resource_request: resource request that should be started.
+        :param seconds_to_start: seconds for starting the task.
+        """
         super(HandleRemoveResourceRequestInterval, self).__init__(seconds_to_start)
         self.stop_datetime = stop_datetime
         self.resource_request = resource_request
         self.seconds_to_start = seconds_to_start
         self.client_data = ClientMainData()
         self.auction_session_manager = AuctionSessionManager()
-        self.agent_processor = AgentProcessor()
+        self.agent_processor = AgentProcessor(self.client_data.domain, "")
         self.auction_manager = AuctionManager(self.client_data.domain)
         self.logger = log().get_logger()
 
