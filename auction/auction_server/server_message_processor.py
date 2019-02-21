@@ -147,7 +147,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         else:
             when = 0
             handle_auction_message = HandleAuctionMessage(client_connection.session, ipap_message, when)
-            await handle_auction_message.start()
+            handle_auction_message.start()
 
         self.logger.debug('Ending handle_ack')
 

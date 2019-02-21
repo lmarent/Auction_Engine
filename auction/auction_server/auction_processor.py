@@ -115,7 +115,14 @@ class AuctionProcessor(IpapMessageParser):
         config_params = {}
         num_fields = ipap_record.get_num_fields()
         for pos in range(0, num_fields):
-            field_key = ipap_record.get_field_at_pos(pos)
+            try:
+
+                field_key = ipap_record.get_field_at_pos(pos)
+
+            except ValueError as e:
+                self.logger.error(str(e))
+                raise e
+
             try:
                 field_def = self.field_def_manager.get_field_by_code(field_key.get_eno(), field_key.get_ftype())
                 field = ipap_template.get_field(field_key.get_eno(), field_key.get_ftype())
@@ -327,7 +334,7 @@ class AuctionProcessor(IpapMessageParser):
         :return: list of application auctions.
         """
         try:
-            templ_opt_auction = self.read_template(message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+            templ_opt_auction = self.read_template(message, TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE)
             data_records = self.read_data_records(message, templ_opt_auction.get_template_id())
 
             for data_record in data_records:

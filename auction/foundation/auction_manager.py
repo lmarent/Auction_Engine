@@ -2,9 +2,9 @@ from foundation.auctioning_object_manager import AuctioningObjectManager
 from foundation.auction import Auction
 from foundation.field_def_manager import FieldDefManager
 from foundation.auction_parser import AuctionXmlFileParser
+from foundation.ipap_auction_parser import IpapAuctionParser
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
-from datetime import datetime
 from foundation.singleton import Singleton
 
 
@@ -85,18 +85,18 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         """
         pass
 
-    def get_ipap_message(self, auctions: list, temaplate_container: IpapTemplateContainer,
-                         saddress:str , port: int) -> IpapMessage:
+    def get_ipap_message(self, auctions: list, use_ipv6: bool, s_address: str, port: int) -> IpapMessage:
         """
         get the ipap_message that contains all the auctions within the list given
 
-        :param auctions:
-        :param temaplate_container:
-        :param saddress:
-        :param port:
+        :param auctions: auctions to include in the message.
+        :param use_ipv6: whether or not it use ipv6
+        :param s_address: source address
+        :param port: source port
         :return:
         """
-        pass
+        ipap_message_parser = IpapAuctionParser(self.domain)
+        return ipap_message_parser.get_ipap_message(auctions, use_ipv6, s_address, port)
 
     def increment_references(self, auctions: list, session_id: str):
         """

@@ -260,9 +260,7 @@ class HandleAskRequest(ScheduledTask):
         session_info = self.auction_processor.get_session_information(self.message)
 
         if self.is_complete(session_info):
-            message_to_send = self.auction_manager.get_ipap_message(auctions, self.template_container,
-                                                              self.sender_address,
-                                                              self.sender_port)
+            message_to_send = self.auction_manager.get_ipap_message(auctions, self.sender_address, self.sender_port)
             message_to_send.set_ack_seq_no(self.message.get_seqno())
             message_to_send.set_seqno(self.client_connection.session.get_next_message_id())
 
@@ -319,13 +317,14 @@ class HandleAuctionMessage(ScheduledTask):
     def _run_specific(self):
 
         # if the message has a ack nbr, then confirm the message
-        seq_no = self.ipap_message.get_seqno()
-        ack_seq_no = self.ipap_message.get_ackseqno()
-        self.session.confirm_message(ack_seq_no)
+        seq_no = self.message.get_seqno()
+        ack_seq_no = self.message.get_ackseqno()
+        if ack_seq_no >0:
+            self.client_connection.session.confirm_message(ack_seq_no)
 
-        ipap_message_type = self.ipap_message.get_types()
+        ipap_message_type = self.message.get_types()
         if ipap_message_type.is_ask_message():
-            handle_ask_request = HandleAskRequest(self.ipap_message)
+            handle_ask_request = HandleAskRequest(self.client_connection, self.message, 0)
             handle_ask_request.start()
 
         if ipap_message_type.is_auction_message():

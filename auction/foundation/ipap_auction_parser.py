@@ -46,7 +46,7 @@ class IpapAuctionParser(IpapMessageParser):
         return non_mandatory
 
     def insert_auction_data_record(self, template: IpapTemplate, auction: Auction,
-                                   message: IpapMessage, use_ipv6: bool, saddress_ipv4: str, saddress_ipv6: str,
+                                   message: IpapMessage, use_ipv6: bool, s_address: str,
                                    port: int):
         """
         Adds the option data record template associated with the option data auction template
@@ -55,8 +55,7 @@ class IpapAuctionParser(IpapMessageParser):
         :param auction  auction being included in the message.
         :param message: message being built.
         :param use_ipv6: whether or not it use ipv6
-        :param saddress_ipv4: source address in ipv4
-        :param saddress_ipv6: source address in ipv6
+        :param s_address: source address
         :param port: source port
         """
         ipap_data_record = IpapDataRecord(template.get_template_id())
@@ -79,7 +78,7 @@ class IpapAuctionParser(IpapMessageParser):
 
         # Add the Ipv6 Address value
         if use_ipv6:
-            self.insert_ipv6_field('dstipv6', saddress_ipv6, ipap_data_record)
+            self.insert_ipv6_field('dstipv6', s_address, ipap_data_record)
         else:
             self.insert_ipv6_field('dstipv6', "0:0:0:0:0:0:0:0", ipap_data_record)
 
@@ -87,7 +86,7 @@ class IpapAuctionParser(IpapMessageParser):
         if use_ipv6:
             self.insert_ipv4_field('dstipv4', "0.0.0.0", ipap_data_record)
         else:
-            self.insert_ipv4_field('dstipv4', saddress_ipv4, ipap_data_record)
+            self.insert_ipv4_field('dstipv4', s_address, ipap_data_record)
 
         # Add destination port
         self.insert_integer_field('dstauctionport', port, ipap_data_record)
@@ -167,16 +166,13 @@ class IpapAuctionParser(IpapMessageParser):
                 templ_id = auction.get_bidding_object_template(ObjectType(i), templ_type)
                 message.make_template(self.ipap_template_container.get_template(templ_id))
 
-    def get_ipap_message_auction(self, auction: Auction, use_ipv6: bool,
-                                 saddress_ipv4: str, saddress_ipv6: str,
-                                 port: int, message: IpapMessage):
+    def get_ipap_message_auction(self, auction: Auction, use_ipv6: bool, s_address: str, port: int, message: IpapMessage):
         """
         Updates the ipap_message given as parameter with the infomation of the auction
 
         :param auction: auction to include in the message
         :param use_ipv6: whether or not it use ipv6
-        :param saddress_ipv4: source address in ipv4
-        :param saddress_ipv6: source address in ipv6
+        :param s_address: source address
         :param port: source port
         :param message: ipap message to modify an include the information.
         """
@@ -199,26 +195,23 @@ class IpapAuctionParser(IpapMessageParser):
         message.make_template(option_template)
         self.insert_auction_templates(auction_template, auction, message)
         self.insert_auction_data_record(auction_template, auction, message,
-                                        use_ipv6, saddress_ipv4, saddress_ipv6, port)
+                                        use_ipv6, s_address, port)
         self.insert_option_data_record(option_template, auction, message)
 
-    def get_ipap_message(self, auctions: list, use_ipv6: bool,
-                         s_address_ipv4: str, s_address_ipv6: str,
-                         port: int) -> IpapMessage:
+    def get_ipap_message(self, auctions: list, use_ipv6: bool, s_address: str, port: int) -> IpapMessage:
         """
         Gets an ipap_message to transmit the information of the auctions given as parameter.
 
         :param auctions: List of auctions to convert to a message
         :param use_ipv6: whether or not it use ipv6
-        :param s_address_ipv4: source address in ipv4
-        :param s_address_ipv6: source address in ipv6
+        :param s_address: source address
         :param port: source port
         :return: ipap message with auction information.
         """
         message = IpapMessage(self.domain, IpapMessage.IPAP_VERSION, True)
 
         for auction in auctions:
-            self.get_ipap_message_auction(auction, use_ipv6, s_address_ipv4, s_address_ipv6, port, message)
+            self.get_ipap_message_auction(auction, use_ipv6, s_address, port, message)
 
         message.output()
         return message
