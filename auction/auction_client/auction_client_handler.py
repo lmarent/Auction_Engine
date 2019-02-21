@@ -75,6 +75,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         :return:
         """
         self.logger.debug("starting to run HandleActivateResourceRequestInterval")
+        session = None
         try:
             # for now we request to any resource,
             # a protocol to spread resources available must be implemented
@@ -91,12 +92,12 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
 
             # Create a new session for sending the request
             session = await self.client_message_processor.connect()
-            await self.client_message_processor.connection_established(session)
 
             # Gets the new message id
             message_id = session.get_next_message_id()
             message.set_seqno(message_id)
             message.set_ack_seq_no(0)
+
             session.set_resource_request(self.resource_request)
             session.set_start(interval.start)
             session.set_stop(interval.stop)
@@ -104,17 +105,24 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
             # Add the session in the session container
             self.auction_session_manager.add_session(session)
 
-            # Sends the message to destination
-            await self.handle_send_message(message)
-
             # Add the pending message.
             session.add_pending_message(message)
+
+            # Sends the message to destination
+            await self.client_message_processor.send_message(session.get_server_connnection(),
+                                                             message.get_message())
 
             # Assign the new session to the interval.
             interval.session = session.get_key()
 
         except Exception as e:
             self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))
+            if session:
+                self.client_message_processor.process_disconnect(session)
+                try:
+                    self.auction_session_manager.del_session(session.get_key())
+                except ValueError:
+                    pass
 
         self.logger.debug("ending to run HandleActivateResourceRequestInterval")
 

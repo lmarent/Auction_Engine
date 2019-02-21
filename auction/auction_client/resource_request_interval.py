@@ -32,3 +32,9 @@ class ResourceRequestInterval(Interval):
         :return: set of resource request
         """
         return self.resource_request_process
+
+    def stop(self):
+        """
+        Stops execution of resource request interval.
+        :return:
+        """

@@ -94,11 +94,13 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         if client_connection.state == ClientConnectionState.LISTEN:
             # send the ack message establishing the session.
 
-            print('send message syn ack')
             message = self.build_syn_ack_message(client_connection.session.get_next_message_id(),
                                                  ipap_message.get_seqno())
 
+            client_connection.session.add_pending_message(message)
             await self.send_message(client_connection, message.get_message())
+
+            client_connection.set_state(ClientConnectionState.SYN_RCVD)
 
         else:
             # The server is not in syn sent state, so ignore the message
@@ -116,6 +118,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         :param ipap_message: message sent from the server.
         :return:
         """
+        self.logger.debug('starting handle_ack')
         from auction_server.auction_server_handler import HandleAuctionMessage
 
         # verifies ack sequence number
@@ -127,6 +130,8 @@ class ServerMessageProcessor(AuctionMessageProcessor):
                 client_connection.session.confirm_message(ack_seqno)
                 client_connection.set_state(ClientConnectionState.ESTABLISHED)
 
+                self.logger.info('New established connection')
+
             except ValueError:
                 self.logger.info("The message ack is not the expected, so ignore the message")
 
@@ -135,6 +140,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
                 client_connection.session.confirm_message(ack_seqno)
                 client_connection.set_state(ClientConnectionState.CLOSE)
 
+                self.logger.info("The connection has been closed")
             except ValueError:
                 self.logger.info("The message ack is not the expected, so ignore the message")
 
@@ -143,41 +149,51 @@ class ServerMessageProcessor(AuctionMessageProcessor):
             handle_auction_message = HandleAuctionMessage(client_connection.session, ipap_message, when)
             await handle_auction_message.start()
 
+        self.logger.debug('Ending handle_ack')
+
     async def handle_fin(self, client_connection: ClientConnection,
                          ipap_message: IpapMessage):
         """
-        Handles the arrival of a ack message.
+        Handles the arrival of a fin message.
 
         :param client_connection: client connection object created for manage the connection
         :param ipap_message: message sent from the server.
         :return:
         """
+        self.logger.debug("Starting  handle_fin")
         # verifies ack sequence number
         ack_seqno = ipap_message.get_ackseqno()
 
+        try:
+
+            client_connection.session.confirm_message(ack_seqno)
+
+        except ValueError:
+            # The message ack is not the expected, so just ignore it
+            pass
+
         # verifies the connection state
         if client_connection.state == ClientConnectionState.ESTABLISHED:
-            try:
-                client_connection.session.confirm_message(ack_seqno)
-                message = self.build_ack_message(client_connection.session.get_next_message_id(),
+            message = self.build_ack_message(client_connection.session.get_next_message_id(),
                                                  ipap_message.get_seqno())
 
-                await self.send_message(client_connection, message.get_message())
-                client_connection.set_state(ClientConnectionState.CLOSE_WAIT)
+            await self.send_message(client_connection, message.get_message())
+            client_connection.set_state(ClientConnectionState.CLOSE_WAIT)
 
-                # TODO: CALL THE APP TO SHUTDOWN
+            # TODO: CALL THE APP TO SHUTDOWN
 
-                message = self.build_fin_message(client_connection.session.get_next_message_id(), 0)
-                await self.send_message(client_connection, message.get_message())
-                client_connection.set_state(ClientConnectionState.LAST_ACK)
+            message = self.build_fin_message(client_connection.session.get_next_message_id(), 0)
+            client_connection.session.add_pending_message(message)
+            await self.send_message(client_connection, message.get_message())
+            client_connection.set_state(ClientConnectionState.LAST_ACK)
 
-            except ValueError:
-                # The message ack is not the expected, so ignore the messagea
-                pass
         else:
             # The server is not in established state, so ignore the message
             self.logger.info("A msg with fin state was received,but the server \
                                 is not in established state, ignoring it")
+
+        self.logger.debug("Ending handle_fin")
+
 
     async def process_message(self, client_connection: ClientConnection, msg: str):
         """
@@ -267,7 +283,6 @@ class ServerMessageProcessor(AuctionMessageProcessor):
         :param message: message to be send
         """
         self.logger.debug('Start send message')
-
         await client_connection.web_socket.send_str(message)
         print('message sent- len:', len(message))
 

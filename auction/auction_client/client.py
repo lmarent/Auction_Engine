@@ -1,9 +1,11 @@
 from aiohttp.web import run_app
 from aiohttp.web import get
+from aiohttp import web
 
 import os, signal
 import pathlib
 import random
+import asyncio
 
 from foundation.agent import Agent
 from foundation.config import Config
@@ -17,9 +19,39 @@ from auction_client.client_main_data import ClientMainData
 from auction_client.client_message_processor import ClientMessageProcessor
 from auction_client.auction_client_handler import HandleActivateResourceRequestInterval
 from auction_client.auction_client_handler import HandleRemoveResourceRequestInterval
+from auction_client.resource_request import ResourceRequest
+from auction_client.resource_request import ResourceRequestInterval
+from auction_client.server_connection import ServerConnectionState
+
 
 
 class AuctionClient(Agent):
+
+    async def on_shutdown(self, app):
+        self.logger.info('shutdown started')
+
+        # terminate pending interval request tasks
+        for session in self.auction_session_manager.session_objects.values():
+
+            # TODO: terminate intervals.
+            # resource_request: ResourceRequest = session.resource_request
+            # interval: ResourceRequestInterval = resource_request.get_interval_by_start_time(session.start_time)
+            # interval.stop()
+
+            await self.message_processor.process_disconnect(session)
+
+        while True:
+            await asyncio.sleep(1)
+
+            num_open = 0
+            for session in self.auction_session_manager.session_objects.values():
+                if session.server_connection.get_state() != ServerConnectionState.CLOSED:
+                    num_open = num_open + 1
+
+            if num_open == 0:
+                break
+
+        self.logger.info('shutdown ended')
 
     def __init__(self):
         try:
@@ -32,6 +64,7 @@ class AuctionClient(Agent):
             # add routers.
             self.app.add_routes([get('/terminate', self.terminate), ])
 
+            # add handler for shutdown the process.
             self.app.on_shutdown.append(self.on_shutdown)
 
         except Exception as e:
@@ -41,12 +74,6 @@ class AuctionClient(Agent):
         print('Send signal termination')
         os.kill(os.getpid(), signal.SIGINT)
         return web.Response(text="Terminate started")
-
-    async def on_shutdown(self, app):
-        self.logger.info('shutdown started')
-
-
-        self.logger.info('shutdown ended')
 
     # async def on_startup(self, app):
     #    """
@@ -130,8 +157,3 @@ class AuctionClient(Agent):
         else:
             print(self.client_data.ip_address4, self.client_data.source_port)
             run_app(self.app, host=str(self.client_data.ip_address4), port=self.client_data.source_port)
-
-
-if __name__ == '__main__':
-    agent = AuctionClient()
-    agent.run()

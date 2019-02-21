@@ -56,6 +56,13 @@ class ServerConnection:
         """
         self.references = self.references - 1
 
+    def get_reference(self):
+        """
+        Returns the number of references.
+        :return:
+        """
+        return self.references
+
     def set_state(self, state: ServerConnectionState):
         """
         Sets the state of the server connection.

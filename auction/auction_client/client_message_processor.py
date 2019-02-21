@@ -57,7 +57,28 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         self.logger.info('server connection shutdown ended - key {0}'.format(server_connection.key))
 
-    async def connect(self):
+    async def _connection_established(self, session):
+        """
+        Sleeps until the session is acknowledged or a timeout is reached.
+
+        :param session: session to be acknowledged
+        :raises Connection error when not acknowledged
+        """
+        timeout = self.TIMEOUT_SYN
+        while timeout > 0:
+            if session.server_connection.get_state() == ServerConnectionState.ESTABLISHED:
+                break
+            await asyncio.sleep(0.01)
+            timeout = timeout - 10
+
+        if timeout <= 0:
+            # teardown the web socket connection
+            await self.websocket_shutdown(session.server_connection)
+
+            # Raise an exception to inform the error when connecting to the server.
+            raise ConnectionError("The connection could not be established")
+
+    async def connect(self) -> AuctionSession:
         """
         Connects a server, occurs per every resource request interval activation.
         """
@@ -99,43 +120,27 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         session.add_pending_message(message)
         session.set_server_connection(server_connection)
 
+        await self._connection_established(session)
+
         return session
 
-    async def connection_established(self, session):
-        """
-        Sleeps until the session is acknowledged or a timeout is reached.
-
-        :param session: session to be acknowledged
-        :raises Connection error when not acknowledged
-        """
-        timeout = self.TIMEOUT_SYN
-        while timeout > 0:
-            if session.server_connection.get_state() == ServerConnectionState.ESTABLISHED:
-                break
-            await asyncio.sleep(0.01)
-            timeout = timeout - 10
-
-        if timeout <= 0:
-            # teardown the web socket connection
-            await self.websocket_shutdown(session.server_connection)
-
-            # Raise an exception to inform the error when connecting to the server.
-            raise ConnectionError("The connection could not be established")
-
-    async def _disconnect_socket(self, session_key: str):
+    async def _disconnect_socket(self, server_connection: ServerConnection):
         """
         disconnects a session from the server.
 
         :param session_key: key for the session to use.
         :return:
         """
-        if session_key in self.app['server_connections']:
-            server_connection = self.app['server_connections'][session_key]
-            server_connection.delete_reference()
-            if server_connection.get_reference() == 0:
-                # the shutdown of the websocket also finishes the task.
-                await self.websocket_shutdown(server_connection)
-                self.app['server_connections'].pop(server_connection.key)
+        self.logger.debug("Starting _disconnect_socket - nbr references:{0}".format(
+                            str(server_connection.get_reference() )))
+
+        server_connection.delete_reference()
+        if server_connection.get_reference() == 0:
+            # the shutdown of the websocket also finishes the task.
+            await self.websocket_shutdown(server_connection)
+            self.app['server_connections'].pop(server_connection.key)
+
+        self.logger.debug("Ending _disconnect_socket")
 
     async def handle_syn_ack_message(self, server_connection: ServerConnection,
                                      ipap_message: IpapMessage):
@@ -157,15 +162,20 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                 server_connection.get_auction_session().confirm_message(ack_seqno)
 
                 # send the ack message establishing the session.
-                syn_ack_message = self.build_syn_ack_message(server_connection.session.get_next_message_id(),
+                syn_ack_message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                                              ipap_message.get_seqno())
                 msg = syn_ack_message.get_message()
                 await self.send_message(server_connection, msg)
 
+                # puts the connection as established.
+                server_connection.set_state(ServerConnectionState.ESTABLISHED)
+
+                self.logger.info("Connection established with server")
+
             except ValueError:
                 self.logger.error("Invalid ack nbr from the server, the session is going to be teardown")
-                await self._disconnect_socket(server_connection.session.get_key())
-                self.auction_session_manager.del_session(server_connection.session.get_key())
+                await self._disconnect_socket(server_connection)
+                self.auction_session_manager.del_session(server_connection.get_auction_session().get_key())
 
         else:
             # The server is not in syn sent state, so ignore the message
@@ -183,28 +193,41 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         :param ipap_message: message sent from the server.
         :return:
         """
+        self.logger.debug("Starting send_ack_disconnect")
         # verifies ack sequence number
         ack_seqno = ipap_message.get_ackseqno()
 
+        try:
+
+            server_connection.get_auction_session().confirm_message(ack_seqno)
+
+        except ValueError:
+            # nothing was expected to be acknowledged
+            pass
+
         # verifies the connection state
-        if server_connection.state == ServerConnectionState.FIN_WAIT_2:
-            try:
-                server_connection.session.confirm_message(ack_seqno)
+        if server_connection.get_state() == ServerConnectionState.FIN_WAIT_2:
 
-                # send the ack message establishing the session.
-                message = self.build_ack_message(server_connection.session.get_next_message_id(),
+            # send the ack message establishing the session.
+            message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                                  ipap_message.get_seqno())
-                await self.send_message(server_connection, message.get_message())
-                await self._disconnect_socket(server_connection.session.get_key())
-                self.auction_session_manager.del_session(server_connection.session.get_key())
-                server_connection.set_state(ServerConnectionState.CLOSED)
 
-            except ValueError:
-                # The message ack is not the expected, so ignore the message
-                self.logger.info("A msg with ack nbr not expected was received, ignoring it")
+            print('aqui vamos 1')
+            await self.send_message(server_connection, message.get_message())
+
+            print('aqui vamos 2')
+
+            await self._disconnect_socket(server_connection)
+            self.auction_session_manager.del_session(server_connection.get_auction_session().get_key())
+            server_connection.set_state(ServerConnectionState.CLOSED)
+
+            print('aqui vamos 3')
+
         else:
             # The server is not in syn sent state, so ignore the message
             self.logger.info("A msg with fin state was received,but the server is not in fin_wait state, ignoring it")
+
+        self.logger.debug("Ending  send_ack_disconnect- new state {0}".format(str(server_connection.get_state())))
 
     async def handle_ack(self, server_connection: ServerConnection,
                          ipap_message: IpapMessage):
@@ -222,7 +245,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         # verifies the connection state
         if server_connection.state == ServerConnectionState.FIN_WAIT_1:
             try:
-                server_connection.session.confirm_message(ack_seqno)
+                server_connection.get_auction_session().confirm_message(ack_seqno)
                 server_connection.set_state(ServerConnectionState.FIN_WAIT_2)
 
             except ValueError:
@@ -231,10 +254,10 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         else:
             from auction_client.auction_client_handler import HandleAuctionMessage
             when = 0
-            handle_auction_message = HandleAuctionMessage(server_connection.session, ipap_message, when)
+            handle_auction_message = HandleAuctionMessage(server_connection.get_auction_session(), ipap_message, when)
             handle_auction_message.start()
 
-        self.logger.debug('End method handle_ack')
+        self.logger.debug('End method handle_ack -new state: {0}'.format(str(server_connection.get_state())) )
 
     async def process_message(self, server_connection: ServerConnection, msg: str):
         """
@@ -271,26 +294,31 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             handle_auction_message = HandleAuctionMessage(server_connection.session, ipap_message, 0)
             handle_auction_message.start()
 
-    async def process_disconnect(self, session_key: str):
+    async def process_disconnect(self, session: AuctionSession):
         """
         Teardown the connection established for a particular session.
 
-        :param session_key: session key to teardown
+        :param session: session to teardown
         :return:
         """
-        session: AuctionSession = self.auction_session_manager.get_session(session_key)
+        self.logger.debug('Starting to disconnect')
 
         # verifies the connection state
         if session.server_connection.state == ServerConnectionState.ESTABLISHED:
 
             # send the ack message establishing the session.
             message = self.build_fin_message(session.get_next_message_id(), 0)
+
+            session.add_pending_message(message)
             await self.send_message(session.server_connection, message.get_message())
+
             session.server_connection.set_state(ServerConnectionState.FIN_WAIT_1)
 
         else:
             # The connection is not in establised state, so generate an error
-            raise ValueError("Error the connection for session key {0} is not established".format(session_key))
+            raise ValueError("Error the connection for session key {0} is not established".format(session.get_key()))
+
+        self.logger.debug('Ending disconnect')
 
     async def send_message(self, server_connection: ServerConnection, message: str):
         """
@@ -353,24 +381,3 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             self.logger.error("Error during server connection - error:{0}".format(str(e)))
             os.kill(os.getpid(), signal.SIGINT)
 
-    async def shutdown(self):
-        """
-        Shutdown the message processor, disconnects all connections.
-
-        """
-        # Close open sockets
-        if 'server_connections' in self.app:
-            for server_connection in self.app['server_connections']:
-                await self.process_disconnect(server_connection.key)
-
-            # Sleeps until all sockets has been closed.
-            while True:
-                await sleep(3)
-
-                num_open = 0
-                for server_connection in self.app['server_connections']:
-                    if server_connection.state != ServerConnectionState.CLOSED:
-                        num_open = num_open + 1
-
-                if num_open == 0:
-                    break

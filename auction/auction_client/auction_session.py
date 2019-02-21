@@ -68,3 +68,10 @@ class AuctionSession(Session):
         Sets the server connection established for the session.
         """
         self.server_connection = server_connection
+
+    def get_server_connnection(self) -> ServerConnection:
+        """
+        Gets the server connection established for the session.
+        :return: server connection
+        """
+        return self.server_connection
