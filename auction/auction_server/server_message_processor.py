@@ -225,7 +225,9 @@ class ServerMessageProcessor(AuctionMessageProcessor):
             await self.handle_fin(client_connection, ipap_message)
 
         else:
-            # Normal bidding message.
+            from auction_server.auction_server_handler import HandleAuctionMessage
+            handle_auction_message = HandleAuctionMessage(client_connection.session, ipap_message, 0)
+            handle_auction_message.start()
             pass
 
     async def handle_web_socket(self, request):

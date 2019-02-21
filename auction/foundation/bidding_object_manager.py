@@ -1,6 +1,7 @@
 # bidding_object_manager.py
-from .auctioning_object_manager import AuctioningObjectManager
+from foundation.auctioning_object_manager import AuctioningObjectManager
 from foundation.singleton import Singleton
+from python_wrapper.ipap_message import IpapMessage
 
 class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
@@ -16,3 +17,12 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
     def print_local_attribute(self):
         print (self.local_attribute)
+
+    def parse_message(self, ipap_message: IpapMessage)-> list:
+        """
+
+        :param ipap_message:
+        :return:
+        """
+        #TODO: implement method.
+        return []

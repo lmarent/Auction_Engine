@@ -2,7 +2,7 @@ import unittest
 from foundation.field_def_manager import FieldDefManager
 from foundation.field_def_manager import DataType
 from foundation.ipap_message_parser import IpapMessageParser
-from foundation.auction_file_parser import AuctionXmlFileParser
+from foundation.auction_parser import AuctionXmlFileParser
 from foundation.module_loader import ModuleLoader
 
 from foundation.field_value import FieldValue

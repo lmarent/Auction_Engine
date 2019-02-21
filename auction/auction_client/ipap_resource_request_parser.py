@@ -53,8 +53,6 @@ class IpapResourceRequestParser(IpapMessageParser):
         # Add the endtime
         self.insert_datetime_field('stop', interval.stop, data_option)
 
-        print(data_option.get_num_fields())
-
         # Add the interval.
         self.insert_integer_field('interval', interval.interval, data_option)
 
@@ -79,8 +77,6 @@ class IpapResourceRequestParser(IpapMessageParser):
 
         # Add the destination port
         self.insert_integer_field('srcauctionport', port, data_option)
-
-        print(data_option.get_num_fields())
 
         message.include_data(template_id, data_option)
 

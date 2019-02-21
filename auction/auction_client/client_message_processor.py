@@ -212,16 +212,11 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                                  ipap_message.get_seqno())
 
-            print('aqui vamos 1')
             await self.send_message(server_connection, message.get_message())
-
-            print('aqui vamos 2')
 
             await self._disconnect_socket(server_connection)
             self.auction_session_manager.del_session(server_connection.get_auction_session().get_key())
             server_connection.set_state(ServerConnectionState.CLOSED)
-
-            print('aqui vamos 3')
 
         else:
             # The server is not in syn sent state, so ignore the message
@@ -291,7 +286,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         else:
             from auction_client.auction_client_handler import HandleAuctionMessage
-            handle_auction_message = HandleAuctionMessage(server_connection.session, ipap_message, 0)
+            handle_auction_message = HandleAuctionMessage(server_connection.get_auction_session(), ipap_message, 0)
             handle_auction_message.start()
 
     async def process_disconnect(self, session: AuctionSession):

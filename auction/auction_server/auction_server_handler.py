@@ -3,12 +3,13 @@ from foundation.auction_task import ScheduledTask
 from foundation.auction_task import PeriodicTask
 from foundation.resource_manager import ResourceManager
 from foundation.resource import Resource
-from foundation.auction_file_parser import AuctionXmlFileParser
+from foundation.auction_parser import AuctionXmlFileParser
 from foundation.auction_manager import AuctionManager
 from foundation.auction import Auction
 from foundation.auctioning_object import AuctioningObjectState
 from foundation.session import Session
 from foundation.field_def_manager import FieldDefManager
+from foundation.bidding_object_manager import BiddingObjectManager
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
@@ -16,6 +17,7 @@ from python_wrapper.ipap_template_container import IpapTemplateContainer
 from auction_server.auction_processor import AuctionProcessor
 from auction_server.auction_processor import AgentFieldSet
 from auction_server.server_message_processor import ServerMessageProcessor
+from auction_server.server_message_processor import ClientConnection
 from auction_server.server_main_data import ServerMainData
 
 from datetime import datetime
@@ -218,20 +220,18 @@ class HandleLoadAuction(ScheduledTask):
             self.logger.error("An error occur during load actions - Error:{}".format(str(e)))
 
 
-class HandleSessionRequest(ScheduledTask):
+class HandleAskRequest(ScheduledTask):
     """
-    Handles a session request from an agent.
+    Handles an ask request from an agent. This request is performed to get auctions applicable for a resource.
     """
 
-    def __init__(self, message: IpapMessage,
-                 session_key: str, use_ipv6: bool,
-                 sender_address: str, sender_port: int,
-                 protocol: int, seconds_to_start: float):
+    def __init__(self, client_connection: ClientConnection, message: IpapMessage, seconds_to_start: float):
         """
 
         :param seconds_to_start:
         """
-        super(HandleSessionRequest, self).__init__(seconds_to_start)
+        super(HandleAskRequest, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
         self.message = message
         self.server_main_data = ServerMainData()
         self.auction_manager = AuctionManager(self.server_main_data.domain)
@@ -239,11 +239,6 @@ class HandleSessionRequest(ScheduledTask):
         self.field_manager = FieldDefManager()
         self.message_processor = ServerMessageProcessor()
         self.template_container = IpapTemplateContainer()
-        self.session_key = session_key
-        self.use_ipv6 = use_ipv6
-        self.sender_address = sender_address
-        self.sender_port = sender_port
-        self.protocol = protocol
         self.logger = log().get_logger()
 
     def is_complete(self, session_info: dict):
@@ -260,53 +255,90 @@ class HandleSessionRequest(ScheduledTask):
         """
         Handles a session request from an agent.
         """
+        self.logger.debug("starting HandleAskRequest processing")
         auctions = self.auction_processor.get_applicable_auctions(self.message)
         session_info = self.auction_processor.get_session_information(self.message)
 
         if self.is_complete(session_info):
-            field_ip_version = self.field_manager.get_field('ipversion')
-            ip_version = session_info[field_ip_version]
-
-            field_scrip = self.field_manager.get_field('srcip')
-            src_address = session_info[field_scrip]
-
-            if ip_version == 6:
-                field_srcipv6 = self.field_manager.get_field('srcipv6')
-                src_address = session_info[field_srcipv6]
-
-            field_scr_port = self.field_manager.get_field('srcport')
-            scr_port = session_info[field_scr_port]
-
             message_to_send = self.auction_manager.get_ipap_message(auctions, self.template_container,
                                                               self.sender_address,
                                                               self.sender_port)
+            message_to_send.set_ack_seq_no(self.message.get_seqno())
+            message_to_send.set_seqno(self.client_connection.session.get_next_message_id())
 
-            session = Session(session_id=self.session_key, sender_address=self.sender_address,
-                              sender_port=self.sender_port, receiver_address=src_address,
-                              receiver_port=scr_port, protocol=self.protocol)
-
-            await self.message_processor.send_message_to_session(self.session_key, message_to_send.get_message())
+            await self.message_processor.send_message(self.client_connection,
+                                                                 message_to_send.get_message())
         else:
-            # TODO GENERATE AN ERROR.
-            pass
+            ack_message = self.message_processor.build_ack_message(self.client_connection.session.get_next_message_id(),
+                                                     self.message.get_seqno())
+            await self.message_processor.send_message(self.client_connection,
+                                                      ack_message.get_message())
+
+        self.logger.debug("ending HandleAskRequest processing")
 
 
-class HandleAuctionMessage(ScheduledTask):
-    def __init__(self, session: Session, ipap_message: IpapMessage, seconds_to_start: float):
-        super(HandleAuctionMessage, self).__init__(seconds_to_start)
-        self.session = session
-        self.message = ipap_message
+class HandleAddBiddingObjects(ScheduledTask):
+    def __init__(self, client_connection: ClientConnection, ipap_message: IpapMessage, seconds_to_start: float):
+        super(HandleAddBiddingObjects, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
+        self.ipap_message = ipap_message
+        self.server_main_data = ServerMainData()
+        self.server_message_processor = ServerMessageProcessor()
+        self.bididing_manager = BiddingObjectManager(self.server_main_data.domain)
         self.logger = log().get_logger()
 
     def _run_specific(self):
-        type = self.ipap_message.get_type()
+        """
 
-        # TODO: Complete this code
-        # if type == auction:
-        #
-        # elif type == bidding_object:
-        #
-        # elif type == allocation:
-        #
-        # else:
-        #    logger.error("invalid type")
+        :return:
+        """
+        self.logger.debug("starting HandleAddBiddingObjects")
+        # parse the message
+        bidding_objects = self.bididing_manager.parse_message(self.ipap_message)
+
+        # insert bidding objects to bidding object manager
+        for bid in bidding_objects:
+            bid.set_session(self.client_connection.session)
+            self.bididing_manager.add_auctioning_object(bid)
+
+        # confirm the message
+        confim_message = self.server_message_processor.build_ack_message(self.session.get_next_message_id(),
+                                                                         self.ipap_message.get_seqno() + 1)
+        self.server_message_processor.send_message(self.client_connection, confim_message.get_message())
+        self.logger.debug("ending HandleAddBiddingObjects")
+
+
+class HandleAuctionMessage(ScheduledTask):
+    def __init__(self, client_connection: ClientConnection, ipap_message: IpapMessage, seconds_to_start: float):
+        super(HandleAuctionMessage, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
+        self.message = ipap_message
+        self.template_container = IpapTemplateContainer()
+        self.logger = log().get_logger()
+
+    def _run_specific(self):
+
+        # if the message has a ack nbr, then confirm the message
+        seq_no = self.ipap_message.get_seqno()
+        ack_seq_no = self.ipap_message.get_ackseqno()
+        self.session.confirm_message(ack_seq_no)
+
+        ipap_message_type = self.ipap_message.get_types()
+        if ipap_message_type.is_ask_message():
+            handle_ask_request = HandleAskRequest(self.ipap_message)
+            handle_ask_request.start()
+
+        if ipap_message_type.is_auction_message():
+            # TODO: It must implement new auctions.
+            pass
+
+        if ipap_message_type.is_bidding_message():
+            # TODO: implement the code
+            pass
+
+        if ipap_message_type.is_allocation_message():
+            # TODO: implement the code
+            pass
+
+        else:
+            self.logger.error("invalid message type")

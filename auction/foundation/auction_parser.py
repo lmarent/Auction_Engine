@@ -8,7 +8,10 @@ from foundation.ipap_message_parser import IpapMessageParser
 from foundation.config import Config
 from foundation.config_param import ConfigParam
 from foundation.parse_format import ParseFormats
+
 from python_wrapper.ipap_field_container import IpapFieldContainer
+from python_wrapper.ipap_message import IpapMessage
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 import pathlib
 import os
@@ -189,6 +192,33 @@ class AuctionXmlFileParser(IpapMessageParser):
 
             return auctions
 
+
+class IpapAuctionParser(IpapMessageParser):
+
+    def __init__(self, domain: int):
+        super(IpapAuctionParser, self).__init__(domain=domain)
+        self.template_container = IpapTemplateContainer()
+
+    def include_auction(self, auction: Auction, use_ipv6:bool, address4: str,
+                        address6: str, port: int, message: IpapMessage):
+
+        data_auction_template = auction.get_auction_data_template()
+        auct_template = self.template_container.get_template(data_auction_template)
+        message.make_template(auct_template)
+
+        opts_auction_template = auction.get_option_auction_template()
+        opts_template = self.template_container.get_template(opts_auction_template)
+        message.make_template(opts_auction_template)
+
+        # TODO: FINISH CODE.
+
+        self.insert_string_field('recordid', record_id, data_option)
+
+    def get_ipap_message(self, auctions: list, use_ipv6: bool, address4: str, address6: str, port: int) -> IpapMessage:
+        message = IpapMessage(self.domain, IpapMessage.IPAP_VERSION, True)
+        for auction in auctions:
+            self.include_auction(auction, use_ipv6, address4, address6, port, message)
+        return message
 
 if __name__ == "__main__":
     auction_xml_file_parser = AuctionXmlFileParser(10)

@@ -4,7 +4,7 @@ import unittest
 from aiohttp import web
 from auction_server.server import AuctionServer
 from auction_server.auction_processor import AuctionProcessor
-from foundation.auction_file_parser import AuctionXmlFileParser
+from foundation.auction_parser import AuctionXmlFileParser
 from foundation.bidding_object import BiddingObject
 from foundation.config import Config
 from auction_server.auction_processor import AgentFieldSet
