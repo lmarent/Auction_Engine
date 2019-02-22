@@ -145,14 +145,22 @@ class IpapField:
     #     else:
     #         raise ValueError('Field value could not be created')
 
-    def write_value(self, value: IpapValueField):
+    def write_value(self, value: IpapValueField) -> str:
         write_value = lib.ipap_field_write_value
         write_value.restype = c_char_p
 
-        return lib.ipap_field_write_value(self.obj, value.obj)
+        bstr = lib.ipap_field_write_value(self.obj, value.obj)
+        return bstr.decode('utf-8')
 
     def parse(self, value:str) -> IpapValueField:
-        return lib.ipap_field_parse(self.obj, c_char_p(value))
+        bvalue = value.encode('utf-8')
+        obj = lib.ipap_field_parse(self.obj, c_char_p(bvalue))
+
+        if obj:  # not null
+            field_value = IpapValueField(obj=obj)
+            return field_value
+        else:
+            raise ValueError('Field value could not be parsed')
 
     def __del__(self):
         if self.obj: # not null

@@ -259,8 +259,14 @@ class HandleAskRequest(ScheduledTask):
         auctions = self.auction_processor.get_applicable_auctions(self.message)
         session_info = self.auction_processor.get_session_information(self.message)
 
+        if self.server_main_data.use_ipv6:
+            s_address = self.server_main_data.ip_address6
+        else:
+            s_address = self.server_main_data.ip_address4
+
         if self.is_complete(session_info):
-            message_to_send = self.auction_manager.get_ipap_message(auctions, self.sender_address, self.sender_port)
+            message_to_send = self.auction_manager.get_ipap_message(auctions, self.server_main_data.use_ipv6,
+                                                                    s_address, self.server_main_data.local_port)
             message_to_send.set_ack_seq_no(self.message.get_seqno())
             message_to_send.set_seqno(self.client_connection.session.get_next_message_id())
 

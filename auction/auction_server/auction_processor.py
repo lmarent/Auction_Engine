@@ -130,7 +130,7 @@ class AuctionProcessor(IpapMessageParser):
                                            field.write_value(ipap_record.get_field(
                                                field_key.get_eno(), field_key.get_ftype())))
 
-                config_params[config_param.name] = config_param
+                config_params[config_param.name.lower()] = config_param
             except ValueError as e:
                 self.logger.error("Field with eno {0} and ftype {1} was \
                                     not parametrized".format(str(field_key.get_eno()),
