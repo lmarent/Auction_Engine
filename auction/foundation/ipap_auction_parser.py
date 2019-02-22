@@ -30,7 +30,7 @@ class IpapAuctionParser(IpapMessageParser):
         non_mandatory = []
 
         items = action.get_config_params()
-        for item in items:
+        for item in items.values():
             field = self.field_def_manager.get_field(item.name)
 
             # Checks it is not a mandatory field.
@@ -58,7 +58,7 @@ class IpapAuctionParser(IpapMessageParser):
         :param s_address: source address
         :param port: source port
         """
-        ipap_data_record = IpapDataRecord(template.get_template_id())
+        ipap_data_record = IpapDataRecord(obj=None, templ_id=template.get_template_id())
 
         # Insert the auction id field.
         self.insert_string_field('auctionid', auction.get_key(), ipap_data_record)
@@ -118,7 +118,7 @@ class IpapAuctionParser(IpapMessageParser):
         :param message:    message being built.
         :return:
         """
-        ipap_options_record = IpapDataRecord(template.get_template_id())
+        ipap_options_record = IpapDataRecord(obj=None, templ_id=template.get_template_id())
 
         # Add the auction Id
         self.insert_string_field('auctionid', auction.get_key(), ipap_options_record)
@@ -133,7 +133,7 @@ class IpapAuctionParser(IpapMessageParser):
         option_fields = template.get_template_type_mandatory_field(TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
 
         items = auction.action.get_config_params()
-        for item in items:
+        for item in items.values():
             field = self.field_def_manager.get_field(item.name)
 
             # Checks it is not a mandatory field.
@@ -145,7 +145,7 @@ class IpapAuctionParser(IpapMessageParser):
 
             if not is_mandatory:
                 # check the field is a valid field for the message
-                field_act: IpapField = self.field_container(field['eno'], field['ftype'])
+                field_act = self.field_container.get_field(field['eno'], field['ftype'])
                 act_f_value = field_act.parse(item.value)
                 ipap_options_record.insert_field(field['eno'], field['ftype'], act_f_value)
 
@@ -200,7 +200,7 @@ class IpapAuctionParser(IpapMessageParser):
 
     def get_ipap_message(self, auctions: list, use_ipv6: bool, s_address: str, port: int) -> IpapMessage:
         """
-        Gets an ipap_message to transmit the information of the auctions given as parameter.
+        Gets an ipap_message to transfer the information of the auctions given as parameter.
 
         :param auctions: List of auctions to convert to a message
         :param use_ipv6: whether or not it use ipv6

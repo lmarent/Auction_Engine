@@ -23,6 +23,7 @@ from auction_server.server_main_data import ServerMainData
 from datetime import datetime
 from datetime import timedelta
 from utils.auction_utils import log
+import ipaddress
 
 
 class HandleAuctionExecution(PeriodicTask):
@@ -261,9 +262,9 @@ class HandleAskRequest(ScheduledTask):
         session_info = self.auction_processor.get_session_information(self.message)
 
         if self.server_main_data.use_ipv6:
-            s_address = self.server_main_data.ip_address6
+            s_address = self.server_main_data.ip_address6.__str__()
         else:
-            s_address = self.server_main_data.ip_address4
+            s_address = self.server_main_data.ip_address4.__str__()
 
         if self.is_complete(session_info):
             message_to_send = self.auction_manager.get_ipap_message(auctions, self.server_main_data.use_ipv6,
