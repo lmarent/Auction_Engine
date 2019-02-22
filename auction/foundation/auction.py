@@ -11,7 +11,7 @@ from foundation.config_param import ConfigParam
 
 from python_wrapper.ipap_field_container import IpapFieldContainer
 from python_wrapper.ipap_template import IpapTemplate
-from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
 from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_template import UnknownField
@@ -221,7 +221,7 @@ class Auction(AuctioningObject):
         field_container.initialize_forward()
         field_container.initialize_reverse()
 
-        template_container: IpapTemplateContainer = TemplateContainer().get_template_container()
+        template_container: IpapTemplateContainerSingleton = TemplateContainer().get_template_container()
 
         # Creates the auction data template
         auct_template = self.create_auction_template(field_container, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
@@ -398,6 +398,14 @@ class Auction(AuctioningObject):
         """
         self.sessions.discard(session_id)
 
+    def set_start(self, start: datetime):
+        """
+        Sets the start datatime for the auction
+        :param start: start datetime
+        :return:
+        """
+        self.interval.start = start
+
     def get_start(self) -> datetime:
         """
         Gets the start datetime for the auction
@@ -411,6 +419,15 @@ class Auction(AuctioningObject):
         :return:
         """
         return self.interval.stop
+
+    def set_stop(self, stop: datetime):
+        """
+        Sets the stop datetime for the auction
+
+        :param stop: stop datetime
+        :return:
+        """
+        self.interval.stop = stop
 
     def get_resource_key(self) -> str:
         """

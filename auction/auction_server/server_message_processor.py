@@ -12,6 +12,7 @@ from foundation.session import Session
 
 from python_wrapper.ipap_message import IpapMessage
 from utils.auction_utils import log
+from foundation.singleton import Singleton
 
 
 class ClientConnectionState(Enum):
@@ -69,7 +70,7 @@ class ClientConnection:
         return self.state
 
 
-class ServerMessageProcessor(AuctionMessageProcessor):
+class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
     """
     This class takes care of agents' communications.
     """
@@ -146,7 +147,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
 
         else:
             when = 0
-            handle_auction_message = HandleAuctionMessage(client_connection.session, ipap_message, when)
+            handle_auction_message = HandleAuctionMessage(client_connection, ipap_message, when)
             handle_auction_message.start()
 
         self.logger.debug('Ending handle_ack')
@@ -226,7 +227,7 @@ class ServerMessageProcessor(AuctionMessageProcessor):
 
         else:
             from auction_server.auction_server_handler import HandleAuctionMessage
-            handle_auction_message = HandleAuctionMessage(client_connection.session, ipap_message, 0)
+            handle_auction_message = HandleAuctionMessage(client_connection, ipap_message, 0)
             handle_auction_message.start()
             pass
 

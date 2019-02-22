@@ -1,6 +1,6 @@
 from foundation.session import Session
 from datetime import datetime
-from auction_client.resource_request import ResourceRequest
+from auction_client.resource_request_interval import ResourceRequestInterval
 from auction_client.server_connection import ServerConnection
 
 
@@ -8,7 +8,7 @@ class AuctionSession(Session):
     """
     This class represents the agent client sessions used to auction. 
 
-    It has the resource request, the auctions being performed,
+    It has the resource request interval, the auctions being performed,
     and the start and stop time when it should happen the auction session.
     """	
 
@@ -20,7 +20,7 @@ class AuctionSession(Session):
 
         self.start_time = datetime.now()
         self.stop_time = datetime.now()
-        self.resource_request = None
+        self.resource_request_interval = None
         self.server_connection = None
         
         # Sets of auction identifiers. 
@@ -40,13 +40,13 @@ class AuctionSession(Session):
         """
         self.stop_time = stop
 
-    def set_resource_request(self, resource_request: ResourceRequest):
+    def set_resource_request_interval(self, resource_request_interval: ResourceRequestInterval):
         """
-        Sets the resource request for the session
+        Sets the resource request interval for the session
 
         :param resource_request: resource request to set
         """
-        self.resource_request = resource_request
+        self.resource_request_interval = resource_request_interval
 
     def get_auctions(self) -> set:
         """
@@ -54,7 +54,7 @@ class AuctionSession(Session):
         """
         return self.auction_set
 
-    def set_auctions(self, auctions: set):
+    def set_auctions(self, auctions: list):
         """
         Copies the auctions identifiers within auctions parameter to the auction_set attribute.
 

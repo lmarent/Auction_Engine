@@ -3,6 +3,7 @@ from contextlib import suppress
 from abc import ABC
 from abc import abstractmethod
 from utils.auction_utils import log
+from datetime import datetime
 
 class AuctionTask(ABC):
     """
@@ -50,6 +51,17 @@ class ScheduledTask(AuctionTask):
     def __init__(self, time: float):
         super(ScheduledTask, self).__init__(time)
         self._observers = []
+
+    async def reschedule(self, time: float):
+        """
+        reschedule the task givin it the new time to wait until its activation
+        :param time:
+        :return:
+        """
+        await self.stop()
+        self.time = time
+        if self.is_started:
+            self._task = asyncio.ensure_future(self._run())
 
     def attach(self, observer):
         """

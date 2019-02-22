@@ -11,7 +11,7 @@ from foundation.parse_format import ParseFormats
 
 from python_wrapper.ipap_field_container import IpapFieldContainer
 from python_wrapper.ipap_message import IpapMessage
-from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
 from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_template import UnknownField
 from python_wrapper.ipap_template import ObjectType

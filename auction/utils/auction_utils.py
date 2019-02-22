@@ -2,6 +2,7 @@ import logging
 from logging import Logger
 from foundation.singleton import Singleton
 import os
+from datetime import datetime
 
 class log(metaclass=Singleton):
 
@@ -41,3 +42,17 @@ class log(metaclass=Singleton):
             self.create_logger()
 
         return self.logger
+
+class DateUtils(metaclass=Singleton)
+
+    @staticmethod
+    def calculate_when(start: datetime) -> float:
+        """
+        Calculates the datetime of an event given the current loop time
+        :param start: datetime when the event should start
+        :return: time in milliseconds when we should start the new event
+        """
+        if start <= datetime.now():
+            return 0
+        else:
+            return (start - datetime.now()).total_seconds()

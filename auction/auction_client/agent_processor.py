@@ -108,7 +108,7 @@ class AgentProcessor(metaclass=Singleton):
         else:
             ValueError('Configuration file does not have {0} entry,please include it'.format('AGNTProcessor'))
 
-    def add_request(self, session_id: str, config_dic: dict, auction: Auction, start: datetime, stop: datetime):
+    def add_request(self, session_id: str, config_dic: dict, auction: Auction, start: datetime, stop: datetime) -> str:
         """
         Adds a new request to the list of request to execute.
 
@@ -117,7 +117,7 @@ class AgentProcessor(metaclass=Singleton):
         :param auction: auction to be used
         :param start: start date time
         :param stop: end date time
-        :return:
+        :return: key for the request process created.
         """
         module_name = auction.get_action().get_name() + "user"
         module = self.module_loader.get_module(module_name)
@@ -125,6 +125,7 @@ class AgentProcessor(metaclass=Singleton):
         key = str(IdSource().new_id())
         request_process = RequestProcess(key, session_id, module, auction, config_dic, start, stop)
         self.requests[key] = request_process
+        return key
 
     def delete_request(self, key: str):
         """

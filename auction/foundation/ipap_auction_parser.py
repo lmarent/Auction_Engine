@@ -1,5 +1,5 @@
 from python_wrapper.ipap_message import IpapMessage
-from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
 from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_template import UnknownField
 from python_wrapper.ipap_template import TemplateType
@@ -17,7 +17,7 @@ class IpapAuctionParser(IpapMessageParser):
 
     def __init__(self, domain):
         super(IpapAuctionParser, self).__init__(domain)
-        self.ipap_template_container = IpapTemplateContainer()
+        self.ipap_template_container = IpapTemplateContainerSingleton()
 
     def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list) -> list:
         """

@@ -12,7 +12,7 @@ from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_value_field import IpapValueField
-from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
 
 class DefFileManagerTest(unittest.TestCase):
 
@@ -265,7 +265,7 @@ class AuctionXmlFileParserTest(unittest.TestCase):
         self.assertEqual(auction.interval.duration, 100000)
         self.assertEqual(auction.interval.interval, 10)
 
-        self.template_container = IpapTemplateContainer()
+        self.template_container = IpapTemplateContainerSingleton()
         exists = self.template_container.exists_template(
             auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_OPTNS_BID_OBJECT_TEMPLATE])
         self.assertEqual(exists, True)

@@ -1,4 +1,5 @@
 # resource_request.py
+from datetime import datetime
 from foundation.auctioning_object import AuctioningObjectType
 from foundation.auctioning_object import AuctioningObject
 from foundation.field_value import FieldValue
@@ -28,19 +29,22 @@ class ResourceRequest(AuctioningObject):
         """
         self.field_values[field_value.name] = field_value
 
-    def get_interval_by_start_time(self, start) -> ResourceRequestInterval:
+    def get_interval_by_start_time(self, start: datetime) -> ResourceRequestInterval:
         """
         Returns the interval with start time equals to start
+        :param start start datetime to find.
+        :rtype: ResourceRequestInterval
         """
         for interval in self.intervals:
             if interval.start == start:
                 return interval
         return None
 
-    def get_interval_by_end_time(self, end) -> ResourceRequestInterval:
+    def get_interval_by_end_time(self, end: datetime) -> ResourceRequestInterval:
         """
         Returns the interval with stop time equals to end
-
+        :param end end datetime to find.
+        :rtype: ResourceRequestInterval
         """
         for interval in self.intervals:
             if interval.stop == end:

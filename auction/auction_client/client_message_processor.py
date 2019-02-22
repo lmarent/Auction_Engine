@@ -1,5 +1,4 @@
 import asyncio
-from asyncio import sleep
 from aiohttp import ClientSession
 from aiohttp import WSMsgType
 from aiohttp.client_exceptions import ClientConnectorError
@@ -249,7 +248,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         else:
             from auction_client.auction_client_handler import HandleAuctionMessage
             when = 0
-            handle_auction_message = HandleAuctionMessage(server_connection.get_auction_session(), ipap_message, when)
+            handle_auction_message = HandleAuctionMessage(server_connection, ipap_message, when)
             handle_auction_message.start()
 
         self.logger.debug('End method handle_ack -new state: {0}'.format(str(server_connection.get_state())) )

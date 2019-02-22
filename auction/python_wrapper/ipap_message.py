@@ -169,6 +169,9 @@ class IpapMessage:
         ret = ''.join(ret_lst)
         return ret
 
+    def get_domain(self)-> int:
+        return lib.ipap_message_get_domain()
+
     def make_template(self, template: IpapTemplate):
         lib.ipap_message_make_template(self.obj, template.obj)
 

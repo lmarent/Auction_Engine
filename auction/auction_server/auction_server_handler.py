@@ -12,7 +12,7 @@ from foundation.field_def_manager import FieldDefManager
 from foundation.bidding_object_manager import BiddingObjectManager
 
 from python_wrapper.ipap_message import IpapMessage
-from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
 
 from auction_server.auction_processor import AuctionProcessor
 from auction_server.auction_processor import AgentFieldSet
@@ -241,7 +241,7 @@ class HandleAskRequest(ScheduledTask):
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
         self.field_manager = FieldDefManager()
         self.message_processor = ServerMessageProcessor()
-        self.template_container = IpapTemplateContainer()
+        self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
     def is_complete(self, session_info: dict):
@@ -317,7 +317,7 @@ class HandleAuctionMessage(ScheduledTask):
         super(HandleAuctionMessage, self).__init__(seconds_to_start)
         self.client_connection = client_connection
         self.message = ipap_message
-        self.template_container = IpapTemplateContainer()
+        self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
     def _run_specific(self):

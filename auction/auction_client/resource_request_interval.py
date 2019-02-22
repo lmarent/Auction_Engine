@@ -6,6 +6,7 @@ class ResourceRequestInterval(Interval):
 
     def __init__(self):
         super.__init__(ResourceRequestInterval, self).__init__()
+        self.field_values = {}
         self.state: AuctioningObjectState = AuctioningObjectState.NEW
         self.resource_request_process = set()
 
@@ -33,8 +34,26 @@ class ResourceRequestInterval(Interval):
         """
         return self.resource_request_process
 
-    def stop(self):
+    def set_fields(self, config_params: dict):
+        """
+        Sets config params- Initially they are the same as the params given for the resource request.
+
+        :param config_params:
+        :return:
+        """
+        self.field_values = config_params
+
+    def get_fields(self) -> dict:
+        """
+        Gets config params
+
+        :return: dictionary with config params
+        """
+        return self.field_values
+
+    def stop_execution(self):
         """
         Stops execution of resource request interval.
         :return:
         """
+        pass

@@ -75,6 +75,19 @@ class AuctioningObject:
         if isinstance(auction_task, ScheduledTask):
             auction_task.attach(self)
 
+    def reschedule_task(self, task_name: str, time: float):
+        """
+        Reschedule tasks with name task_name
+
+        :param task_name: task name to reschedule
+        :param time: time when the task should start.
+        :return:
+        """
+        for task in self.active_tasks:
+            if isinstance(task, ScheduledTask):
+                if task_name == task.__class__.__name__:
+                    task.reschedule(time)
+
     def remove_task(self, auction_task: AuctionTask):
         """
         call back called when an auction task ends.

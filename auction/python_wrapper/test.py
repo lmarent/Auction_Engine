@@ -10,7 +10,7 @@ from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_template import UnknownField
 from python_wrapper.ipap_template import ObjectType
-from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
 
 from ctypes import pointer
 import unittest
@@ -183,7 +183,7 @@ class TemplateTest(unittest.TestCase):
 class TemplateContainerTest(unittest.TestCase):
 
     def setUp(self):
-        self.template_container = IpapTemplateContainer()
+        self.template_container = IpapTemplateContainerSingleton()
 
     def test_add_template(self):
         ipap_field = IpapField()
