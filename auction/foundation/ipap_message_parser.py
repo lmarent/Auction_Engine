@@ -146,7 +146,7 @@ class IpapMessageParser:
         """
         return self.domain
 
-    def get_misc_val(self, config_items: dict, item_name: str):
+    def get_misc_val(self, config_items: dict, item_name: str) -> str:
 
         if item_name in config_items:
             item: ConfigParam = config_items[item_name]

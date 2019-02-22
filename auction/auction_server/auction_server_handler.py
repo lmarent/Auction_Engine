@@ -207,10 +207,12 @@ class HandleLoadAuction(ScheduledTask):
                         seconds_to_start = auction.get_start() - datetime.now()
 
                     activate_task = HandleActivateAuction(auction=auction, seconds_to_start=seconds_to_start)
+                    activate_task.start()
                     auction.add_task(activate_task)
 
                     seconds_to_start = auction.get_stop() - datetime.now()
                     removal_task = HandleRemoveAuction(auction=auction, seconds_to_start=seconds_to_start)
+                    removal_task.start()
                     auction.add_task(removal_task)
 
                     self.logger.info("auction with key {0} added".format(auction.get_key()))
@@ -248,14 +250,13 @@ class HandleAskRequest(ScheduledTask):
         :param session_info: session information given.
         :return: true or false
         """
-        return len(session_info) == self.auction_processor.get_set_field(
-            AgentFieldSet.SESSION_FIELD_SET_NAME)
+        agent_session_set = self.auction_processor.get_set_field(AgentFieldSet.SESSION_FIELD_SET_NAME)
+        return len(session_info) == len(agent_session_set)
 
     async def _run_specific(self):
         """
         Handles a session request from an agent.
         """
-        self.logger.debug("starting HandleAskRequest processing")
         auctions = self.auction_processor.get_applicable_auctions(self.message)
         session_info = self.auction_processor.get_session_information(self.message)
 
@@ -277,8 +278,6 @@ class HandleAskRequest(ScheduledTask):
                                                      self.message.get_seqno())
             await self.message_processor.send_message(self.client_connection,
                                                       ack_message.get_message())
-
-        self.logger.debug("ending HandleAskRequest processing")
 
 
 class HandleAddBiddingObjects(ScheduledTask):

@@ -8,6 +8,8 @@ from foundation.auctioning_object import AuctioningObjectType
 from foundation.field_def_manager import FieldDefManager
 from foundation.module import Module
 from foundation.config_param import ConfigParam
+from foundation.singleton import Singleton
+
 
 from datetime import datetime
 from enum import Enum
@@ -66,7 +68,7 @@ class AuctionProcess(AuctionProcessObject):
         return self.bids
 
 
-class AuctionProcessor(IpapMessageParser):
+class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
     """
     This class manages and executes algorithms for a set of auctions.
 
@@ -150,8 +152,8 @@ class AuctionProcessor(IpapMessageParser):
                                        self.field_def_manager.get_field('srcipv4')['ftype']))
         agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcipv6')['eno'],
                                        self.field_def_manager.get_field('srcipv6')['ftype']))
-        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcport')['eno'],
-                                       self.field_def_manager.get_field('srcport')['ftype']))
+        agent_session.add(IpapFieldKey(self.field_def_manager.get_field('srcauctionport')['eno'],
+                                       self.field_def_manager.get_field('srcauctionport')['ftype']))
         self.field_sets[AgentFieldSet.SESSION_FIELD_SET_NAME] = agent_session
 
         # Fill option auctions fields
@@ -266,15 +268,15 @@ class AuctionProcessor(IpapMessageParser):
         """
         Gets the session information within the message.
 
-        If the option template is empty then the returned auction must be zero.
-        If the option template has more that a record then we assume all records have the same session information.
+        If the option template is empty, then the returned auction must be zero.
+        If the option template has more that a record, then we assume all records have the same session information.
 
         :param message message from where to extract the session information.
         :return: map of values that identify the session
         """
         session_info = {}
         try:
-            templ_opt_auction = self.read_template(message, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+            templ_opt_auction = self.read_template(message, TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE)
             data_records = self.read_data_records(message, templ_opt_auction.get_template_id())
             for data_record in data_records:
                 config_items = self.read_misc_data(templ_opt_auction, data_record)
@@ -282,7 +284,9 @@ class AuctionProcessor(IpapMessageParser):
                 for field_key in field_keys:
                     field = self.field_def_manager.get_field_by_code(
                         field_key.get_eno(), field_key.get_ftype())
-                    session_info[field] = self.get_misc_val(config_items, field)
+                    field_name = field['name'].lower()
+                    val = self.get_misc_val(config_items, field_name)
+                    session_info[field_name] = val
 
                 break
             return session_info
@@ -308,7 +312,8 @@ class AuctionProcessor(IpapMessageParser):
         :return: list of applicable auctions
         """
         auctions_ret = []
-        for auction in self.auctions:
+        for auction_key in self.auctions:
+            auction = self.auctions[auction_key].auction
             include = True
             if stop_dttm <= auction.get_start():
                 include = False

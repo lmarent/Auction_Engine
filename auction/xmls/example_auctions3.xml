@@ -38,7 +38,7 @@
 
 
   <AUCTION ID="2" RESOURCE_SET="ResourceSet_1" RESOURCE_ID="Router_1">
-    <ACTION NAME="basic_server_module" DEFAULT="true">
+    <ACTION NAME="basic_module" DEFAULT="true">
     <PREF NAME="Bandwidth" TYPE="Float32">8</PREF>
     <PREF NAME="ReservePrice" TYPE="Float64">0.0</PREF>
     </ACTION>
