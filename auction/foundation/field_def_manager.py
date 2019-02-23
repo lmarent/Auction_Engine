@@ -156,6 +156,7 @@ class FieldDefManager(metaclass=Singleton):
                 field_new['ftype'] = field_definitions[key]['Ftype']
                 field_new['name'] = field_definitions[key]['Name']
                 field_new['lenght'] = length
+                field_new['key'] = key
                 self.field_definitions[key] = field_new
             except ValueError as e:
                 print("field {0} not included - error: {1}".format(key, str(e)))

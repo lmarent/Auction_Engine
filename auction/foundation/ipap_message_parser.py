@@ -182,12 +182,45 @@ class IpapMessageParser:
         """
         return self.domain
 
+    def read_record(self, template: IpapTemplate, record:IpapDataRecord ) -> dict:
+        """
+        Reads an auction data record
+        :param template: record's template
+        :param record: data record
+        :return: config values
+        """
+        config_params = {}
+        for field_pos in range(0,record.get_num_fields()):
+            ipap_field_key = record.get_field_at_pos(field_pos)
+            ipap_field_value = record.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
+            f_item = self.field_def_manager.get_field_by_code(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
+            ipap_field = template.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
+            config_param = ConfigParam(name=f_item['key'],
+                                       p_type=f_item.type,
+                                       value=ipap_field.write_value(ipap_field_value))
+            config_params[config_param.param] = config_param
+        return config_params
+
     def get_misc_val(self, config_items: dict, item_name: str) -> str:
 
         if item_name in config_items:
             item: ConfigParam = config_items[item_name]
             value = item.value.lower()
             return value
+        else:
+            raise ValueError("item with name {0} not found in config items".format(item_name))
+
+    def extract_param(self, config_items: dict, item_name: str) -> ConfigParam:
+        """
+        Extracts a parameter by name from the list of config items, returns the config param.
+        the list config items is altered by removing the parameter.
+
+        :param config_items: config params
+        :param item_name: config item name to find.
+        :return: the config param
+        """
+        if item_name in config_items:
+            return config_items.pop(item_name)
         else:
             raise ValueError("item with name {0} not found in config items".format(item_name))
 

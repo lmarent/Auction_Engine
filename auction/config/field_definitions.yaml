@@ -85,11 +85,6 @@ field_def:
     Eno: 0
     Ftype: 25
     Name: RefBiddingObjectID
-  refbiddingobjectid:
-    Type: String
-    Eno: 0
-    Ftype: 52
-    Name: RefBiddingObjectID
   biddingobjecttype:
     Length: 4
     Type: UInt32
@@ -140,12 +135,12 @@ field_def:
     Type: IpAddr
     Eno: 0
     Ftype: 10
-    Name: SrcIP
+    Name: SrcIPv4
   dstipv4:
     Type: IpAddr
     Eno: 0
     Ftype: 12
-    Name: DstIP
+    Name: DstIPv4
   srcipv6:
     Type: Ip6Addr
     Eno: 0

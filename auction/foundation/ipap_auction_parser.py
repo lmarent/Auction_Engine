@@ -8,10 +8,13 @@ from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_data_record import IpapDataRecord
 
+
 from foundation.auction import Auction
 from foundation.auction import Action
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.ipap_message_parser import IpapObjectKey
+from foundation.auctioning_object import AuctioningObjectState
+from foundation.parse_format import ParseFormats
 
 
 class IpapAuctionParser(IpapMessageParser):
@@ -20,41 +23,39 @@ class IpapAuctionParser(IpapMessageParser):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainerSingleton()
 
-    def verify_insert_templates(self, data_template: IpapTemplate, opts_template: IpapTemplate,
-                                ipap_template_container: IpapTemplateContainer):
+    def verify_insert_template(self, template: IpapTemplate, ipap_template_container: IpapTemplateContainer):
+        """
+        Verifies and in case of not included before inserts the template given in the template container
 
+        :param template: template to include
+        :param ipap_template_container: template container where templates should be verified.
+        """
+        # Insert templates in case of not created in the template container.
+        try:
 
-    templ_data2 = None
-    templ_option2 = None
+            template_ret = ipap_template_container.get_template(template.get_template_id())
+            if not template_ret.is_equal(template):
+                raise ValueError("Data Template {0} given is different from the template already stored".format(
+                    template.get_template_id()))
 
-    # Insert templates in case of not created in the template container.
-    try:
-        templData2  = templatesOut->get_template(templData->get_template_id());
-    except ValueError:
-        templatesOut->add_template(templData->copy());
-        templData2  = templatesOut->get_template(templData->get_template_id());
+        except ValueError:
+            ipap_template_container.add_template(template)
 
-    try:
-        templOption2 = templatesOut->get_template(templOption->get_template_id());
-    except ValueError:
-        templatesOut->add_template(templOption->copy());
-        templOption2 = templatesOut->get_template(templOption->get_template_id());
+    def parse_auction(self, templates: list, data_records: list,
+                      ipap_template_container: IpapTemplateContainer) -> Auction:
+        """
+        Parse an auction from the ipap_message
 
-    # Verifies that both templates are equal to those defined in the template container or they
-    # do not exist.
-    if ((*templData != * templData2)):
-        throw Error("MAPI Auction Parser: Data Template %d given is different from the template already stored", templData->get_template_id());
-
-
-    if ((*templOption != * templOption2)):
-        throw Error("MAPI Auction Parser: Option Template %d given is different from the template already stored", templOption->get_template_id());
-
-
-    def parse_auction(self, object_key: IpapObjectKey, templates: list,
-                      data_records: list, ipap_template_container: IpapTemplateContainer):
+        :param templates: templates for the auction
+        :param data_records: records for the auction
+        :param ipap_template_container: template container where we have to include the templates.
+        :return: auction parsed.
+        """
         data_template = None
         opts_template = None
         template_fields = []
+        nbr_data_read = 0
+        nbr_option_read = 0
 
         for template in templates:
             self.getTemplateFields(template, template_fields)
@@ -63,15 +64,58 @@ class IpapAuctionParser(IpapMessageParser):
             elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
                 opts_template = template
 
+        if (data_template is None):
+            raise ValueError("The message is incomplete Data template was not included")
+
+        if (opts_template is None):
+            raise ValueError("The message is incomplete Options template was not included")
+
+
         # Verify templates
-        self.verify_insert_templates(data_template, opts_template, ipap_template_container)
+        self.verify_insert_template(data_template, ipap_template_container)
+        self.verify_insert_template(opts_template, ipap_template_container)
 
         # Read data records
         for data_record in data_records:
             template_id = data_record.get_template_id()
             # Read a data record for a data template
-            find_template(template_id)
+            if template_id == data_template.get_template_id():
+                data_misc = self.read_record(data_template, data_record)
+                auction_key = self.extract_param('auctionid', data_misc)
+                auction_status = self.extract_param('status', data_misc)
+                resource_key = self.extract_param('resourceid', data_misc)
+                template_list = self.extract_param('templatelist', data_misc)
+                nbr_data_read = nbr_data_read + 1
 
+            if template_id == opts_template.get_template_id():
+                opts_misc = self.read_record(opts_template, data_record)
+                action_name = self.extract_param('algoritmname', data_misc)
+                nbr_option_read = nbr_option_read + 1
+
+        if nbr_data_read > 1:
+            raise ValueError("The message included more than one data template")
+
+        if nbr_data_read == 0:
+            raise ValueError("The message not included  a data template")
+
+        if nbr_option_read > 1:
+            raise ValueError("The message included more than one options template")
+
+        if nbr_option_read == 0:
+            raise ValueError("The message not included  a options template")
+
+        action = Action(action_name.value, True, opts_misc)
+        auction = Auction(auction_key.value, resource_key.value, action, data_misc )
+        auction.set_state(AuctioningObjectState(ParseFormats.parse_int(auction_status.value)))
+        template_ids = template_list.value.split(',')
+
+        for template_sid in template_ids:
+            template = ipap_template_container.get_template(ParseFormats.parse_int(template_sid))
+
+            auction.set_bidding_object_template(template.get_object_type(template.get_type()),
+                                                template.get_type(), template.get_template_id())
+
+        return auction
 
     def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer):
 
