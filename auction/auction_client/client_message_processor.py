@@ -285,7 +285,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         else:
             from auction_client.auction_client_handler import HandleAuctionMessage
-            handle_auction_message = HandleAuctionMessage(server_connection.get_auction_session(), ipap_message, 0)
+            handle_auction_message = HandleAuctionMessage(server_connection, ipap_message, 0)
             handle_auction_message.start()
 
     async def process_disconnect(self, session: AuctionSession):

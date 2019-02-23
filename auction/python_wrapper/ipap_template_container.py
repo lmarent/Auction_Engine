@@ -59,7 +59,7 @@ class IpapTemplateContainer:
     def delete_template(self, templid : int):
         lib.ipap_template_container_delete_template(self.obj, c_uint16(templid))
 
-    def exists_template(self, templid : int):
+    def exists_template(self, templid : int)-> bool:
         exists_template = lib.ipap_template_container_exists_template
         exists_template.restype = c_bool
 

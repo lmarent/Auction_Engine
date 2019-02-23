@@ -19,10 +19,9 @@ from auction_client.client_main_data import ClientMainData
 from auction_client.client_message_processor import ClientMessageProcessor
 from auction_client.auction_client_handler import HandleActivateResourceRequestInterval
 from auction_client.auction_client_handler import HandleRemoveResourceRequestInterval
-from auction_client.resource_request import ResourceRequest
-from auction_client.resource_request import ResourceRequestInterval
 from auction_client.server_connection import ServerConnectionState
 
+from utils.auction_utils import DateUtils
 
 
 class AuctionClient(Agent):
@@ -132,13 +131,13 @@ class AuctionClient(Agent):
         for request in resource_requests:
             ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
             for start in ret_start:
-                when = self._calculate_when(start)
+                when = DateUtils().calculate_when(start)
                 handle_activate = HandleActivateResourceRequestInterval(start, ret_start[start], when)
                 request.add_task(handle_activate)
                 handle_activate.start()
 
             for stop in ret_stop:
-                when = self._calculate_when(stop)
+                when = DateUtils().calculate_when(stop)
                 handle_remove = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
                 request.add_task(handle_remove)
                 handle_remove.start()

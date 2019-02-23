@@ -6,7 +6,7 @@ from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_data_record import IpapDataRecord
-from python_wrapper.ipap_field import IpapField
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from foundation.auction import Auction
 from foundation.auction import Action
@@ -18,6 +18,43 @@ class IpapAuctionParser(IpapMessageParser):
     def __init__(self, domain):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainerSingleton()
+
+    def parse(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer):
+        """
+        parse the ipap message. New templates transmitted within are put on the template container given
+        :param ipap_message: message to parse
+        :param template_container: template container for registering new templates.
+        :return:
+        """
+        data_record_count = ipap_message.get_data_record_size()
+        templates_included = []
+        for i in range(0,data_record_count):
+            data_record = ipap_message.get_data_record_at_pos(i)
+            template_id = data_record.get_template_id()
+            try:
+                template = ipap_message.get_template_object(template_id)
+                templates_included.append(template_id)
+                templ_type = template.get_type()
+
+                #Obtain template keys
+                data_key = ''
+                key_fields = template.get_template_type_key_field(templ_type)
+                for key_field in key_fields:
+                    field = template.get_field(key_field.get_eno(), key_field.get_ftype())
+                    value = data_record.get_field(key_field.get_eno(), key_field.get_ftype())
+                    data_key = data_key + field.write_value(value)
+        
+            except ValueError:
+                raise ValueError("required template not included in the message")
+
+
+
+        templates = ipap_message.get_template_list()
+        for template_id in templates:
+            if not template_container.exists_template(template_id):
+
+                template_container.add_template(template)
+
 
     def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list) -> list:
         """

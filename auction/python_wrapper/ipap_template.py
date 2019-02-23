@@ -73,6 +73,25 @@ class IpapTemplate:
                 raise ValueError('Field key not found')
         return list_return
 
+    def _get_template_type_key_size(self, temp_type: TemplateType) -> int:
+        return lib.ipap_template_get_template_type_keys_size(self.obj, c_int(temp_type.value))
+
+    def get_template_type_key_field(self, temp_type: TemplateType) -> list:
+        size = self._get_template_type_key_size(temp_type)
+        if size < 0:
+            raise ValueError('The template type given is not valid')
+
+        list_return = []
+
+        for i in range(0, size):
+            obj = lib.ipap_template_get_template_type_key(self.obj, c_int(temp_type.value), c_int(i))
+            if obj:  # not null
+                field_key = IpapFieldKey(obj=obj)
+                list_return.append(field_key)
+            else:
+                raise ValueError('Field key not found')
+        return list_return
+
     def add_field(self, field_size: int, unknow_field: UnknownField, encode_network: bool, field: IpapField):
         if encode_network:
             i_encode_network = 1

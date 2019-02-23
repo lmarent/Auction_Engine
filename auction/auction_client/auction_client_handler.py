@@ -203,7 +203,6 @@ class HandleAuctionMessage(ScheduledTask):
         if ipap_message_type.is_auction_message():
             ask_response_message = HandleAskResponseMessage(self.server_connection, self.message, 0)
             ask_response_message.start()
-
             pass
 
         if ipap_message_type.is_bidding_message():
@@ -224,7 +223,8 @@ class HandleAskResponseMessage(ScheduledTask):
         super(HandleAskResponseMessage, self).__init__(seconds_to_start)
         self.client_data = ClientMainData()
         self.server_connection = server_connection
-        self.resource_request_interval: ResourceRequestInterval = server_connection.session.resource_request_interval
+        self.resource_request_interval: ResourceRequestInterval = \
+                        server_connection.get_auction_session().resource_request_interval
         self.message = message
         self.agent_template_container = AgentTemplateContainerManager()
         self.auction_manager = AuctionManager(self.client_data.domain)

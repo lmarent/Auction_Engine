@@ -83,7 +83,8 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         :param ipap_message: Message to parse
         :param template_container: container with all the registered templates
         """
-        pass
+        ipap_message_parser = IpapAuctionParser(self.domain)
+        return ipap_message_parser.parse(ipap_message, template_container)
 
     def get_ipap_message(self, auctions: list, use_ipv6: bool, s_address: str, port: int) -> IpapMessage:
         """

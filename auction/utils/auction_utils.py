@@ -43,7 +43,10 @@ class log(metaclass=Singleton):
 
         return self.logger
 
-class DateUtils(metaclass=Singleton)
+class DateUtils(metaclass=Singleton):
+    """
+    Utils for date operations.
+    """
 
     @staticmethod
     def calculate_when(start: datetime) -> float:

@@ -170,7 +170,7 @@ class IpapMessage:
         return ret
 
     def get_domain(self)-> int:
-        return lib.ipap_message_get_domain()
+        return lib.ipap_message_get_domain(self.obj)
 
     def make_template(self, template: IpapTemplate):
         lib.ipap_message_make_template(self.obj, template.obj)
