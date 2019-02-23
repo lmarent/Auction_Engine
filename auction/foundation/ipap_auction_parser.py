@@ -1,16 +1,17 @@
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 from python_wrapper.ipap_field_key import IpapFieldKey
 from python_wrapper.ipap_template import UnknownField
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import IpapTemplate
 from python_wrapper.ipap_data_record import IpapDataRecord
-from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from foundation.auction import Auction
 from foundation.auction import Action
 from foundation.ipap_message_parser import IpapMessageParser
+from foundation.ipap_message_parser import IpapObjectKey
 
 
 class IpapAuctionParser(IpapMessageParser):
@@ -19,41 +20,73 @@ class IpapAuctionParser(IpapMessageParser):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainerSingleton()
 
-    def parse(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer):
-        """
-        parse the ipap message. New templates transmitted within are put on the template container given
-        :param ipap_message: message to parse
-        :param template_container: template container for registering new templates.
-        :return:
-        """
-        data_record_count = ipap_message.get_data_record_size()
-        templates_included = []
-        for i in range(0,data_record_count):
-            data_record = ipap_message.get_data_record_at_pos(i)
+    def verify_insert_templates(self, data_template: IpapTemplate, opts_template: IpapTemplate,
+                                ipap_template_container: IpapTemplateContainer):
+
+
+    templ_data2 = None
+    templ_option2 = None
+
+    # Insert templates in case of not created in the template container.
+    try:
+        templData2  = templatesOut->get_template(templData->get_template_id());
+    except ValueError:
+        templatesOut->add_template(templData->copy());
+        templData2  = templatesOut->get_template(templData->get_template_id());
+
+    try:
+        templOption2 = templatesOut->get_template(templOption->get_template_id());
+    except ValueError:
+        templatesOut->add_template(templOption->copy());
+        templOption2 = templatesOut->get_template(templOption->get_template_id());
+
+    # Verifies that both templates are equal to those defined in the template container or they
+    # do not exist.
+    if ((*templData != * templData2)):
+        throw Error("MAPI Auction Parser: Data Template %d given is different from the template already stored", templData->get_template_id());
+
+
+    if ((*templOption != * templOption2)):
+        throw Error("MAPI Auction Parser: Option Template %d given is different from the template already stored", templOption->get_template_id());
+
+
+    def parse_auction(self, object_key: IpapObjectKey, templates: list,
+                      data_records: list, ipap_template_container: IpapTemplateContainer):
+        data_template = None
+        opts_template = None
+        template_fields = []
+
+        for template in templates:
+            self.getTemplateFields(template, template_fields)
+            if template.get_type() == TemplateType.IPAP_SETID_AUCTION_TEMPLATE:
+                data_template = template
+            elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
+                opts_template = template
+
+        # Verify templates
+        self.verify_insert_templates(data_template, opts_template, ipap_template_container)
+
+        # Read data records
+        for data_record in data_records:
             template_id = data_record.get_template_id()
-            try:
-                template = ipap_message.get_template_object(template_id)
-                templates_included.append(template_id)
-                templ_type = template.get_type()
-
-                #Obtain template keys
-                data_key = ''
-                key_fields = template.get_template_type_key_field(templ_type)
-                for key_field in key_fields:
-                    field = template.get_field(key_field.get_eno(), key_field.get_ftype())
-                    value = data_record.get_field(key_field.get_eno(), key_field.get_ftype())
-                    data_key = data_key + field.write_value(value)
-        
-            except ValueError:
-                raise ValueError("required template not included in the message")
+            # Read a data record for a data template
+            find_template(template_id)
 
 
+    def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer):
 
-        templates = ipap_message.get_template_list()
-        for template_id in templates:
-            if not template_container.exists_template(template_id):
+        # Splits the message by object.
+        object_templates, object_data_records, templates_not_related = self.split(ipap_message)
 
-                template_container.add_template(template)
+        # insert new templates not related (for example bidding templates to use for the auction) to the object.
+        for template_id in templates_not_related:
+            if not ipap_template_container.exists_template(template_id):
+                ipap_template_container.add_template(templates_not_related[template_id])
+
+        # loop through data records and parse the auction data
+        for object_key in object_data_records:
+            if object_key.get_key() == ObjectType.IPAP_AUCTION:
+                self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key])
 
 
     def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list) -> list:

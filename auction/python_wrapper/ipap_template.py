@@ -104,6 +104,10 @@ class IpapTemplate:
     def get_type(self) -> TemplateType:
         return TemplateType(lib.ipap_template_get_type(self.obj))
 
+    def get_object_type(self, template_type: TemplateType) -> ObjectType:
+        object_type = lib.ipap_template_get_object_type(self.obj,c_uint8(template_type.value))
+        return ObjectType(object_type)
+
     def _get_object_template_types_size(self, object_type: ObjectType) -> int:
         if object_type == ObjectType.IPAP_INVALID:
             return -1

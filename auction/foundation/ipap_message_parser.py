@@ -3,10 +3,46 @@ from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_field import IpapField
 from python_wrapper.ipap_field_container import IpapFieldContainer
+from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from foundation.field_def_manager import FieldDefManager
 from foundation.config_param import ConfigParam
 from datetime import datetime
+
+
+class IpapObjectKey:
+
+    def __init__(self, object_type: ObjectType, key: str):
+        self.object_type = object_type
+        self.key = key
+
+    def get_object_type(self) -> ObjectType:
+        """
+        Gets the object type
+        :return:
+        """
+        return self.object_type
+
+    def get_key(self) -> str:
+        """
+        Gets the objects key
+        :return:
+        """
+        return self.key
+
+    def __eq__(self, other):
+        return (self.object_type == other.object_type) and (self.key == other.key)
+
+    def __lt__(self, other):
+        if self.object_type < other.object_type:
+            return True
+        elif self.object_type > other.object_type:
+            return False
+        else:
+            return self.key.__lt__(other.key)
+
+    def __ne__(self, other):
+        return not(self.__eq__(other))
 
 
 class IpapMessageParser:
@@ -154,6 +190,63 @@ class IpapMessageParser:
             return value
         else:
             raise ValueError("item with name {0} not found in config items".format(item_name))
+
+    def split(self, ipap_message: IpapMessage) -> (dict, dict, dict):
+        """
+        parse the ipap message by splitting message data by object key ( Auctions, Bids, Allocations).
+
+        :param ipap_message: message to parse
+        :return:
+        """
+        data_record_count = ipap_message.get_data_record_size()
+        templates_included = {}
+        object_templates = {}
+        object_data_records = {}
+        templates_not_related = {}
+
+        for i in range(0, data_record_count):
+            data_record = ipap_message.get_data_record_at_pos(i)
+            template_id = data_record.get_template_id()
+            try:
+                template = ipap_message.get_template_object(template_id)
+
+            except ValueError:
+                raise ValueError("required template not included in the message")
+
+            templates_included[template_id] = template_id
+            templ_type = template.get_type()
+
+            try:
+                # Obtain template keys
+                data_key = ''
+                key_fields = template.get_template_type_key_field(templ_type)
+                for key_field in key_fields:
+                    field = template.get_field(key_field.get_eno(), key_field.get_ftype())
+                    value = data_record.get_field(key_field.get_eno(), key_field.get_ftype())
+                    data_key = data_key + field.write_value(value)
+
+                object_type = template.get_object_type(templ_type)
+                ipap_object_key = IpapObjectKey(object_type, data_key)
+                if ipap_object_key not in object_templates:
+                    object_templates[ipap_object_key] = []
+
+                object_templates[ipap_object_key].append(template)
+
+                if ipap_object_key not in object_data_records:
+                    object_data_records[ipap_object_key] = []
+
+                object_data_records[ipap_object_key].append(data_record)
+
+            except ValueError as e:
+                raise ValueError("error while reading data record - error: {0}", str(e) )
+
+        # Copy templates from message that are not related with a record data
+        templates = ipap_message.get_template_list()
+        for template_id in templates:
+            if template_id not in templates_included:
+                templates_not_related[template_id] = ipap_message.get_template_object(template_id)
+
+        return object_templates, object_data_records, templates_not_related
 
     def insert_string_field(self, field_name: str, value: str, record: IpapDataRecord):
         """
