@@ -3,6 +3,7 @@ from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from foundation.ipap_message_parser import IpapMessageParser
+from foundation.ipap_message_parser import IpapObjectKey
 from foundation.bidding_object import BiddingObject
 
 
@@ -12,7 +13,38 @@ class IpapBiddingObjectParser(IpapMessageParser):
         super(IpapBiddingObjectParser, self).__init__(domain)
 
 
-    def parse_bidding_object(self, templates: list, data_records: list,
+    def insert_auction_templates(self, object_type: ObjectType, templates: list,
+                                 ipap_template_container: IpapTemplateContainer) -> (IpapTemplate, IpapTemplate):
+        """
+        Insert auction templates (data and options)
+        :param templates: list of templates
+        :param ipap_template_container: template container where we have to include templates.
+        :return: return data and options templates
+        """
+        data_template = None
+        opts_template = None
+
+        # Insert record and options templates for the auction.
+        for template in templates:
+            if template.get_type() == TemplateType.IPAP_SETID_AUCTION_TEMPLATE:
+                data_template = template
+            elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
+                opts_template = template
+
+        if data_template is None:
+            raise ValueError("The message is incomplete Data template was not included")
+
+        if opts_template is None:
+            raise ValueError("The message is incomplete Options template was not included")
+
+        # Verify templates
+        self.verify_insert_template(data_template, ipap_template_container)
+        self.verify_insert_template(opts_template, ipap_template_container)
+
+        return data_template, opts_template
+
+
+    def parse_bidding_object(self, object_key: IpapObjectKey, templates: list, data_records: list,
                              ipap_template_container: IpapTemplateContainer) -> BiddingObject:
         """
         Parse a bidding object from the ipap_message
@@ -25,7 +57,8 @@ class IpapBiddingObjectParser(IpapMessageParser):
         nbr_data_read = 0
         nbr_option_read = 0
 
-        data_template, opts_template = self.insert_auction_templates( templates, ipap_template_container)
+        data_template, opts_template = self.insert_auction_templates(object_key.get_object_type(),
+                                                                      templates, ipap_template_container)
 
         # Read data records
         for data_record in data_records:
@@ -77,7 +110,7 @@ class IpapBiddingObjectParser(IpapMessageParser):
 
         # loop through data records and parse the auction data
         for object_key in object_data_records:
-            if object_key.get_key() in [ ObjectType.IPAP_BID, ObjectType.IPAP_ALLOCATION ]:
+            if object_key.get_object_type() in [ ObjectType.IPAP_BID, ObjectType.IPAP_ALLOCATION ]:
                 bidding_object = self.parse_bidding_object(object_key, object_templates[object_key], object_data_records[object_key])
                 bidding_object_ret.append(bidding_object)
 

@@ -10,6 +10,7 @@ lib = cdll.LoadLibrary('libipap.so')
 
 
 class TemplateType(Enum):
+    IPAP_INVALID_TEMPLATE = -1
     IPAP_SETID_AUCTION_TEMPLATE = 0
     IPAP_OPTNS_AUCTION_TEMPLATE = 1
     IPAP_SETID_BID_OBJECT_TEMPLATE = 2
@@ -159,6 +160,43 @@ class IpapTemplate:
     def get_num_fields(self) -> int:
         return lib.ipap_template_get_numfields(self.obj)
 
+    @staticmethod
+    def get_data_template(object_type: ObjectType):
+
+        if object_type == ObjectType.IPAP_AUCTION:
+            return TemplateType.IPAP_SETID_AUCTION_TEMPLATE
+
+        elif object_type == ObjectType.IPAP_BID:
+            return TemplateType.IPAP_SETID_BID_OBJECT_TEMPLATE
+
+        elif object_type == ObjectType.IPAP_ALLOCATION:
+            return TemplateType.IPAP_SETID_ALLOC_OBJECT_TEMPLATE
+
+        elif object_type == ObjectType.IPAP_ASK:
+            return TemplateType.IPAP_SETID_ASK_OBJECT_TEMPLATE
+
+        else:
+            return TemplateType.IPAP_INVALID_TEMPLATE
+
+    @staticmethod
+    def get_opts_template(object_type: ObjectType):
+
+        if object_type == ObjectType.IPAP_AUCTION:
+            return TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE
+
+        elif object_type == ObjectType.IPAP_BID:
+            return TemplateType.IPAP_OPTNS_BID_OBJECT_TEMPLATE
+
+        elif object_type == ObjectType.IPAP_ALLOCATION:
+            return TemplateType.IPAP_OPTNS_ALLOC_OBJECT_TEMPLATE
+
+        elif object_type == ObjectType.IPAP_ASK:
+            return TemplateType.IPAP_OPTNS_ASK_OBJECT_TEMPLATE
+
+        else:
+            return TemplateType.IPAP_INVALID_TEMPLATE
+
     def __del__(self):
         if self.obj:  # not null
             lib.ipap_template_destroy(self.obj)
+
