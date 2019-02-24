@@ -161,7 +161,7 @@ class IpapTemplate:
         return lib.ipap_template_get_numfields(self.obj)
 
     @staticmethod
-    def get_data_template(object_type: ObjectType):
+    def get_data_template(object_type: ObjectType) -> TemplateType:
 
         if object_type == ObjectType.IPAP_AUCTION:
             return TemplateType.IPAP_SETID_AUCTION_TEMPLATE
@@ -179,7 +179,7 @@ class IpapTemplate:
             return TemplateType.IPAP_INVALID_TEMPLATE
 
     @staticmethod
-    def get_opts_template(object_type: ObjectType):
+    def get_opts_template(object_type: ObjectType) -> TemplateType:
 
         if object_type == ObjectType.IPAP_AUCTION:
             return TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE

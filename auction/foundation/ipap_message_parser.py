@@ -175,6 +175,61 @@ class IpapMessageParser:
                 list_return.append(data_record)
         return list_return
 
+    def include_non_mandatory_fields(self, mandatory_fields: list,  config_params: dict, ipap_record: IpapDataRecord):
+        """
+        Includes non mandatory fields in record
+
+        :param mandatory_fields: list of mandatory fields
+        :param config_params: params to include. We should check that are non mandatory fields.
+        :param record: record where we want to include config params
+        :return:
+        """
+        for item in config_params.values():
+            field = self.field_def_manager.get_field(item.name)
+
+            # Checks it is not a mandatory field.
+            is_mandatory: bool = False
+            for mandatory_field in mandatory_fields:
+                if mandatory_field.get_eno() == field['eno'] and mandatory_field.get_ftype() == field['ftype']:
+                    is_mandatory = True
+                    break
+
+            if not is_mandatory:
+                # check the field is a valid field for the message
+                field_act = self.field_container.get_field(field['eno'], field['ftype'])
+                act_f_value = field_act.parse(item.value)
+                ipap_record.insert_field(field['eno'], field['ftype'], act_f_value)
+
+    def insert_auction_templates(self, object_type: ObjectType, templates: list,
+                                 ipap_template_container: IpapTemplateContainer) -> (IpapTemplate, IpapTemplate):
+        """
+        Insert auction templates (data and options)
+        :param templates: list of templates
+        :param ipap_template_container: template container where we have to include templates.
+        :return: return data and options templates
+        """
+        data_template = None
+        opts_template = None
+
+        # Insert record and options templates for the auction.
+        for template in templates:
+            if template.get_type() == IpapTemplate.get_data_template(object_type):
+                data_template = template
+            elif template.get_type() == IpapTemplate.get_opts_template(object_type):
+                opts_template = template
+
+        if data_template is None:
+            raise ValueError("The message is incomplete Data template was not included")
+
+        if opts_template is None:
+            raise ValueError("The message is incomplete Options template was not included")
+
+        # Verify templates
+        self.verify_insert_template(data_template, ipap_template_container)
+        self.verify_insert_template(opts_template, ipap_template_container)
+
+        return data_template, opts_template
+
     @staticmethod
     def verify_insert_template(template: IpapTemplate, ipap_template_container: IpapTemplateContainer):
         """
@@ -193,6 +248,32 @@ class IpapMessageParser:
         except ValueError:
             ipap_template_container.add_template(template)
 
+    @staticmethod
+    def parseType(s_type: str) -> ObjectType:
+        """
+        parses the type of bidding object
+
+        :param s_type string representing the type
+        :return: object type
+        """
+        type = ObjectType.IPAP_INVALID
+
+        if (s_type == "auction") or (s_type == "0"):
+            type = ObjectType.IPAP_AUCTION
+
+        elif (s_type == "bid") or (s_type == "1"):
+            type = ObjectType.IPAP_BID
+
+        elif (s_type == "ask") or (s_type == "2"):
+            type = ObjectType.IPAP_ASK
+
+        elif (s_type == "allocation") or (s_type == "3"):
+            type = ObjectType.IPAP_ALLOCATION
+
+        else
+            raise ValueError("Bidding Object Parser Error: invalid bidding object type {0}".format(s_type))
+
+        return type
 
     def get_domain(self) -> int:
         """

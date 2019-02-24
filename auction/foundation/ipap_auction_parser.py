@@ -11,6 +11,7 @@ from python_wrapper.ipap_data_record import IpapDataRecord
 from foundation.auction import Auction
 from foundation.auction import Action
 from foundation.auction import AuctionTemplateField
+from foundation.ipap_message_parser import IpapObjectKey
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.auctioning_object import AuctioningObjectState
 from foundation.parse_format import ParseFormats
@@ -21,37 +22,6 @@ class IpapAuctionParser(IpapMessageParser):
     def __init__(self, domain):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainerSingleton()
-
-    def insert_auction_templates(self, templates: list, ipap_template_container: IpapTemplateContainer) \
-            -> (IpapTemplate, IpapTemplate):
-        """
-        Insert auction templates (data and options)
-        :param templates: list of templates
-        :param ipap_template_container: template container where we have to include templates.
-        :return: return data and options templates
-        """
-
-        data_template = None
-        opts_template = None
-
-        # Insert record and options templates for the auction.
-        for template in templates:
-            if template.get_type() == TemplateType.IPAP_SETID_AUCTION_TEMPLATE:
-                data_template = template
-            elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
-                opts_template = template
-
-        if data_template is None:
-            raise ValueError("The message is incomplete Data template was not included")
-
-        if opts_template is None:
-            raise ValueError("The message is incomplete Options template was not included")
-
-        # Verify templates
-        self.verify_insert_template(data_template, ipap_template_container)
-        self.verify_insert_template(opts_template, ipap_template_container)
-
-        return data_template, opts_template
 
     def include_template_fields(self, template: IpapTemplate, template_fields: dict):
         """
@@ -91,7 +61,7 @@ class IpapAuctionParser(IpapMessageParser):
         for template in build_templates:
             ipap_template_container.add_template(template)
 
-    def parse_auction(self, templates: list, data_records: list,
+    def parse_auction(self, object_key: IpapObjectKey, templates: list, data_records: list,
                       ipap_template_container: IpapTemplateContainer) -> Auction:
         """
         Parse an auction from the ipap_message
@@ -111,7 +81,8 @@ class IpapAuctionParser(IpapMessageParser):
         data_misc = {}
         opts_misc = {}
 
-        data_template, opts_template = self.insert_auction_templates(templates, ipap_template_container)
+        data_template, opts_template = self.insert_auction_templates(object_key.get_object_type(),
+                                                                      templates, ipap_template_container)
         # Read data records
         for data_record in data_records:
             template_id = data_record.get_template_id()
@@ -287,24 +258,9 @@ class IpapAuctionParser(IpapMessageParser):
         self.insert_string_field('algoritmname', auction.action.name, ipap_options_record)
 
         # Adds non mandatory fields.
-        option_fields = template.get_template_type_mandatory_field(TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
-
-        items = auction.action.get_config_params()
-        for item in items.values():
-            field = self.field_def_manager.get_field(item.name)
-
-            # Checks it is not a mandatory field.
-            is_mandatory: bool = False
-            for mandatory_field in option_fields:
-                if mandatory_field.get_eno() == field['eno'] and mandatory_field.get_ftype() == field['ftype']:
-                    is_mandatory = True
-                    break
-
-            if not is_mandatory:
-                # check the field is a valid field for the message
-                field_act = self.field_container.get_field(field['eno'], field['ftype'])
-                act_f_value = field_act.parse(item.value)
-                ipap_options_record.insert_field(field['eno'], field['ftype'], act_f_value)
+        mandatory_fields = template.get_template_type_mandatory_field(TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
+        config_params = auction.action.get_config_params()
+        self.include_non_mandatory_fields(mandatory_fields, config_params, ipap_options_record)
 
         message.include_data(template.get_template_id(), ipap_options_record)
 

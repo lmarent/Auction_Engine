@@ -1,48 +1,22 @@
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
+from python_wrapper.ipap_template import IpapTemplate
+from python_wrapper.ipap_data_record import IpapDataRecord
 
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.ipap_message_parser import IpapObjectKey
 from foundation.bidding_object import BiddingObject
+from foundation.auctioning_object import AuctioningObjectState
+from foundation.parse_format import ParseFormats
+from foundation.auction import Auction
 
+from datetime import datetime
 
 class IpapBiddingObjectParser(IpapMessageParser):
 
     def __init__(self, domain):
         super(IpapBiddingObjectParser, self).__init__(domain)
-
-
-    def insert_auction_templates(self, object_type: ObjectType, templates: list,
-                                 ipap_template_container: IpapTemplateContainer) -> (IpapTemplate, IpapTemplate):
-        """
-        Insert auction templates (data and options)
-        :param templates: list of templates
-        :param ipap_template_container: template container where we have to include templates.
-        :return: return data and options templates
-        """
-        data_template = None
-        opts_template = None
-
-        # Insert record and options templates for the auction.
-        for template in templates:
-            if template.get_type() == TemplateType.IPAP_SETID_AUCTION_TEMPLATE:
-                data_template = template
-            elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
-                opts_template = template
-
-        if data_template is None:
-            raise ValueError("The message is incomplete Data template was not included")
-
-        if opts_template is None:
-            raise ValueError("The message is incomplete Options template was not included")
-
-        # Verify templates
-        self.verify_insert_template(data_template, ipap_template_container)
-        self.verify_insert_template(opts_template, ipap_template_container)
-
-        return data_template, opts_template
-
 
     def parse_bidding_object(self, object_key: IpapObjectKey, templates: list, data_records: list,
                              ipap_template_container: IpapTemplateContainer) -> BiddingObject:
@@ -68,14 +42,12 @@ class IpapBiddingObjectParser(IpapMessageParser):
                 data_misc = self.read_record(data_template, data_record)
                 bidding_object_key = self.extract_param('biddingobjectid', data_misc)
                 auction_key = self.extract_param('auctionid', data_misc)
-                auction_status = self.extract_param('status', data_misc)
-                resource_key = self.extract_param('resourceid', data_misc)
-                bidding_object_type = self.extract_param('biddingobjecttype', data_misc)
+                s_bidding_object_type = self.extract_param('biddingobjecttype', data_misc)
+                status = self.extract_param('status', data_misc)
                 nbr_data_read = nbr_data_read + 1
 
             if template_id == opts_template.get_template_id():
                 opts_misc = self.read_record(opts_template, data_record)
-                action_name = self.extract_param('algoritmname', data_misc)
                 nbr_option_read = nbr_option_read + 1
 
         if nbr_data_read == 0:
@@ -84,22 +56,11 @@ class IpapBiddingObjectParser(IpapMessageParser):
         if nbr_option_read == 0:
             raise ValueError("An option template was not given")
 
-        action = BiddingObject(action_name.value, True, opts_misc)
-        auction = Auction(auction_key.value, resource_key.value, action, data_misc )
-        auction.set_state(AuctioningObjectState(ParseFormats.parse_int(auction_status.value)))
-        self.build_associated_templates(templates, auction, ipap_template_container)
+        bidding_object_type = self.parseType(s_bidding_object_type.value)
+        bidding_object = BiddingObject(auction_key.value, bidding_object_key.value, bidding_object_type, data_misc, opts_misc)
+        bidding_object.set_state(AuctioningObjectState(ParseFormats.parse_int(status.value)))
 
-        template_ids = template_list.value.split(',')
-
-        for template_sid in template_ids:
-            template = ipap_template_container.get_template(ParseFormats.parse_int(template_sid))
-
-            auction.set_bidding_object_template(template.get_object_type(template.get_type()),
-                                                template.get_type(), template.get_template_id())
-
-        return auction
-
-
+        return bidding_object
 
     def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer):
 
@@ -115,3 +76,103 @@ class IpapBiddingObjectParser(IpapMessageParser):
                 bidding_object_ret.append(bidding_object)
 
         return bidding_object_ret
+
+
+    def include_data_record(self, template: IpapTemplate, bidding_object: BiddingObject, record_id: str,
+                            config_params: dict,  message: IpapMessage):
+
+        ipap_data_record = IpapDataRecord(obj=None, templ_id=template.get_template_id())
+
+        # Insert the auction id field.
+        self.insert_string_field('auctionid', bidding_object.get_auction_key(), ipap_data_record)
+
+        # Insert the bidding object id field.
+        self.insert_string_field('biddingobjectid', bidding_object.get_key(), ipap_data_record)
+
+        # Add the Record Id
+        self.insert_string_field('recordid', record_id, ipap_data_record)
+
+        # Add the Status
+        self.insert_integer_field('status', bidding_object.get_state().value, ipap_data_record)
+
+        # Add bidding_object type
+        self.insert_integer_field('biddingobjecttype', bidding_object.get_type().value, ipap_data_record)
+
+        # Adds non mandatory fields.
+        mandatory_fields = template.get_template_type_mandatory_field(template.get_type())
+        self.include_non_mandatory_fields(mandatory_fields, config_params, ipap_data_record)
+
+        # Include the data record in the message.
+        message.include_data(template.get_template_id(), ipap_data_record)
+
+    def include_options_record(self, template: IpapTemplate, bidding_object: BiddingObject, record_id: str,
+                               start: datetime, stop: datetime, config_params: dict, message: IpapMessage):
+
+        ipap_record = IpapDataRecord(obj=None, templ_id=template.get_template_id())
+
+        # Insert the auction id field.
+        self.insert_string_field('auctionid', bidding_object.get_auction_key(), ipap_record)
+
+        # Insert the bidding object id field.
+        self.insert_string_field('biddingobjectid', bidding_object.get_key(), ipap_record)
+
+        # Add the Record Id
+        self.insert_string_field('recordid', record_id, ipap_record)
+
+        # Add the start time - Unix time is seconds from 1970-1-1 .
+        self.insert_datetime_field('start', start, ipap_record)
+
+        # Add the end time.
+        self.insert_datetime_field('stop', stop, ipap_record)
+
+        # Adds non mandatory fields.
+        mandatory_fields = template.get_template_type_mandatory_field(template.get_type())
+        self.include_non_mandatory_fields(mandatory_fields, config_params, ipap_record)
+
+        message.include_data(template.get_template_id(), ipap_record)
+
+
+
+    def get_ipap_message(self, bidding_object: BiddingObject, auction: Auction, template_container: IpapTemplateContainer) -> IpapMessage:
+
+
+        if bidding_object.getAuction() != auction.get_key():
+            raise ValueError("the auction is not the same as the one referenced in the bidding object")
+
+        message = IpapMessage(self.domain, IpapMessage.IPAP_VERSION, True)
+
+        # Find both templates types for the bidding object.
+        tempType = IpapTemplate.get_data_template(bidding_object.get_type())
+        data_template_id = auction.get_bidding_object_template(tempType)
+
+        tempType = IpapTemplate.get_opts_template(bidding_object.get_type())
+        option_template_id = auction.get_bidding_object_template(tempType)
+
+        # Insert BiddingObject's templates.
+        data_template = template_container.get_template(data_template_id)
+        message.make_template(data_template)
+
+        option_template = template_container.get_template(option_template_id)
+        message.make_template(option_template)
+
+        # Include data records.
+        for record_id in bidding_object.get_elements():
+            config_params = bidding_object.get_element(record_id)
+            self.include_data_record(data_template, bidding_object, record_id, config_params, message)
+
+
+        biddingObjectIntervalList_t * intervalList = new
+        biddingObjectIntervalList_t();
+        biddingObjectPtr->calculateIntervals(now, intervalList);
+
+        # Include option records.
+        int i = 0;
+        optionListIter_t optIter;
+        for record_id in bidding_object.get_options():
+
+            config_params = bidding_object.get_option(record_id)
+            self.include_options_record(option_template, bidding_object, record_id, start, stop, config_params, message)
+
+            bidInterval = ((*intervalList)[i]).second;
+            addOptionRecord(fieldDefs, biddingObjectPtr, optIter->first, bidInterval.start,
+                                                              bidInterval.stop, optIter->second, optionTemplateId, message );
