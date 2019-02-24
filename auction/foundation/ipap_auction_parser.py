@@ -11,6 +11,7 @@ from python_wrapper.ipap_data_record import IpapDataRecord
 
 from foundation.auction import Auction
 from foundation.auction import Action
+from foundation.auction import AuctionTemplateField
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.ipap_message_parser import IpapObjectKey
 from foundation.auctioning_object import AuctioningObjectState
@@ -41,8 +42,79 @@ class IpapAuctionParser(IpapMessageParser):
         except ValueError:
             ipap_template_container.add_template(template)
 
-    def parse_auction(self, templates: list, data_records: list,
-                      ipap_template_container: IpapTemplateContainer) -> Auction:
+    def insert_auction_templates(self, templates:list, ipap_template_container: IpapTemplateContainer) \
+                    -> (IpapTemplate, IpapTemplate):
+        """
+        Insert auction templates (data and options)
+        :param templates: list of templates
+        :param ipap_template_container: template container where we have to include templates.
+        :return: return data and options templates
+        """
+
+        data_template = None
+        opts_template = None
+
+        # Insert record and options templates for the auction.
+        for template in templates:
+            if template.get_type() == TemplateType.IPAP_SETID_AUCTION_TEMPLATE:
+                data_template = template
+            elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
+                opts_template = template
+
+        if data_template is None:
+            raise ValueError("The message is incomplete Data template was not included")
+
+        if opts_template is None:
+            raise ValueError("The message is incomplete Options template was not included")
+
+        # Verify templates
+        self.verify_insert_template(data_template, ipap_template_container)
+        self.verify_insert_template(opts_template, ipap_template_container)
+
+        return data_template, opts_template
+
+    def include_template_fields(self, template: IpapTemplate, template_fields: dict):
+        """
+        Includes in the template list field in the template given as parameter.
+
+        :param template: template from where to take the fields
+        :param template_fields: dictionary of field included
+        """
+        ipap_fields = template.get_fields()
+        for ipap_field in ipap_fields:
+            field = self.field_def_manager.get_field_by_code(ipap_field.get_eno(), ipap_field.get_type())
+
+            # Find the field in the returning map, if not found insert templates' belongings.
+            if field['key'] not in template_fields:
+                template_fields[field['key']] = AuctionTemplateField(field, field['lenght'])
+
+
+            auction_template_field = template_fields[field['key']]
+            auction_template_field.add_belonging_tuple(template.get_object_type(template.get_type()), template.get_type())
+
+    def build_associated_templates(self, templates:list, auction: Auction,
+                                   ipap_template_container: IpapTemplateContainer):
+        """
+        Builds associated templates related to the auction
+        :param templates: list of templates within the message
+        :param auction: auction being created
+        :param ipap_template_container: container to maintain those related templates.
+        :return:
+        """
+
+        template_fields = []
+
+        # build related templates associated with the auction
+        for template in templates:
+            if template.get_type() not in [TemplateType.IPAP_SETID_AUCTION_TEMPLATE,
+                                           TemplateType.IPAP_SETID_AUCTION_TEMPLATE]:
+                self.include_template_fields(template, template_fields)
+
+        build_templates = auction.build_templates(template_fields)
+        for template in build_templates:
+            ipap_template_container.add_template(template)
+
+    def parse_auction(self, templates: list, data_records: list, ipap_template_container: IpapTemplateContainer) -> Auction:
         """
         Parse an auction from the ipap_message
 
@@ -51,30 +123,10 @@ class IpapAuctionParser(IpapMessageParser):
         :param ipap_template_container: template container where we have to include the templates.
         :return: auction parsed.
         """
-        data_template = None
-        opts_template = None
-        template_fields = []
         nbr_data_read = 0
         nbr_option_read = 0
 
-        for template in templates:
-            self.getTemplateFields(template, template_fields)
-            if template.get_type() == TemplateType.IPAP_SETID_AUCTION_TEMPLATE:
-                data_template = template
-            elif template.get_type() == TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE:
-                opts_template = template
-
-        if (data_template is None):
-            raise ValueError("The message is incomplete Data template was not included")
-
-        if (opts_template is None):
-            raise ValueError("The message is incomplete Options template was not included")
-
-
-        # Verify templates
-        self.verify_insert_template(data_template, ipap_template_container)
-        self.verify_insert_template(opts_template, ipap_template_container)
-
+        data_template, opts_template = self.insert_auction_templates( templates, ipap_template_container)
         # Read data records
         for data_record in data_records:
             template_id = data_record.get_template_id()
@@ -107,6 +159,8 @@ class IpapAuctionParser(IpapMessageParser):
         action = Action(action_name.value, True, opts_misc)
         auction = Auction(auction_key.value, resource_key.value, action, data_misc )
         auction.set_state(AuctioningObjectState(ParseFormats.parse_int(auction_status.value)))
+        self.build_associated_templates(templates, auction, ipap_template_container)
+
         template_ids = template_list.value.split(',')
 
         for template_sid in template_ids:
@@ -119,6 +173,8 @@ class IpapAuctionParser(IpapMessageParser):
 
     def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer):
 
+        auction_ret = []
+
         # Splits the message by object.
         object_templates, object_data_records, templates_not_related = self.split(ipap_message)
 
@@ -130,7 +186,10 @@ class IpapAuctionParser(IpapMessageParser):
         # loop through data records and parse the auction data
         for object_key in object_data_records:
             if object_key.get_key() == ObjectType.IPAP_AUCTION:
-                self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key])
+                auction = self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key])
+                auction_ret.append(auction)
+
+        return auction_ret
 
 
     def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list) -> list:

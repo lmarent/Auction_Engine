@@ -10,14 +10,7 @@ from foundation.config_param import ConfigParam
 from foundation.parse_format import ParseFormats
 
 from python_wrapper.ipap_field_container import IpapFieldContainer
-from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
-from python_wrapper.ipap_field_key import IpapFieldKey
-from python_wrapper.ipap_template import UnknownField
-from python_wrapper.ipap_template import ObjectType
-from python_wrapper.ipap_template import TemplateType
-from python_wrapper.ipap_template import IpapTemplate
-from python_wrapper.ipap_data_record import IpapDataRecord
 
 import pathlib
 import os
@@ -149,8 +142,10 @@ class AuctionXmlFileParser(IpapMessageParser):
 
         auction_key = set_name + '.' + name
         resource_key = resurce_set + '.' + resource_id
-        auction = Auction(auction_key, resource_key, action_default, misc_config, templ_fields)
-        return auction
+        auction = Auction(auction_key, resource_key, action_default, misc_config)
+        templates = auction.build_templates(templ_fields)
+
+        return auction, templates
 
     def parse(self, file_name: str) -> list:
         """
@@ -181,9 +176,7 @@ class AuctionXmlFileParser(IpapMessageParser):
             root = tree.getroot()
             g_set = root.get('ID').lower()
 
-            ipap_field_container = IpapFieldContainer()
-            ipap_field_container.initialize_reverse()
-            ipap_field_container.initialize_forward()
+            ipap_template_container = IpapTemplateContainerSingleton()
 
             auctions = []
             for item in root.iterchildren():
@@ -191,10 +184,12 @@ class AuctionXmlFileParser(IpapMessageParser):
                     if item.tag.lower() == "global":
                         (global_misc_config, global_actions) = self._parse_global_options(item)
                     elif item.tag.lower() == "auction":
-                        auction = self._parse_auction(item, g_set, global_misc_config,
-                                                      global_actions, ipap_field_container
-                                                      )
+                        auction, templates = self._parse_auction(item, g_set, global_misc_config,
+                                                      global_actions, self.field_container)
                         auctions.append(auction)
+                        for template in templates:
+                            ipap_template_container.add_template(template)
+
 
             return auctions
 
