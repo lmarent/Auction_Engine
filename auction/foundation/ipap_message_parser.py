@@ -175,6 +175,25 @@ class IpapMessageParser:
                 list_return.append(data_record)
         return list_return
 
+    @staticmethod
+    def verify_insert_template(template: IpapTemplate, ipap_template_container: IpapTemplateContainer):
+        """
+        Verifies and in case of not included before inserts the template given in the template container
+
+        :param template: template to include
+        :param ipap_template_container: template container where templates should be verified.
+        """
+        # Insert templates in case of not created in the template container.
+        try:
+            template_ret = ipap_template_container.get_template(template.get_template_id())
+            if not template_ret.__eq__(template):
+                raise ValueError("Data Template {0} given is different from the template already stored".format(
+                    template.get_template_id()))
+
+        except ValueError:
+            ipap_template_container.add_template(template)
+
+
     def get_domain(self) -> int:
         """
         Get the domaid id used by the ipapmessage.The domain id corresponds to the agent identifier.

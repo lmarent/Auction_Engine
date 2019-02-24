@@ -25,6 +25,7 @@ class AuctioningObjectType(Enum):
     BID = 1
     RESOURCE = 2
     RESOURCE_REQUEST = 3
+    ALLOCATION = 4
 
 
 class AuctioningObject:

@@ -1,6 +1,7 @@
 #bidding_object.py
 from foundation.auctioning_object import AuctioningObject
 from foundation.auctioning_object import AuctioningObjectType
+from foundation.auction import Auction
 
 class BiddingObject(AuctioningObject):
     """
@@ -11,16 +12,15 @@ class BiddingObject(AuctioningObject):
       2. A set of options which establish the duration of the bidding object. 
     """
 
-    def __init__(self, auction, bidding_object_key, elements, options):
-        super(BiddingObject, self).__init__(bidding_object_key, AuctioningObjectType.BID)
+    def __init__(self, auction_key: str, bidding_object_key:str, object_type: AuctioningObjectType,
+                    elements:dict, options: dict):
 
-        self.elements = {}
-        self.options = {}
-        for element in elements:
-            self.elements[element.name] = element
-        for option in options:
-            self.options[option.name] = option
-        self.parent_auction = auction
+        assert( object_type==AuctioningObjectType.BID or object_type==AuctioningObjectType.ALLOCATION )
+        super(BiddingObject, self).__init__(bidding_object_key, object_type)
+
+        self.elements = elements
+        self.options = options
+        self.parent_auction = auction_key
 
     def get_element_value(self, element_name):
         if element_name in self.elements.keys():
@@ -28,12 +28,9 @@ class BiddingObject(AuctioningObject):
         else:
             raise ValueError('Element with name: {} was not found'.format(element_name))
 
-
     def get_option_value(self, option_name):
         if option_name in self.optios.keys():
             return self.options[option_name]
         else:
             raise ValueError('Option with name: {} was not found'.format(option_name))
-
-
 
