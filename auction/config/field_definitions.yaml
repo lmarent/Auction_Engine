@@ -304,6 +304,12 @@ field_def:
     Eno: 0
     Ftype: 51
     Name: TemplateList
+  allocationid:
+    Type: String
+    Eno: 0
+    Ftype: 74
+    Name: AllocationID
+
 
 
 

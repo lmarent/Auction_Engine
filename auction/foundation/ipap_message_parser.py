@@ -42,7 +42,7 @@ class IpapObjectKey:
             return self.key.__lt__(other.key)
 
     def __ne__(self, other):
-        return not(self.__eq__(other))
+        return not (self.__eq__(other))
 
 
 class IpapMessageParser:
@@ -175,13 +175,13 @@ class IpapMessageParser:
                 list_return.append(data_record)
         return list_return
 
-    def include_non_mandatory_fields(self, mandatory_fields: list,  config_params: dict, ipap_record: IpapDataRecord):
+    def include_non_mandatory_fields(self, mandatory_fields: list, config_params: dict, ipap_record: IpapDataRecord):
         """
         Includes non mandatory fields in record
 
         :param mandatory_fields: list of mandatory fields
         :param config_params: params to include. We should check that are non mandatory fields.
-        :param record: record where we want to include config params
+        :param ipap_record: record where we want to include config params
         :return:
         """
         for item in config_params.values():
@@ -204,6 +204,7 @@ class IpapMessageParser:
                                  ipap_template_container: IpapTemplateContainer) -> (IpapTemplate, IpapTemplate):
         """
         Insert auction templates (data and options)
+        :param object_type: object type for which we want to insert the templates
         :param templates: list of templates
         :param ipap_template_container: template container where we have to include templates.
         :return: return data and options templates
@@ -249,31 +250,29 @@ class IpapMessageParser:
             ipap_template_container.add_template(template)
 
     @staticmethod
-    def parseType(s_type: str) -> ObjectType:
+    def parse_type(s_type: str) -> ObjectType:
         """
         parses the type of bidding object
 
         :param s_type string representing the type
         :return: object type
         """
-        type = ObjectType.IPAP_INVALID
-
         if (s_type == "auction") or (s_type == "0"):
-            type = ObjectType.IPAP_AUCTION
+            object_type = ObjectType.IPAP_AUCTION
 
         elif (s_type == "bid") or (s_type == "1"):
-            type = ObjectType.IPAP_BID
+            object_type = ObjectType.IPAP_BID
 
         elif (s_type == "ask") or (s_type == "2"):
-            type = ObjectType.IPAP_ASK
+            object_type = ObjectType.IPAP_ASK
 
         elif (s_type == "allocation") or (s_type == "3"):
-            type = ObjectType.IPAP_ALLOCATION
+            object_type = ObjectType.IPAP_ALLOCATION
 
-        else
+        else:
             raise ValueError("Bidding Object Parser Error: invalid bidding object type {0}".format(s_type))
 
-        return type
+        return object_type
 
     def get_domain(self) -> int:
         """
@@ -282,7 +281,7 @@ class IpapMessageParser:
         """
         return self.domain
 
-    def read_record(self, template: IpapTemplate, record:IpapDataRecord ) -> dict:
+    def read_record(self, template: IpapTemplate, record: IpapDataRecord) -> dict:
         """
         Reads an auction data record
         :param template: record's template
@@ -290,7 +289,7 @@ class IpapMessageParser:
         :return: config values
         """
         config_params = {}
-        for field_pos in range(0,record.get_num_fields()):
+        for field_pos in range(0, record.get_num_fields()):
             ipap_field_key = record.get_field_at_pos(field_pos)
             ipap_field_value = record.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
             f_item = self.field_def_manager.get_field_by_code(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
@@ -298,7 +297,7 @@ class IpapMessageParser:
             config_param = ConfigParam(name=f_item['key'],
                                        p_type=f_item.type,
                                        value=ipap_field.write_value(ipap_field_value))
-            config_params[config_param.param] = config_param
+            config_params[config_param.name] = config_param
         return config_params
 
     def get_misc_val(self, config_items: dict, item_name: str) -> str:
@@ -371,7 +370,7 @@ class IpapMessageParser:
                 object_data_records[ipap_object_key].append(data_record)
 
             except ValueError as e:
-                raise ValueError("error while reading data record - error: {0}", str(e) )
+                raise ValueError("error while reading data record - error: {0}", str(e))
 
         # Copy templates from message that are not related with a record data
         templates = ipap_message.get_template_list()

@@ -18,7 +18,6 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         """
         Create an auction manager
         :param domain: id of the agent
-        :param immediate_start: True if it should start auction right now, false otherwise.
         """
         super(AuctionManager, self).__init__(domain)
         self.time_idx = {}

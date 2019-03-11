@@ -61,13 +61,13 @@ class IpapBiddingObjectParser(IpapMessageParser):
         if nbr_option_read == 0:
             raise ValueError("An option template was not given")
 
-        bidding_object_type = self.parseType(s_bidding_object_type)
+        bidding_object_type = self.parse_type(s_bidding_object_type)
         bidding_object = BiddingObject(auction_key, bidding_object_key, bidding_object_type, data_misc, opts_misc)
         bidding_object.set_state(AuctioningObjectState(ParseFormats.parse_int(status.value)))
 
         return bidding_object
 
-    def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer):
+    def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer) -> list:
 
         bidding_object_ret = []
 
@@ -78,7 +78,7 @@ class IpapBiddingObjectParser(IpapMessageParser):
         for object_key in object_data_records:
             if object_key.get_object_type() in [ObjectType.IPAP_BID, ObjectType.IPAP_ALLOCATION]:
                 bidding_object = self.parse_bidding_object(object_key, object_templates[object_key],
-                                                           object_data_records[object_key])
+                                                           object_data_records[object_key], ipap_template_container)
                 bidding_object_ret.append(bidding_object)
 
         return bidding_object_ret
