@@ -141,8 +141,8 @@ class IpapAuctionParser(IpapMessageParser):
 
         # loop through data records and parse the auction data
         for object_key in object_data_records:
-            if object_key.get_key() == ObjectType.IPAP_AUCTION:
-                auction = self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key])
+            if object_key.get_object_type() == ObjectType.IPAP_AUCTION:
+                auction = self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key], ipap_template_container)
                 auction_ret.append(auction)
 
         return auction_ret
@@ -220,6 +220,7 @@ class IpapAuctionParser(IpapMessageParser):
         self.insert_integer_field('dstauctionport', port, ipap_data_record)
 
         # Add the resource Id.
+        print('resource key:', auction.get_resource_key())
         self.insert_string_field('resourceid', auction.get_resource_key(), ipap_data_record)
 
         # Add the start time - Unix time is seconds from 1970-1-1 .
@@ -233,6 +234,7 @@ class IpapAuctionParser(IpapMessageParser):
         self.insert_integer_field('interval', u_interval, ipap_data_record)
 
         # Add the template list.
+        print('template_list:', auction.get_template_list())
         self.insert_string_field('templatelist', auction.get_template_list(), ipap_data_record)
 
         message.include_data(template.get_template_id(), ipap_data_record)

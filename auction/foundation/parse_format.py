@@ -4,6 +4,7 @@ import importlib
 from datetime import timedelta
 from decimal import Decimal
 import os
+from foundation.field_def_manager import DataType
 
 class ParseFormats:
     """
@@ -188,7 +189,37 @@ class ParseFormats:
             return time
 
     @staticmethod
-    def parse_item(c_type: str, value: str):
+    def parse_type(c_type: str) -> DataType:
+        if c_type.lower() == "uint8":
+            return DataType.UINT8
+        elif c_type.lower() == "sint8":
+            return DataType.SINT8
+        elif c_type.lower() == "uint16":
+            return DataType.UINT16
+            ParseFormats.parse_uint16(value)
+        elif c_type.lower() == "sint16":
+            return DataType.INT16
+        elif c_type.lower() == "uint32":
+            return DataType.UINT32
+        elif c_type.lower() == "sint32":
+            return DataType.INT32
+        elif c_type.lower() == "ipaddr":
+            return DataType.IPV4ADDR
+        elif c_type.lower() == "ip6addr":
+            return DataType.IPV6ADDR
+        elif c_type.lower() == "string":
+            return DataType.STRING
+        elif c_type.lower() == "bool":
+            return DataType.BINARY
+        elif c_type.lower() == "float32":
+            return DataType.FLOAT
+        elif c_type.lower() == "float64":
+            return DataType.DOUBLE
+        else:
+            raise ValueError("Unsupported type: {0}".format(c_type))
+
+    @staticmethod
+    def parse_item(c_type: DataType, value: str):
         """
         Test parsing an item that has a value of a given type
 
@@ -197,29 +228,29 @@ class ParseFormats:
         :except ValueError thestring does not have a value of the given type
         """
 
-        if c_type.lower() == "uint8":
+        if c_type == DataType.UINT8:
             ParseFormats.parse_uint8(value)
-        elif c_type.lower() == "sint8":
+        elif c_type == DataType.INT8:
             ParseFormats.parse_sint8(value)
-        elif c_type.lower() == "uint16":
+        elif c_type == DataType.UINT16:
             ParseFormats.parse_uint16(value)
-        elif c_type.lower() == "sint16":
+        elif c_type == DataType.INT16:
             ParseFormats.parse_sint16(value)
-        elif c_type.lower() == "uint32":
+        elif c_type == DataType.UINT32:
             ParseFormats.parse_ulong(value)
-        elif c_type.lower() == "sint32":
+        elif c_type == DataType.INT32:
             ParseFormats.parse_sint32(value)
-        elif c_type.lower() == "ipaddr":
+        elif c_type == DataType.IPV4ADDR:
             ParseFormats.parse_ipaddress(value)
-        elif c_type.lower() == "ip6addr":
+        elif c_type == DataType.IPV6ADDR:
             ParseFormats.parse_ipaddress(value)
-        elif c_type.lower() == "string":
+        elif c_type == DataType.STRING:
             pass
-        elif c_type.lower() == "bool":
+        elif c_type == DataType.BINARY:
             ParseFormats.parse_bool(value)
-        elif c_type.lower() == "float32":
+        elif c_type == DataType.FLOAT:
             ParseFormats.parse_float(value)
-        elif c_type.lower() == "float64":
+        elif c_type == DataType.DOUBLE:
             ParseFormats.parse_double(value)
         else:
-            raise ValueError("Unsupported type: {0}".format(c_type))
+            raise ValueError("Unsupported type: {0}".format(c_type.name))

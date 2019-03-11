@@ -150,6 +150,7 @@ class IpapField:
         write_value.restype = c_char_p
 
         bstr = lib.ipap_field_write_value(self.obj, value.obj)
+        print(bstr)
         return bstr.decode('utf-8')
 
     def parse(self, value:str) -> IpapValueField:

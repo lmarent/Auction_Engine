@@ -230,12 +230,12 @@ class HandleAskResponseMessage(ScheduledTask):
         self.auction_manager = AuctionManager(self.client_data.domain)
         self.agent_processor = AgentProcessor(self.client_data.domain, None)
         self.template_container = None
-        self.logger = log().get_logger()
 
     def get_template_container(self):
         """
         Gets the template container for the particular server.
         """
+        self.logger.debug("starting get_template_container")
         domain = self.message.get_domain()
         if domain > 0:
             try:
@@ -248,6 +248,8 @@ class HandleAskResponseMessage(ScheduledTask):
             self.logger.error("Invalid domain id associated with the message")
             raise ValueError("Invalid domain id associated with the message")
 
+        self.logger.debug("ending get_template_container")
+
 
     def create_auctions(self, auctions: list) -> int:
         """
@@ -255,6 +257,7 @@ class HandleAskResponseMessage(ScheduledTask):
         :param auctions:list of auctions
         :return: maximum duration inteval.
         """
+        self.logger.debug("starting create_auctions")
         # This variable maintains the auction with the maximal duration interval, so
         # The request should last at least an interval multiple.
         max_interval = 0
@@ -302,6 +305,7 @@ class HandleAskResponseMessage(ScheduledTask):
         :param max_interval: the auction with the maximal duration interval
         :return:
         """
+        self.logger.debug("starting process request")
         # Go through the list of auctions and create groups by their module
         auctions_by_module = {}
 
@@ -342,7 +346,7 @@ class HandleAskResponseMessage(ScheduledTask):
         handle_request_process_remove.start()
 
     def _run_specific(self):
-
+        self.logger.debug("starting _run_specific")
         self.get_template_container()
         auctions = self.auction_manager.parse_ipap_message(self.message, self.template_container)
         max_interval = self.create_auctions(auctions)

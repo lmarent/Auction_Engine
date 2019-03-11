@@ -31,15 +31,22 @@ class IpapObjectKey:
         return self.key
 
     def __eq__(self, other):
-        return (self.object_type == other.object_type) and (self.key == other.key)
+        return hasattr(other, 'object_type') and  hasattr(other, 'key') and \
+               (self.object_type == other.object_type) and (self.key == other.key)
+
+    def __hash__(self):
+        return hash(self.object_type.name + self.key )
 
     def __lt__(self, other):
-        if self.object_type < other.object_type:
+        if hasattr(other, 'object_type') and (self.object_type < other.object_type):
             return True
-        elif self.object_type > other.object_type:
+        elif hasattr(other, 'object_type') and (self.object_type > other.object_type):
             return False
         else:
-            return self.key.__lt__(other.key)
+            if hasattr(other, "key"):
+                return self.key.__lt__(other.key)
+            else:
+                return False
 
     def __ne__(self, other):
         return not (self.__eq__(other))
@@ -240,13 +247,13 @@ class IpapMessageParser:
         :param ipap_template_container: template container where templates should be verified.
         """
         # Insert templates in case of not created in the template container.
-        try:
+        if ipap_template_container.exists_template(template.get_template_id()):
             template_ret = ipap_template_container.get_template(template.get_template_id())
             if not template_ret.__eq__(template):
                 raise ValueError("Data Template {0} given is different from the template already stored".format(
                     template.get_template_id()))
 
-        except ValueError:
+        else:
             ipap_template_container.add_template(template)
 
     @staticmethod
@@ -289,13 +296,18 @@ class IpapMessageParser:
         :return: config values
         """
         config_params = {}
+        print(record.get_num_fields())
         for field_pos in range(0, record.get_num_fields()):
             ipap_field_key = record.get_field_at_pos(field_pos)
             ipap_field_value = record.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
             f_item = self.field_def_manager.get_field_by_code(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
+
+            print('field_pos:', field_pos, 'key:', f_item['key'])
+            ipap_field_value.print_value()
+
             ipap_field = template.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
             config_param = ConfigParam(name=f_item['key'],
-                                       p_type=f_item.type,
+                                       p_type=f_item['type'],
                                        value=ipap_field.write_value(ipap_field_value))
             config_params[config_param.name] = config_param
         return config_params
@@ -359,7 +371,8 @@ class IpapMessageParser:
 
                 object_type = template.get_object_type(templ_type)
                 ipap_object_key = IpapObjectKey(object_type, data_key)
-                if ipap_object_key not in object_templates:
+
+                if ipap_object_key not in object_templates.keys():
                     object_templates[ipap_object_key] = []
 
                 object_templates[ipap_object_key].append(template)

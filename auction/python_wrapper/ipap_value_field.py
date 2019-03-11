@@ -79,3 +79,6 @@ class IpapValueField:
 
     def get_lenght(self):
         return lib.ipap_value_field_get_length(self.obj)
+
+    def print_value(self):
+        return lib.ipap_value_field_print(self.obj)

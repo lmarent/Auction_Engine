@@ -1,3 +1,4 @@
+from foundation.field_def_manager import DataType
 from foundation.parse_format import ParseFormats
 from lxml.etree import Element
 
@@ -12,22 +13,22 @@ class ConfigParam:
     p_type: str: type of the configuration param
     value : str: value as string.
     """
-    def __init__(self, name: str=None, p_type: str=None, value: str=None):
+    def __init__(self, name: str=None, p_type: DataType=None, value: str=None):
         self.name = name
         self.type = p_type
         self.value = value
 
-    def get_name(self):
+    def get_name(self) -> str:
         """
         Returns the name of the configuration param
         :return: str: name
         """
         return self.name
 
-    def get_type(self):
+    def get_type(self) -> DataType:
         """
         Returns the type of the configuration param
-        :return: str: type
+        :return: DataType: type
         """
         return self.type
 
@@ -58,8 +59,8 @@ class ConfigParam:
 
         c_type = item.get("TYPE")
         if c_type:
-            self.type = c_type.lower()
+            self.type = ParseFormats.parse_type(c_type.lower())
         else:
-            self.type = "string"  # default type is string.
+            self.type = DataType.STRING
 
         ParseFormats.parse_item(self.type, self.value)
