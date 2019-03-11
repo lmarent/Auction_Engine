@@ -4,6 +4,8 @@ from enum import Enum
 from foundation.auction_task import AuctionTask
 from foundation.auction_task import ScheduledTask
 
+from python_wrapper.ipap_template import ObjectType
+
 
 class AuctioningObjectState(Enum):
     """
@@ -64,6 +66,26 @@ class AuctioningObject:
         :return: AuctioningObjectType
         """
         return self.auctioning_object_type
+
+    def get_template_object_type(self) -> ObjectType:
+        """
+        Returns the object type assciate with the auction object type
+        :return: ObjectType
+        """
+        if self.auctioning_object_type == AuctioningObjectType.AUCTION:
+            return ObjectType.IPAP_AUCTION
+
+        elif self.auctioning_object_type == AuctioningObjectType.BID:
+            return ObjectType.IPAP_BID
+
+        elif self.auctioning_object_type == AuctioningObjectType.ALLOCATION:
+            return ObjectType.IPAP_ALLOCATION
+
+        elif self.auctioning_object_type == AuctioningObjectType.RESOURCE_REQUEST:
+            return ObjectType.IPAP_ASK
+
+        else:
+            return ObjectType.IPAP_INVALID
 
     def add_task(self, auction_task: AuctionTask):
         """

@@ -1,6 +1,11 @@
-#bidding_object.py
+# bidding_object.py
 from foundation.auctioning_object import AuctioningObject
 from foundation.auctioning_object import AuctioningObjectType
+from foundation.config_param import ConfigParam
+from foundation.interval import Interval
+from foundation.parse_format import ParseFormats
+
+from utils.auction_utils import log
 
 from datetime import datetime
 
@@ -14,10 +19,10 @@ class BiddingObject(AuctioningObject):
       2. A set of options which establish the duration of the bidding object. 
     """
 
-    def __init__(self, auction_key: str, bidding_object_key:str, object_type: AuctioningObjectType,
-                    elements:dict, options: dict):
+    def __init__(self, auction_key: str, bidding_object_key: str, object_type: AuctioningObjectType,
+                 elements: dict, options: dict):
 
-        assert( object_type==AuctioningObjectType.BID or object_type==AuctioningObjectType.ALLOCATION )
+        assert (object_type == AuctioningObjectType.BID or object_type == AuctioningObjectType.ALLOCATION)
         super(BiddingObject, self).__init__(bidding_object_key, object_type)
 
         self.elements = elements
@@ -38,108 +43,80 @@ class BiddingObject(AuctioningObject):
             raise ValueError('Element with name: {} was not found'.format(element_name))
 
     def get_option(self, option_name):
-        if option_name in self.optios.keys():
+        if option_name in self.options.keys():
             return self.options[option_name]
         else:
             raise ValueError('Option with name: {} was not found'.format(option_name))
 
-    def calculate_intervals(self):
+    def get_option_value(self, option_name: str, name: str) -> ConfigParam:
+        """
+         Get a value by name from the misc rule attributes
 
-        laststart = datetime.now()
-        laststop = datetime.now()
+        :param option_name: record name where to find
+        :param name: option name to return
+        :return: config_param representing the option.
+        """
+        # Convert to lower case for comparison.
+        name = name.lower()
+
+        if option_name in self.options:
+            field_list = self.options[option_name]
+            if name in field_list:
+                return field_list[name]
+            else:
+                raise ValueError("name was not found in config params")
+        else:
+            raise ValueError("record was not found in config params")
+
+    def calculate_interval(self, option_name: str, last_stop: datetime) -> Interval:
+        """
+         Calculates the interval for a options record
+        :param option_name for which we want to create the interval.
+        :param last_stop datetime of the last stop for thebididng object.
+        :return: Interval created for the option
+        """
         duration = 0
+        interval = Interval()
 
-        optionListIter_t iter;
-        for option_id in self.options:
+        fstart = self.get_option_value(option_name, "Start")
+        fstop = self.get_option_value(option_name, "Stop")
+        fduration = self.get_option_value(option_name, "BiddingDuration")
 
-            duration = 0;
-            biddingObjectInterval_t
-            biddingObjectInterval;
-            biddingObjectInterval.start = 0;
-            biddingObjectInterval.stop = 0;
+        if fstart.value:
+            interval.start = ParseFormats.parse_time(fstart.value)
+            if not interval.start:
+                raise ValueError("Invalid start time {0}".format(fstart.value))
 
-            field_t fstart = getOptionVal(iter->first, "Start");
-            field_t fstop = getOptionVal(iter->first, "Stop");
-            field_t fduration = getOptionVal(iter->first, "BiddingDuration");
+        if fstop.value:
+            interval.stop = ParseFormats.parse_time(fstop.value)
+            if not interval.stop:
+                raise ValueError("Invalid stop time {0}".format(fstart.value))
 
-            # ifdef DEBUG
-                log->dlog(ch, "BiddingObject: %s.%s - fstart %s", getSet().c_str(),
-                          getName().c_str(), (fstart.getInfo()).c_str());
+        if fduration.value:
+            interval.duration = ParseFormats.parse_long(fduration.value)
 
-                log->dlog(ch, "BiddingObject: %s.%s - fstop %s", getSet().c_str(),
-                          getName().c_str(), (fstop.getInfo()).c_str());
+        if interval.duration > 0:
+            if interval.stop:
+                # stop + duration specified
+                interval.start = interval.stop - duration
+            else:
+                # stop[+ start] specified
+                if interval.start:
+                    interval.stop = interval.start + duration
+                else:
+                    interval.start = last_stop
+                    interval.stop = interval.start + duration
 
-                log->dlog(ch, "BiddingObject: %s.%s - fduration %s", getSet().c_str(),
-                          getName().c_str(), (fduration.getInfo()).c_str());
-            # endif
+        # now start has a defined value, while stop may still be zero
+        # indicating an infinite rule
 
-            if ((fstart.mtype == FT_WILD) & &
-                    (fstop.mtype == FT_WILD) & &
-                    (fduration.mtype == FT_WILD))
-            {
-                throw Error(409, "illegal to specify: start+stop+duration time");
-            }
+        # do we have a stop time defined that is in the past ?
+        if interval.stop and interval.stop <= datetime.now():
+            logger = log().get_logger()
+            logger.debug("Bidding object running time is already over")
 
-            if (fstart.mtype != FT_WILD) {
-                string sstart = ((fstart.value)[0]).getString();
-                biddingObjectInterval.start = ParserFcts::parseTime(sstart);
-                if (biddingObjectInterval.start == 0) {
-                    throw Error(410, "invalid start time %s", sstart.c_str());
-                }
-            }
+        if interval.start < datetime.now():
+            # start late tasks immediately
+            interval.start = datetime.now()
 
-            if (fstop.mtype != FT_WILD) {
-                string sstop = ((fstop.value)[0]).getString();
-                biddingObjectInterval.stop = ParserFcts::parseTime(sstop);
-                if (biddingObjectInterval.stop == 0) {
-                    throw Error(411, "invalid stop time %s", sstop.c_str());
-                }
-            }
-
-            if (fduration.mtype != FT_WILD) {
-                string sduration = ((fduration.value)[0]).getString();
-                duration = ParserFcts::parseULong(sduration);
-            }
-
-            if (duration > 0) {
-                if (biddingObjectInterval.stop) {
-                    # stop + duration specified
-                    biddingObjectInterval.start = biddingObjectInterval.stop - duration;
-                } else {
-                    #stop[+ start] specified
-        
-                    if (biddingObjectInterval.start) {
-                        biddingObjectInterval.stop = biddingObjectInterval.start + duration;
-                    } else {
-                        biddingObjectInterval.start = laststop;
-                        biddingObjectInterval.stop = biddingObjectInterval.start + duration;
-                    }
-                }
-            }
-
-            # ifdef DEBUG
-            log->dlog(ch, "BiddingObject: %s.%s - now:%s stop %s", getSet().c_str(),
-            getName().c_str(), Timeval::
-                toString(now).c_str(),
-                Timeval::toString(biddingObjectInterval.stop).c_str());
-            # endif
-
-            # now start has a defined value, while stop may still be zero
-            # indicating an infinite rule
-
-            # do we have a stop time defined that is in the past ?
-            if ((biddingObjectInterval.stop != 0) & & (biddingObjectInterval.stop <= now)) {
-                log->dlog(ch, "Bidding object running time is already over");
-            }
-
-            if (biddingObjectInterval.start < now) {
-                # start late tasks immediately
-                biddingObjectInterval.start = now;
-            }
-
-            laststart = biddingObjectInterval.start;
-            laststop = biddingObjectInterval.stop;
-
-            list->push_back(pair < time_t, biddingObjectInterval_t > (biddingObjectInterval.start, biddingObjectInterval));
-
-        }
+        return interval
