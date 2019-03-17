@@ -38,6 +38,7 @@ class IpapFieldTest(unittest.TestCase):
     def setUp(self):
         self.ipap_field = IpapField()
         self.ipap_field.set_field_type(0, 30, 8,  3, b"campo_1", b"campo_2", b"campo_3")
+        self.ipap_field2 = IpapField()
 
     def test_get_eno(self):
         self.assertEqual(self.ipap_field.get_eno(), 0)
@@ -56,6 +57,24 @@ class IpapFieldTest(unittest.TestCase):
 
     def test_get_documentation(self):
         self.assertEqual(self.ipap_field.get_documentation(), b"campo_3")
+
+    def test_num_characters(self):
+        ipap_field_value = IpapValueField()
+        value = b"assd"
+        ipap_field_value.set_value_vchar(value, len(value))
+        num_characters = self.ipap_field.num_characters(ipap_field_value)
+        self.assertEqual(num_characters, 10)
+
+    def test_write_value(self):
+        ipap_field_value = IpapValueField()
+        value = b"resource_1.set_1"
+        size = len(value)
+        ipap_field_value.set_value_vchar(value, size)
+        self.ipap_field2.set_field_type(0, 30, size, 4, b"campo_1", b"campo_2", b"campo_3")
+        result = self.ipap_field2.write_value(ipap_field_value)
+        print('termino write_value')
+        self.assertEqual(result,"resource_1.set_1")
+
 
 
 class IpapValueFieldTest(unittest.TestCase):
@@ -287,80 +306,107 @@ class IpapDataRecordTest(unittest.TestCase):
     IpapDataRecordTest
     """
     def setUp(self):
-        self.ipap_data_record = IpapDataRecord(templ_id=2)
 
-    def test_get_template_id(self):
-        value = self.ipap_data_record.get_template_id()
-        self.assertEqual(value,2)
+        self.ipap_field_container = IpapFieldContainer()
+        self.ipap_field_container.initialize_forward()
+        self.ipap_field_container.initialize_reverse()
 
-    def test_insert_field(self):
 
-        ipap_field_value1 = IpapValueField()
-        value = 12
-        ipap_field_value1.set_value_uint8(value)
+        self.template = IpapTemplate()
+        _id = 2
+        self.template.set_id(_id)
 
-        ipap_field_value2 = IpapValueField()
-        value = 13
-        ipap_field_value2.set_value_uint8(value)
+        self.ipap_data_record = IpapDataRecord(templ_id=_id)
 
-        # Replace the value
-        self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
-        self.ipap_data_record.insert_field(0, 30, ipap_field_value2)
-        num_fields = self.ipap_data_record.get_num_fields()
-        self.assertEqual(num_fields,1)
+        self.template.set_type(TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
+        ipap_field1 = self.ipap_field_container.get_field(0,30)
+        ipap_field2 = self.ipap_field_container.get_field(0, 32)
 
-        self.ipap_data_record.insert_field(0, 31, ipap_field_value2)
-        num_fields = self.ipap_data_record.get_num_fields()
-        self.assertEqual(num_fields,2)
+        self.template.add_field(ipap_field1.get_length(), UnknownField.KNOWN, True, ipap_field1)
+        self.template.add_field(ipap_field2.get_length(), UnknownField.KNOWN, True, ipap_field2)
+
+
+    # def test_get_template_id(self):
+    #     value = self.ipap_data_record.get_template_id()
+    #     self.assertEqual(value,2)
+    #
+    # def test_insert_field(self):
+    #
+    #     ipap_field_value1 = IpapValueField()
+    #     value = 12
+    #     ipap_field_value1.set_value_uint8(value)
+    #
+    #     ipap_field_value2 = IpapValueField()
+    #     value = 13
+    #     ipap_field_value2.set_value_uint8(value)
+    #
+    #     # Replace the value
+    #     self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
+    #     self.ipap_data_record.insert_field(0, 30, ipap_field_value2)
+    #     num_fields = self.ipap_data_record.get_num_fields()
+    #     self.assertEqual(num_fields,1)
+    #
+    #     self.ipap_data_record.insert_field(0, 31, ipap_field_value2)
+    #     num_fields = self.ipap_data_record.get_num_fields()
+    #     self.assertEqual(num_fields,2)
 
     def test_get_field(self):
+
+
         ipap_field_value1 = IpapValueField()
         value = 12
         ipap_field_value1.set_value_uint8(value)
 
-        ipap_field_value2 = IpapValueField()
-        value = 13
-        ipap_field_value2.set_value_uint8(value)
-
         # Replace the value
         self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
-        self.ipap_data_record.insert_field(0, 30, ipap_field_value2)
         num_fields = self.ipap_data_record.get_num_fields()
         self.assertEqual(num_fields,1)
 
-        self.ipap_data_record.insert_field(0, 31, ipap_field_value2)
+        field = self.ipap_data_record.get_field(0, 30)
+        self.assertEqual(field.get_value_uint8(), 12)
+
+        field = self.ipap_field_container.get_field(0, 32)
+
+        value = "record_1"
+        # It is required to encode as ascii because the C++ wrapper requires it.
+        value_encoded = value.encode('ascii')
+        field_val = field.get_ipap_field_value_string(value_encoded)
+        self.ipap_data_record.insert_field(0, 32, field_val)
+
+        field = self.template.get_field(0,32)
+        output = field.write_value(self.ipap_data_record.get_field( 0, 32))
+        print(output)
+
         num_fields = self.ipap_data_record.get_num_fields()
         self.assertEqual(num_fields,2)
-        field = self.ipap_data_record.get_field(0,31)
-        self.assertEqual(field.get_value_uint8(), 13)
 
         with self.assertRaises(ValueError):
             field2 = self.ipap_data_record.get_field(0, 33)
 
-    def test_get_field_length(self):
-        ipap_field_value1 = IpapValueField()
-        value = 12
-        ipap_field_value1.set_value_uint8(value)
-        # Replace the value
-        self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
-        num_fields = self.ipap_data_record.get_num_fields()
-        self.assertEqual(num_fields,1)
-
-        val = self.ipap_data_record.get_field_length(0,30)
-        self.assertEqual(val, 1)
-
-    def test_clear(self):
-        ipap_field_value1 = IpapValueField()
-        value = 12
-        ipap_field_value1.set_value_uint8(value)
-        # Replace the value
-        self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
-        num_fields = self.ipap_data_record.get_num_fields()
-        self.assertEqual(num_fields,1)
-
-        self.ipap_data_record.clear()
-        num_fields = self.ipap_data_record.get_num_fields()
-        self.assertEqual(num_fields,0)
+    # def test_get_field_length(self):
+    #     ipap_field_value1 = IpapValueField()
+    #     value = 12
+    #     ipap_field_value1.set_value_uint8(value)
+    #     # Replace the value
+    #     self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
+    #     num_fields = self.ipap_data_record.get_num_fields()
+    #     self.assertEqual(num_fields,1)
+    #
+    #     val = self.ipap_data_record.get_field_length(0,30)
+    #     self.assertEqual(val, 1)
+    #
+    # def test_clear(self):
+    #     ipap_field_value1 = IpapValueField()
+    #     value = 12
+    #     ipap_field_value1.set_value_uint8(value)
+    #     # Replace the value
+    #     self.ipap_data_record.insert_field(0, 30, ipap_field_value1)
+    #     num_fields = self.ipap_data_record.get_num_fields()
+    #     self.assertEqual(num_fields,1)
+    #
+    #     self.ipap_data_record.clear()
+    #     num_fields = self.ipap_data_record.get_num_fields()
+    #     self.assertEqual(num_fields,0)
 
 
 class IpapMessageTest(unittest.TestCase):

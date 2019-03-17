@@ -7,6 +7,8 @@ from ctypes import c_uint32
 from ctypes import c_uint64
 from ctypes import c_float
 from ctypes import c_double
+from ctypes import create_string_buffer
+from ctypes import sizeof
 
 from ctypes import c_size_t
 from ctypes import c_char_p
@@ -135,6 +137,13 @@ class IpapField:
         else:
             raise ValueError('Field value could not be created')
 
+    def num_characters(self, value: IpapValueField) -> int:
+        num_characters = lib.ipap_field_number_characters
+        num_characters.restype = c_int
+
+        return lib.ipap_field_number_characters(self.obj, value.obj)
+
+
     # TODO: Create the function.
     # def get_ipap_field_value_ubytes(self, value:str):
     #     obj = lib.ipap_field_get_ipap_value_field_bytes(self.obj, c_char_p(value), c_int(len(value)))
@@ -149,9 +158,13 @@ class IpapField:
         write_value = lib.ipap_field_write_value
         write_value.restype = c_char_p
 
-        bstr = lib.ipap_field_write_value(self.obj, value.obj)
-        print(bstr)
-        return bstr.decode('utf-8')
+        num_characters = int(self.num_characters(value) + 1)
+        result = create_string_buffer(num_characters)
+
+        print('here')
+        lib.ipap_field_write_value(self.obj, value.obj, result, sizeof(result))
+        print(result.value)
+        return result.value.decode('utf-8')
 
     def parse(self, value:str) -> IpapValueField:
         bvalue = value.encode('utf-8')

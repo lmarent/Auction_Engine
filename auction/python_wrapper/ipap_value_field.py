@@ -39,7 +39,7 @@ class IpapValueField:
     def set_value_double(self, value):
         lib.ipap_value_field_set_value_float64(self.obj, c_double(value))
 
-    def set_value_vchar(self, value, lenght : int):
+    def set_value_vchar(self, value: str, lenght: int):
         lib.ipap_value_field_set_value_vchar(self.obj, c_char_p(value), c_int(lenght))
 
     def get_value_uint8(self):
