@@ -11,7 +11,7 @@ from datetime import datetime
 
 class RequestProcess(AuctionProcessObject):
 
-    def __init__(self, key: str, session_id: str, module: Module, auction: Auction,
+    def __init__(self, key: str, session_id: str, module: Module, auction: Auction, server_domain: int,
                  config_dict: dict, start: datetime, stop: datetime):
         super(RequestProcess, self).__init__(key, module)
         self.config_dict = config_dict
@@ -20,6 +20,7 @@ class RequestProcess(AuctionProcessObject):
         self.session_id = session_id
         self.auctions = {}
         self.insert_auction(auction)
+        self.server_domain = server_domain
 
     def insert_auction(self, auction: Auction):
         if auction.get_key() not in self.auctions:
@@ -79,6 +80,12 @@ class RequestProcess(AuctionProcessObject):
         """
         return self.auctions
 
+    def get_server_domain(self) -> int:
+        """
+        Gets the server domain registered in the request process
+        :return: integer representing the server domain.
+        """
+        return self.server_domain
 
 class AgentProcessor(metaclass=Singleton):
 
@@ -108,13 +115,15 @@ class AgentProcessor(metaclass=Singleton):
         else:
             ValueError('Configuration file does not have {0} entry,please include it'.format('AGNTProcessor'))
 
-    def add_request(self, session_id: str, config_dic: dict, auction: Auction, start: datetime, stop: datetime) -> str:
+    def add_request(self, session_id: str, config_dic: dict, auction: Auction, server_domain: int,
+                    start: datetime, stop: datetime) -> str:
         """
         Adds a new request to the list of request to execute.
 
         :param session_id: session Id to be used
         :param config_dic: configuration parameters for the process
         :param auction: auction to be used
+        :param server_domain: server domain
         :param start: start date time
         :param stop: end date time
         :return: key for the request process created.
@@ -123,7 +132,7 @@ class AgentProcessor(metaclass=Singleton):
         module = self.module_loader.get_module(module_name)
         module.init_module(config_dic)
         key = str(IdSource().new_id())
-        request_process = RequestProcess(key, session_id, module, auction, config_dic, start, stop)
+        request_process = RequestProcess(key, session_id, module, auction, server_domain, config_dic, start, stop)
         self.requests[key] = request_process
         return key
 
@@ -227,6 +236,20 @@ class AgentProcessor(metaclass=Singleton):
 
         request_process = self.requests[key]
         return request_process.get_session_id()
+
+    def get_server_domain(self, key: str) -> str:
+        """
+        Gets the sessionId generating a request process
+
+        :param key: request process key
+        :return:
+        """
+        if key not in self.requests:
+            raise ValueError("Request key:{0} was not found".format(key))
+
+        request_process = self.requests[key]
+        return request_process.get_server_domain()
+
 
     @staticmethod
     def get_config_group() -> str:

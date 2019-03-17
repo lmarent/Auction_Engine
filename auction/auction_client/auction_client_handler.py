@@ -2,11 +2,13 @@ from datetime import datetime
 from datetime import timedelta
 from math import floor
 from math import fmod
+from typing import List
 
 from auction_client.resource_request import ResourceRequest
 from auction_client.resource_request_manager import ResourceRequestManager
 from auction_client.client_main_data import ClientMainData
 from auction_client.auction_session_manager import AuctionSessionManager
+from auction_client.auction_session import AuctionSession
 from auction_client.agent_processor import AgentProcessor
 from auction_client.client_message_processor import ClientMessageProcessor
 from auction_client.server_connection import ServerConnection
@@ -18,6 +20,9 @@ from foundation.config import Config
 from foundation.auction_manager import AuctionManager
 from foundation.session import SessionState
 from foundation.auction import Auction
+from foundation.bidding_object_manager import BiddingObjectManager
+from foundation.bidding_object import BiddingObject
+from foundation.ipap_auction_parser import IpapAuctionParser
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
@@ -249,11 +254,11 @@ class HandleAskResponseMessage(ScheduledTask):
 
         self.logger.debug("ending get_template_container")
 
-    def create_auctions(self, auctions: list) -> int:
+    def create_auctions(self, auctions: List[Auction]) -> int:
         """
         Creates the auctions answered by the server as being used to bid for the resource
         :param auctions:list of auctions
-        :return: maximum duration inteval.
+        :return: maximum duration interval.
         """
         self.logger.debug("starting create_auctions")
         # This variable maintains the auction with the maximal duration interval, so
@@ -298,7 +303,7 @@ class HandleAskResponseMessage(ScheduledTask):
 
         return max_interval
 
-    def create_process_request(self, auctions: list, max_interval: int):
+    def create_process_request(self, auctions: list, max_interval: int, server_domain: int):
         """
 
         :param auctions: list of auction to put to process
@@ -354,8 +359,8 @@ class HandleAskResponseMessage(ScheduledTask):
         try:
             self.get_template_container()
             auctions = self.auction_manager.parse_ipap_message(self.message, self.template_container)
-            max_interval = self.create_auctions(auctions)
-            self.create_process_request(auctions, max_interval)
+            max_interval = self.create_auctions(auctions, self.message.get_domain())
+            self.create_process_request(auctions, max_interval, self.message.get_domain())
             self.auction_manager.increment_references(auctions, self.server_connection.get_auction_session().get_key())
             self.server_connection.get_auction_session().set_auctions(auctions)
         except Exception as e:
@@ -386,10 +391,14 @@ class HandleRequestProcessExecution(ScheduledTask):
         """
         super(HandleRequestProcessExecution, self).__init__(seconds_to_start)
         self.request_process_key = request_process_key
+        self.client_data = ClientMainData()
+        self.agent_processor = AgentProcessor(self.client_data.domain, '')
         self.logger = log().get_logger()
 
     async def _run_specific(self, **kwargs):
-        pass
+        bids = self.agent_processor.execute_request(self.request_process_key)
+        handle_add_generate_bidding_object = HandledAddGenerateBiddingObject(self.resource_request_key, bids, 0)
+        handle_add_generate_bidding_object.start()
 
 
 class HandleRequestProcessRemove(ScheduledTask):
@@ -403,10 +412,12 @@ class HandleRequestProcessRemove(ScheduledTask):
         """
         super(HandleRequestProcessRemove, self).__init__(seconds_to_start)
         self.request_process_key = request_process_key
+        self.client_data = ClientMainData()
+        self.agent_processor = AgentProcessor(self.client_data.domain, '')
         self.logger = log().get_logger()
 
     async def _run_specific(self, **kwargs):
-        pass
+        self.agent_processor.delete_request(request_process_key)
 
 
 class HandleAuctionRemove(ScheduledTask):
@@ -433,16 +444,50 @@ class HandleAuctionRemove(ScheduledTask):
 
         self.auction_manager.delete_auction(self.auction.get_key())
 
-# class HandledAddGenerateBiddingObject(ScheduledTask):
-#
-#     def __init__(self):
-#         pass
-#
-#     async def _run_specific(self, **kwargs):
-#         bidding_manager = app.get_bidding_object_manager()
-#         for bidding_object in bidding_objects:
-#             bidding_manager.add_bidding_object(bidding_object, loop)
-#         pass
+
+class HandledAddGenerateBiddingObject(ScheduledTask):
+
+    def __init__(self,request_process_key: str, bidding_objects: List[BiddingObject], seconds_to_start: float):
+        """
+        Handles the generation of new bidding objects
+
+        :param request_process_key: process key where the bidding objects have been generated
+        :param bidding_objects: bidding object list to include
+        :param seconds_to_start: seconds to wait for running the task.
+        """
+        super(HandledAddGenerateBiddingObject, self).__init__(seconds_to_start)
+        self.request_process_key = request_process_key
+        self.bidding_objects = bidding_objects
+        self.client_data = ClientMainData()
+        self.agent_processor = AgentProcessor(self.client_data.domain, '')
+        self.auction_session_manager = AuctionSessionManager()
+        self.auction_manager = AuctionManager(self.client_data.domain)
+        self.agent_template_container = AgentTemplateContainerManager()
+        self.bidding_manager = BiddingObjectManager(self.client_data.domain)
+        self.message_processor = ClientMessageProcessor()
+
+    async def _run_specific(self, **kwargs):
+
+        # Inserts the objects in the bidding object container
+        for bidding_object in self.bidding_objects:
+            self.bidding_manager.add_bidding_object(bidding_object)
+
+        # Gets the server domain from the request process
+        server_domain = self.agent_processor.get_server_domain(self.request_process_key)
+
+        # Gets the session
+        session_key = self.agent_processor.get_session_for_request(self.request_process_key)
+        session : AuctionSession = self.auction_session_manager.get_session(session_key)
+
+        # Builds and sends the message
+        template_container = self.agent_template_container.get_template_container(server_domain)
+        ipap_message = self.bidding_manager.get_ipap_message(self.bidding_objects, template_container)
+        ipap_message.set_seqno(session.get_next_message_id())
+        ipap_message.set_ack_seq_no(0)
+        session.add_pending_message(ipap_message)
+        self.message_processor.send_message(session.get_server_connnection(),ipap_message.get_message())
+
+
 
 
 # class HandleActivateBiddingObject(ScheduledTask):

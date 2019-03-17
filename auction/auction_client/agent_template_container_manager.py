@@ -23,7 +23,7 @@ class AgentTemplateContainerManager(metaclass=Singleton):
             raise ValueError('Template container for domain {0} is already installed'.format(domain))
         self.template_container_objects[domain] = template_container
 
-    def get_template_container(self, domain: int):
+    def get_template_container(self, domain: int) -> IpapTemplateContainer:
         """
         lookup the database of template containers for a specific template container
         """

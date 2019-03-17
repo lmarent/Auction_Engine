@@ -19,6 +19,8 @@ from foundation.parse_format import ParseFormats
 
 class IpapAuctionParser(IpapMessageParser):
 
+    domain_key_separator = '.'
+
     def __init__(self, domain):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainerSingleton()
@@ -62,7 +64,7 @@ class IpapAuctionParser(IpapMessageParser):
             ipap_template_container.add_template(template)
 
     def parse_auction(self, object_key: IpapObjectKey, templates: list, data_records: list,
-                      ipap_template_container: IpapTemplateContainer) -> Auction:
+                      ipap_template_container: IpapTemplateContainer, server_domain: int) -> Auction:
         """
         Parse an auction from the ipap_message
 
@@ -113,7 +115,8 @@ class IpapAuctionParser(IpapMessageParser):
             raise ValueError("The message not included  a options template")
 
         action = Action(action_name.value, True, opts_misc)
-        auction = Auction(auction_key.value, resource_key.value, action, data_misc)
+        auction_key = str(server_domain) + IpapAuctionParser.domain_key_separator + auction_key.value
+        auction = Auction(auction_key, resource_key.value, action, data_misc)
         auction.set_state(AuctioningObjectState(ParseFormats.parse_int(auction_status.value)))
         self.build_associated_templates(templates, auction, ipap_template_container)
 
@@ -128,8 +131,15 @@ class IpapAuctionParser(IpapMessageParser):
         return auction
 
     def parse(self, ipap_message: IpapMessage, ipap_template_container: IpapTemplateContainer):
+        """
+        Parsers the ipap message to get the auctions given.
 
+        :param ipap_message: ipap message to parse
+        :param ipap_template_container: template container with templates registered for a particular server.
+        :return:
+        """
         auction_ret = []
+        server_domain = ipap_message.get_domain()
 
         # Splits the message by object.
         object_templates, object_data_records, templates_not_related = self.split(ipap_message)
@@ -142,12 +152,13 @@ class IpapAuctionParser(IpapMessageParser):
         # loop through data records and parse the auction data
         for object_key in object_data_records:
             if object_key.get_object_type() == ObjectType.IPAP_AUCTION:
-                auction = self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key], ipap_template_container)
+                auction = self.parse_auction(object_key, object_templates[object_key], object_data_records[object_key],
+                                             ipap_template_container, server_domain)
                 auction_ret.append(auction)
 
         return auction_ret
 
-    def get_non_mandatoty_fields(self, action: Action, mandatory_fields: list) -> list:
+    def get_non_mandatory_fields(self, action: Action, mandatory_fields: list) -> list:
         """
         Gets non mandatory fields from the action's config items.
 
@@ -301,7 +312,7 @@ class IpapAuctionParser(IpapMessageParser):
 
         # Following lines are used for inserting only non mandatory fields
         mandatory_fields = option_template.get_template_type_mandatory_field(option_template.get_type())
-        optional_fields = self.get_non_mandatoty_fields(auction.action, mandatory_fields)
+        optional_fields = self.get_non_mandatory_fields(auction.action, mandatory_fields)
 
         option_template.set_max_fields(option_template.get_num_fields() + len(optional_fields))
         for field in optional_fields:

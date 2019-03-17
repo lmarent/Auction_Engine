@@ -495,3 +495,15 @@ class Auction(AuctioningObject):
         """
         return self.action.name
 
+    def get_server_domain(self) -> int :
+        """
+        Gets the server domain from the auction key
+        :return:
+        """
+        from foundation.ipap_auction_parser import IpapAuctionParser
+
+        splitted_values = self.key.split(IpapAuctionParser.domain_key_separator)
+        if len(splitted_values) >= 2:
+            return int(splitted_values[0])
+        else:
+            return 0
