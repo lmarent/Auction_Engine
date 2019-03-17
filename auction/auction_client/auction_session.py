@@ -75,3 +75,11 @@ class AuctionSession(Session):
         :return: server connection
         """
         return self.server_connection
+
+    def get_resource_request_interval(self):
+        """
+        Gets the resource request interval for the session
+
+        :return:
+        """
+        return self.resource_request_interval

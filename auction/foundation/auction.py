@@ -473,3 +473,25 @@ class Auction(AuctioningObject):
                     ret = ret + ",{0}".format(str(template_id))
 
         return ret
+
+    def intersect_interval(self, start: datetime, stop: datetime):
+        """
+        Enlarge the interval whenever the interval defined by the start and stop time for the auction is shorter
+        than the given interval.
+
+        :param start: start time
+        :param stop: stop time
+        """
+        if start <= self.interval.start:
+            self.interval.start = start
+
+        if self.interval.stop <= stop:
+            self.interval.stop = stop
+
+    def get_module_name(self):
+        """
+        Returns the name of the module to be used to perform this auction
+        :return: module's name
+        """
+        return self.action.name
+

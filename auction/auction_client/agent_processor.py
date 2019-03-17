@@ -119,7 +119,7 @@ class AgentProcessor(metaclass=Singleton):
         :param stop: end date time
         :return: key for the request process created.
         """
-        module_name = auction.get_action().get_name() + "user"
+        module_name = auction.get_action().get_name() + "_user"
         module = self.module_loader.get_module(module_name)
         module.init_module(config_dic)
         key = str(IdSource().new_id())

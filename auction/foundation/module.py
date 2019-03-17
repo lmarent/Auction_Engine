@@ -17,7 +17,7 @@ class Module(metaclass=ABCMeta):
         self.calls = 0
 
     @abstractmethod
-    def init_module(self, config_param_list:list):
+    def init_module(self, config_param_list:dict):
         """
         Initialization method for starting modules.
 

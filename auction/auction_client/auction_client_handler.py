@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timedelta
 from math import floor
 from math import fmod
 
@@ -13,7 +14,6 @@ from auction_client.agent_template_container_manager import AgentTemplateContain
 from auction_client.resource_request_interval import ResourceRequestInterval
 
 from foundation.auction_task import ScheduledTask
-from foundation.auction_task import PeriodicTask
 from foundation.config import Config
 from foundation.auction_manager import AuctionManager
 from foundation.session import SessionState
@@ -125,7 +125,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         except Exception as e:
             self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))
             if session:
-                self.client_message_processor.process_disconnect(session)
+                await self.client_message_processor.process_disconnect(session)
                 try:
                     self.auction_session_manager.del_session(session.get_key())
                 except ValueError:
@@ -194,7 +194,6 @@ class HandleAuctionMessage(ScheduledTask):
 
     def _run_specific(self):
         # if the message has a ack nbr, then confirm the message
-        seq_no = self.message.get_seqno()
         ack_seq_no = self.message.get_ackseqno()
         if ack_seq_no > 0:
             self.server_connection.session.confirm_message(ack_seq_no)
@@ -224,11 +223,11 @@ class HandleAskResponseMessage(ScheduledTask):
         self.client_data = ClientMainData()
         self.server_connection = server_connection
         self.resource_request_interval: ResourceRequestInterval = \
-                        server_connection.get_auction_session().resource_request_interval
+            server_connection.get_auction_session().resource_request_interval
         self.message = message
         self.agent_template_container = AgentTemplateContainerManager()
         self.auction_manager = AuctionManager(self.client_data.domain)
-        self.agent_processor = AgentProcessor(self.client_data.domain, None)
+        self.agent_processor = AgentProcessor(self.client_data.domain, '')
         self.template_container = None
 
     def get_template_container(self):
@@ -249,7 +248,6 @@ class HandleAskResponseMessage(ScheduledTask):
             raise ValueError("Invalid domain id associated with the message")
 
         self.logger.debug("ending get_template_container")
-
 
     def create_auctions(self, auctions: list) -> int:
         """
@@ -280,14 +278,16 @@ class HandleAskResponseMessage(ScheduledTask):
                 # the auction does not exists, so we need to create a new auction process.
                 interval = auction.get_interval()
                 auction.intersect_interval(interval.start, interval.stop)
-                if interval.interval > 0:
-                    bid_intervals = floor((auction.get_stop() - auction.get_start()) / interval.interval)
-                    modulus = fmod((auction.get_stop() - auction.get_start()), interval.interval)
+                val_interval = interval.interval
+                if val_interval > 0:
+                    duration = (auction.get_stop() - auction.get_start()).total_seconds()
+                    bid_intervals = floor(duration / val_interval)
+                    modulus = fmod(duration, val_interval)
 
                     # If the requested time is less than the minimal interval for the auction
                     # we have to request te minimal interval.
                     if modulus > 0:
-                        new_stop = auction.get_start() + interval.interval * (bid_intervals + 1)
+                        new_stop = auction.get_start() + timedelta(interval.interval * (bid_intervals + 1))
                         auction.set_stop(new_stop)
 
                 self.auction_manager.add_auction(auction)
@@ -298,7 +298,7 @@ class HandleAskResponseMessage(ScheduledTask):
 
         return max_interval
 
-    def create_process_request(self, auctions:list, max_interval: int):
+    def create_process_request(self, auctions: list, max_interval: int):
         """
 
         :param auctions: list of auction to put to process
@@ -318,20 +318,24 @@ class HandleAskResponseMessage(ScheduledTask):
         req_stop = self.resource_request_interval.stop
 
         first_time = True
+        resource_request_key = None
         for module_name in auctions_by_module:
             aucs = auctions_by_module[module_name]
             resource_request_key = None
             for auction in aucs:
                 if first_time:
                     if max_interval > 0:
-                        bid_intervals = floor((req_stop -req_start)/ max_interval)
-                        modulus = fmod((req_stop -req_start), max_interval)
-                        duration = max_interval * (bid_intervals  + 1)
-                        req_stop = req_start + duration
 
-                        resource_request_key=self.agent_processor.add_request(self.server_connection.session.get_key(),
-                                                     self.resource_request_interval.get_fields(),
-                                                     auction, req_start, req_stop)
+                        bid_intervals = floor((req_stop - req_start).total_seconds() / max_interval)
+                        duration = max_interval * (bid_intervals + 1)
+                        req_stop = req_start + timedelta(seconds=duration)
+
+                        resource_request_key = self.agent_processor.add_request(
+                            self.server_connection.get_auction_session().get_key(),
+                            self.resource_request_interval.get_fields(),
+                            auction,
+                            req_start,
+                            req_stop)
                     self.resource_request_interval.add_resource_request_process(resource_request_key)
                     first_time = False
                 else:
@@ -347,12 +351,15 @@ class HandleAskResponseMessage(ScheduledTask):
 
     def _run_specific(self):
         self.logger.debug("starting _run_specific")
-        self.get_template_container()
-        auctions = self.auction_manager.parse_ipap_message(self.message, self.template_container)
-        max_interval = self.create_auctions(auctions)
-        self.create_process_request(auctions, max_interval)
-        self.auction_manager.increment_references(auctions, self.server_connection.session.get_key())
-        self.server_connection.session.set_auctions(auctions)
+        try:
+            self.get_template_container()
+            auctions = self.auction_manager.parse_ipap_message(self.message, self.template_container)
+            max_interval = self.create_auctions(auctions)
+            self.create_process_request(auctions, max_interval)
+            self.auction_manager.increment_references(auctions, self.server_connection.get_auction_session().get_key())
+            self.server_connection.get_auction_session().set_auctions(auctions)
+        except Exception as e:
+            self.logger.error(str(e))
 
 
 class HandleActivateSession(ScheduledTask):
@@ -370,11 +377,11 @@ class HandleActivateSession(ScheduledTask):
 
 class HandleRequestProcessExecution(ScheduledTask):
 
-    def __init__(self, request_process_key:str, seconds_to_start: float):
+    def __init__(self, request_process_key: str, seconds_to_start: float):
         """
         Handles the execution of an auction
 
-        :param auction: auction to execute.
+        :param request_process_key: request process key to execute.
         :param seconds_to_start: seconds to wait for running the task.
         """
         super(HandleRequestProcessExecution, self).__init__(seconds_to_start)
@@ -384,13 +391,14 @@ class HandleRequestProcessExecution(ScheduledTask):
     async def _run_specific(self, **kwargs):
         pass
 
+
 class HandleRequestProcessRemove(ScheduledTask):
 
-    def __init__(self, request_process_key:str, seconds_to_start: float):
+    def __init__(self, request_process_key: str, seconds_to_start: float):
         """
         Handles the execution of an auction
 
-        :param auction: auction to execute.
+        :param request_process_key: request process key to remove.
         :param seconds_to_start: seconds to wait for running the task.
         """
         super(HandleRequestProcessRemove, self).__init__(seconds_to_start)
@@ -423,8 +431,7 @@ class HandleAuctionRemove(ScheduledTask):
         # delete all binding objects related with the auction
         # TODO: remove binding objects
 
-        self.auction_manager.del_auction(self.auction)
-
+        self.auction_manager.delete_auction(self.auction.get_key())
 
 # class HandledAddGenerateBiddingObject(ScheduledTask):
 #
@@ -481,4 +488,3 @@ class HandleAuctionRemove(ScheduledTask):
 #     async def _run_specific(self, **kwargs):
 #         for auction in auctions:
 #             auction.activate(loop)
-

@@ -56,3 +56,10 @@ class ResourceRequest(AuctioningObject):
         Returns all intervals associated with the resource request
         """
         return self.intervals
+
+    def get_field_values(self):
+        """
+        Returns all field values associated with the resource request
+        :return:
+        """
+        return self.field_values

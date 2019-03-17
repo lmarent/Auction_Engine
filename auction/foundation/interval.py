@@ -2,6 +2,8 @@
 import datetime
 from datetime import timedelta
 from foundation.config import Config
+from foundation.parse_format import ParseFormats
+
 
 class Interval():
     """
@@ -22,7 +24,7 @@ class Interval():
         self.session = session
 
     @staticmethod
-    def parse_time(start_at_least, stime):
+    def parse_time(start_at_least, stime: str):
         """
         Parse the start time field within the interval.
         :param start_at_least : datetime to start the interval
@@ -35,6 +37,8 @@ class Interval():
         if stime[0] == '+':
             seconds = int(stime[1:])
             time_val = datetime.datetime.now() + timedelta(seconds=seconds)
+        elif stime.isnumeric():
+            time_val = ParseFormats.parse_time(stime)
         else:
             time_val = datetime.strptime(stime, time_format)
 
@@ -84,14 +88,22 @@ class Interval():
             raise ValueError("illegal to specify: start+stop+duration time")
         
         if sstart:
-            self.start = self.parse_time(start_at_least, sstart)
+            try:
+                self.start = self.parse_time(start_at_least, sstart)
+            except ValueError:
+                self.start = start_at_least
         else:
             self.start = start_at_least
         
         if sstop:
-            self.stop = self.parse_time(start_at_least, sstop)
+            try:
+                self.stop = self.parse_time(start_at_least, sstop)
+            except ValueError:
+                self.stop = start_at_least
 
-        self.duration = int(sduration)
+        if sduration:
+            self.duration = int(sduration)
+
         if self.duration > 0:
             if self.stop:
                 self.start = self.stop - timedelta(seconds=self.duration)

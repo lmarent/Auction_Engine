@@ -9,6 +9,7 @@ import pathlib
 import os
 from datetime import datetime
 from auction_client.resource_request import ResourceRequest
+from auction_client.resource_request_interval import ResourceRequestInterval
 
 
 class ResourceRequestFileParser:
@@ -47,7 +48,7 @@ class ResourceRequestFileParser:
 
         interval_dict = self._convert_interal_dict(misc_config)
 
-        new_interval = Interval()
+        new_interval = ResourceRequestInterval()
         new_interval.parse_interval(interval_dict, start_at_least)
         return new_interval.stop, new_interval
 
@@ -69,6 +70,8 @@ class ResourceRequestFileParser:
         resource_request_key = set_name + '.' + name
         resource_request = ResourceRequest(resource_request_key, time_format)
 
+        intervals = []
+
         # Iterates over children nodes
         start = datetime.now()
         for subitem in node.iterchildren():
@@ -80,7 +83,12 @@ class ResourceRequestFileParser:
 
                 elif subitem.tag.lower() == "interval":
                     start, interval = self._parse_interval(subitem, start)
-                    resource_request.add_interval(interval)
+                    intervals.append(interval)
+
+        # Copies field values.
+        for interval in intervals:
+            interval.set_fields(resource_request.get_field_values())
+            resource_request.add_interval(interval)
 
         return resource_request
 

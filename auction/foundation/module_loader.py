@@ -65,7 +65,7 @@ class ModuleLoader:
             module_class =  getattr(module, module_name)
             klass = module_class(module_name,file_name, module_name, module)
             self.modules[module_name] = klass
-            return module
+            return klass
         except FileNotFoundError as e:
             raise ModuleNotFoundError("The module with name {0} can not be open".format(file_name))
 
@@ -83,7 +83,6 @@ class ModuleLoader:
         else:
             module = self.load_module(module_name, False)
 
-        module.link()
         return module
 
 

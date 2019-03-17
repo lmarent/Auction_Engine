@@ -7,9 +7,9 @@ class basic_module(Module):
 
     def __init__(self, module_name:str, module_file:str, module_handle, config_group:str):
         super(basic_module,self).__init__(module_name, module_file, module_handle, config_group)
-        self.config_param_list = []
+        self.config_param_list = {}
 
-    def init_module(self, config_param_list:list):
+    def init_module(self, config_param_list:dict):
         print ('in init_module')
         self.config_param_list = config_param_list
 

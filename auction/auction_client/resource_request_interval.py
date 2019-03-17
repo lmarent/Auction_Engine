@@ -5,7 +5,7 @@ from foundation.auctioning_object import AuctioningObjectState
 class ResourceRequestInterval(Interval):
 
     def __init__(self):
-        super.__init__(ResourceRequestInterval, self).__init__()
+        super(ResourceRequestInterval, self).__init__()
         self.field_values = {}
         self.state: AuctioningObjectState = AuctioningObjectState.NEW
         self.resource_request_process = set()
