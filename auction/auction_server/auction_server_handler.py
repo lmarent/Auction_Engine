@@ -7,9 +7,9 @@ from foundation.auction_parser import AuctionXmlFileParser
 from foundation.auction_manager import AuctionManager
 from foundation.auction import Auction
 from foundation.auctioning_object import AuctioningObjectState
-from foundation.session import Session
 from foundation.field_def_manager import FieldDefManager
 from foundation.bidding_object_manager import BiddingObjectManager
+from foundation.bidding_object import BiddingObject
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
@@ -23,7 +23,6 @@ from auction_server.server_main_data import ServerMainData
 from datetime import datetime
 from datetime import timedelta
 from utils.auction_utils import log
-import ipaddress
 
 
 class HandleAuctionExecution(PeriodicTask):
@@ -281,7 +280,53 @@ class HandleAskRequest(ScheduledTask):
                                                       ack_message.get_message())
 
 
+class HandleActivateBiddingObject(ScheduledTask):
+    """
+    Handles the activate of a bidding object. When active the bidding object is included in the auction for bidding.
+    """
+    def __init__(self, client_connection: ClientConnection, bidding_object: BiddingObject, seconds_to_start: float):
+        super(HandleActivateBiddingObject, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
+        self.bidding_object = bidding_object
+        self.server_main_data = ServerMainData()
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
+        self.auction_processor = AuctionProcessor(self.server_main_data.domain)
+
+    def _run_specific(self):
+        auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+        if auction.get_state() == AuctioningObjectState.ACTIVE:
+            self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), self.bidding_object)
+            self.bidding_object.set_state(AuctioningObjectState.ACTIVE)
+        else:
+            raise ValueError("Auction {0} is not active".format(auction.get_key()))
+
+
+class HandleRemoveBiddingObject(ScheduledTask):
+    """
+    Handles the removal of a bidding object. This parte removes the bidding object from the auction for bidding.
+    """
+    def __init__(self, client_connection: ClientConnection, bidding_object: BiddingObject, seconds_to_start: float):
+        super(HandleActivateBiddingObject, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
+        self.bidding_object = bidding_object
+        self.server_main_data = ServerMainData()
+        self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
+        self.auction_processor = AuctionProcessor(self.server_main_data.domain)
+
+    def _run_specific(self):
+        auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+        if auction.get_state() == AuctioningObjectState.ACTIVE:
+            self.auction_processor.delete_bidding_object_from_auction_process(auction.get_key(), self.bidding_object)
+            self.bidding_manager.del_actioning_object(self.bidding_object.get_key())
+        else:
+            raise ValueError("Auction {0} is not active".format(auction.get_key()))
+
+
 class HandleAddBiddingObjects(ScheduledTask):
+    """
+    This class handles adding a new bidding object sent from an agent to the server.
+    """
     def __init__(self, client_connection: ClientConnection, ipap_message: IpapMessage, seconds_to_start: float):
         super(HandleAddBiddingObjects, self).__init__(seconds_to_start)
         self.client_connection = client_connection
@@ -289,24 +334,33 @@ class HandleAddBiddingObjects(ScheduledTask):
         self.server_main_data = ServerMainData()
         self.server_message_processor = ServerMessageProcessor()
         self.bididing_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
     def _run_specific(self):
         """
-
-        :return:
+        Adds bidding objects sent from an agent.
         """
         self.logger.debug("starting HandleAddBiddingObjects")
         # parse the message
-        bidding_objects = self.bididing_manager.parse_message(self.ipap_message)
+        bidding_objects = self.bididing_manager.parse_ipap_message(self.ipap_message, self.template_container)
 
         # insert bidding objects to bidding object manager
-        for bid in bidding_objects:
-            bid.set_session(self.client_connection.session)
-            self.bididing_manager.add_auctioning_object(bid)
+        session = self.client_connection.get_auction_session()
+        last_stop = datetime.now()
+        for bidding_object in bidding_objects:
+            bidding_object.set_session(session.get_key())
+            self.bididing_manager.add_auctioning_object(bidding_object)
+            for option_name in sorted(bidding_object.options.iterkeys()):
+                interval = bidding_object.calculate_interval(option_name, last_stop)
+                handle_activate = HandleActivateBiddingObject()
+                handle_activate.start()
+                handle_remove = HandleRemoveBiddingObject()
+                handle_remove.start()
+                last_stop = interval.stop
 
         # confirm the message
-        confim_message = self.server_message_processor.build_ack_message(self.session.get_next_message_id(),
+        confim_message = self.server_message_processor.build_ack_message(session.get_next_message_id(),
                                                                          self.ipap_message.get_seqno() + 1)
         self.server_message_processor.send_message(self.client_connection, confim_message.get_message())
         self.logger.debug("ending HandleAddBiddingObjects")
@@ -338,8 +392,8 @@ class HandleAuctionMessage(ScheduledTask):
             pass
 
         if ipap_message_type.is_bidding_message():
-            # TODO: implement the code
-            pass
+            handle_bidding_object_interaction = HandleAddBiddingObjects(self.client_connection, self.message, 0)
+            handle_bidding_object_interaction.start()
 
         if ipap_message_type.is_allocation_message():
             # TODO: implement the code

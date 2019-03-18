@@ -25,9 +25,11 @@ class BiddingObject(AuctioningObject):
         assert (object_type == AuctioningObjectType.BID or object_type == AuctioningObjectType.ALLOCATION)
         super(BiddingObject, self).__init__(bidding_object_key, object_type)
 
+        # elements and options whenever used should be sorted by key.
         self.elements = elements
         self.options = options
         self.parent_auction = auction_key
+        self.session_key = None
 
     def get_auction_key(self):
         """
@@ -120,3 +122,12 @@ class BiddingObject(AuctioningObject):
             interval.start = datetime.now()
 
         return interval
+
+    def set_session(self, session_key: str):
+        """
+        Sets the session to whom this bidding object belogs to.
+
+        :param session_key:
+        :return:
+        """
+        self.session_key = session_key

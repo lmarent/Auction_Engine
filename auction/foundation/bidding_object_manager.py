@@ -7,6 +7,9 @@ from foundation.ipap_bidding_object_parser import IpapBiddingObjectParser
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
+from typing import List
+from datetime import datetime
+
 class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
     def __init__(self, domain: int):
@@ -57,7 +60,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         """
         return super(BiddingObjectManager, self).get_auctioning_object_keys()
 
-    def parse_ipap_message(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer)-> list:
+    def parse_ipap_message(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer)-> List[BiddingObject]:
         """
         parse bidding objects from an ipap_message
 

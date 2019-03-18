@@ -22,16 +22,19 @@ class AuctioningObjectManager:
         self.auctioning_objects_done = {}
         print("estoy en init de auctioning object manager")
 
-    def add_auctioning_object(self, auction_object):
+    def add_auctioning_object(self, auctioning_object):
         """
-        Adding new auction objects to the Auction system will parse and syntax
-        check the given auction object specifications. It lookup the database for
-        already installed auction objects and store the auction object into the database.
+        Adding new bidding objects to the Auction system will parse and syntax
+        check the given auction object specifications.
+
+        It look up the database for already installed auction objects
+        and store the auction object into the database.
         """
-        key = auction_object.get_key()
+        key = auctioning_object.get_key()
         if key in self.auctioning_objects.keys():
             raise ValueError('Auctioning Object with this name is already installed')
-        self.auctioning_objects[key] = auction_object
+
+        self.auctioning_objects[key] = auctioning_object
 
     def get_auctioning_object(self, key):
         """
