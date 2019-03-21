@@ -338,9 +338,8 @@ class HandleAskResponseMessage(ScheduledTask):
                         resource_request_key = self.agent_processor.add_request(
                             self.server_connection.get_auction_session().get_key(),
                             self.resource_request_interval.get_fields(),
-                            auction,
-                            req_start,
-                            req_stop)
+                            auction, server_domain, req_start, req_stop)
+
                     self.resource_request_interval.add_resource_request_process(resource_request_key)
                     first_time = False
                 else:
@@ -359,7 +358,7 @@ class HandleAskResponseMessage(ScheduledTask):
         try:
             self.get_template_container()
             auctions = self.auction_manager.parse_ipap_message(self.message, self.template_container)
-            max_interval = self.create_auctions(auctions, self.message.get_domain())
+            max_interval = self.create_auctions(auctions)
             self.create_process_request(auctions, max_interval, self.message.get_domain())
             self.auction_manager.increment_references(auctions, self.server_connection.get_auction_session().get_key())
             self.server_connection.get_auction_session().set_auctions(auctions)
