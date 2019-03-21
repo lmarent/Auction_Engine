@@ -44,6 +44,8 @@ class FieldValue:
     """
     This class represents a field value given as parameter by the user.
 
+    For now, we assume that only we use the exact match.
+
     Attributes
      --------
     name: field's name
@@ -69,12 +71,13 @@ class FieldValue:
         """
         try:
             value_translated = FieldDefManager().get_field_value(self.type, value)
-            self.value.append(FieldValue(self.type,value_translated))
+            self.value.append(value_translated)
 
         except ValueError:
-            self.value.append(FieldValue(self.type, value))
+            self.value.append(value)
 
         self.cnt_values = 1
+        self.match_type = MatchFieldType.FT_EXACT
 
     def _parse_field_value_range(self, value: str):
         """
@@ -91,10 +94,10 @@ class FieldValue:
         for val in values:
             try:
                 value_translated = FieldDefManager().get_field_value(self.type, val)
-                self.value.append(FieldValue(self.type, value_translated))
+                self.value.append(value_translated)
 
             except ValueError:
-                self.value.append(FieldValue(self.type,val))
+                self.value.append(val)
 
             self.cnt_values = self.cnt_values + 1
 
@@ -104,15 +107,29 @@ class FieldValue:
         :param value: string value to parse
         :param field: field where the values area going to be assigned.
         """
+        self.match_type = MatchFieldType.FT_SET
         values = value.split(",")
         for val in values:
             try:
                 value_translated = FieldDefManager().get_field_value(self.type, val)
-                self.value.append(FieldValue(self.type,value_translated))
+                self.value.append(value_translated)
             except ValueError:
-                self.value.append(FieldValue(self.type, val))
+                self.value.append(val)
 
             self.cnt_values = self.cnt_values + 1
+
+    def get_exact_field_value(self):
+        """
+        Gets the value when the match type of the field value is exact.
+        :return:
+        """
+        if self.match_type == MatchFieldType.FT_EXACT:
+            if self.cnt_values == 1:
+                return self.value[0]
+            else:
+                raise ValueError("The field value does not have a single value")
+        else:
+            raise ValueError("The field value is not of type exact")
 
     def parse_field_value(self, value: str):
         """

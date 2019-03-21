@@ -48,6 +48,10 @@ class IpapMessageType:
     def set_allocation_message(self, allocation_message: bool):
         self.allocation_message = allocation_message
 
+    def __str__(self):
+        return 'ask message:' + str(self.ask_message) + 'auction message' + str(self.auction_message) + \
+               'bidding object message:' + str(self.bidding_object_message) + \
+               'allocation:' + str(self.allocation_message)
 
 class IpapMessage:
     IPAP_VERSION = 0x01

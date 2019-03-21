@@ -3,6 +3,8 @@ from python_wrapper.ipap_field import IpapField
 from foundation.field_def_manager import FieldDefManager
 from foundation.config_param import ConfigParam
 from foundation.singleton import Singleton
+from foundation.parse_format import ParseFormats
+from foundation.field_def_manager import DataType
 
 from datetime import datetime
 from random import randint
@@ -16,6 +18,33 @@ class ProcModule(metaclass=Singleton):
         self.field_container.initialize_forward()
         self.field_def_manager = FieldDefManager()
         self.last_bidding_object_id = randint(0, 3000)
+
+    def get_param_value(self, field_name:str, params: dict):
+        """
+        Get the value of a parameter
+        :param field_name: name of the parameter
+        :param params: parameters
+        :return: value of the parameter.
+        """
+        field_def = self.field_def_manager.get_field(field_name)
+        if field_def['type'] == DataType.DOUBLE:
+            return ParseFormats.parse_double(params[field_name].get_exact_field_value())
+        elif field_def['type'] == DataType.UINT32:
+            return ParseFormats.parse_ulong(params[field_name].get_exact_field_value())
+        elif field_def['type'] == DataType.STRING:
+            return params[field_name].get_exact_field_value()
+        elif field_def['type'] == DataType.UINT64:
+            return ParseFormats.parse_ulong(params[field_name].get_exact_field_value())
+        elif field_def['type'] == DataType.IPV4ADDR:
+            return ParseFormats.parse_ipaddress(params[field_name].get_exact_field_value())
+        elif field_def['type'] == DataType.IPV6ADDR:
+            return ParseFormats.parse_ipaddress(params[field_name].get_exact_field_value())
+        elif field_def['type'] == DataType.UINT8:
+            return ParseFormats.parse_uint8(params[field_name].get_exact_field_value())
+        elif field_def['type'] == DataType.FLOAT:
+            return ParseFormats.parse_float(params[field_name].get_exact_field_value())
+        else:
+            raise ValueError("Invalid type {0}".format(field_def['type'].lower()))
 
     def insert_field(self, field_def: dict, value: str, config_params: dict):
         """
@@ -36,12 +65,7 @@ class ProcModule(metaclass=Singleton):
         :param config_params: dictionary where the field is going to be inserted.
         """
         field_def = self.field_def_manager.get_field(field_name)
-        field: IpapField = self.field_container.get_field(int(field_def['eno']), int(field_def['ftype']))
-
-        # It is required to encode as ascii because the C++ wrapper requires it.
-        value_encoded = value.encode('ascii')
-        field_val = field.get_ipap_field_value_string(value_encoded)
-        self.insert_field(field_def, field_val, config_params)
+        self.insert_field(field_def, value, config_params)
 
     def insert_integer_field(self, field_name: str, value: int, config_params: dict):
         """

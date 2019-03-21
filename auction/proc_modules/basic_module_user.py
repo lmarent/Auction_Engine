@@ -2,24 +2,26 @@ from foundation.module import Module
 from foundation.auction import Auction
 from foundation.auction import AuctioningObjectType
 from foundation.bidding_object import BiddingObject
-from foundation.ipap_message_parser import IpapMessageParser
+from foundation.field_value import FieldValue
 from foundation.parse_format import ParseFormats
 
 from proc_modules.proc_module import ProcModule
 
 from datetime import datetime
+from typing import Dict
 
 
 class BasicModuleUser(Module):
 
-    def __init__(self, module_name: str, module_file: str, module_handle, domain: int, config_group: str):
+    def __init__(self, module_name: str, module_file: str, module_handle, config_group: str):
         super(BasicModuleUser, self).__init__(module_name, module_file, module_handle, config_group)
         self.config_param_list = {}
-        self.domain = domain
         self.proc_module = ProcModule()
+        self.domain = 0
 
-    def init_module(self, config_param_list: dict):
-        self.config_param_list = config_param_list
+    def init_module(self, config_params: dict):
+        self.config_param_list = config_params
+        self.domain = config_params['domainid']
 
     def check_parameters(self, request_params):
         required_fields = set()
@@ -43,7 +45,7 @@ class BasicModuleUser(Module):
         config_elements = dict()
         record_id = "record_1"
         self.proc_module.insert_string_field("recordid", record_id, config_elements)
-        self.proc_module.insert_double_field("quantity", quantity, config_elements)
+        self.proc_module.insert_float_field("quantity", quantity, config_elements)
         self.proc_module.insert_double_field("unitprice", unit_price, config_elements)
         elements[record_id] = config_elements
 
@@ -67,14 +69,12 @@ class BasicModuleUser(Module):
     def execute(self, auction_key: str, start: datetime, stop: datetime, bids: dict) -> dict:
         return {}
 
-    def execute_user(self, request_params: dict, auctions: list, start: datetime, stop: datetime) -> list:
+    def execute_user(self, request_params: Dict[str, FieldValue], auctions: list,
+                     start: datetime, stop: datetime) -> list:
 
-        total_budget = ParseFormats.parse_double(
-            IpapMessageParser.extract_param(request_params, "totalbudget").value)
-        max_unit_valuation = ParseFormats.parse_double(
-            IpapMessageParser.extract_param(request_params, "maxvalue").value)
-        quantity = ParseFormats.parse_float(
-            IpapMessageParser.extract_param(request_params, "quantity").value)
+        total_budget = self.proc_module.get_param_value("totalbudget", request_params)
+        max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
+        quantity = self.proc_module.get_param_value("quantity", request_params)
 
         budget_by_auction = total_budget / len(auctions)
         valuation_by_auction = max_unit_valuation / len(auctions)

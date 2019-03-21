@@ -218,7 +218,7 @@ class HandleAuctionMessage(ScheduledTask):
             pass
 
         else:
-            self.logger.error("invalid message type")
+            self.logger.error("invalid message type - types:{0}".format(ipap_message_type.__str__()))
 
 
 class HandleAskResponseMessage(ScheduledTask):

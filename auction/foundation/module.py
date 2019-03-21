@@ -1,6 +1,9 @@
 from abc import ABCMeta
 from abc import abstractmethod
 from datetime import datetime
+from foundation.field_value import FieldValue
+
+from typing import Dict
 
 
 class Module(metaclass=ABCMeta):
@@ -47,7 +50,7 @@ class Module(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def execute_user(self, request_params: dict, auctions: list, start:datetime, stop:datetime) -> list:
+    def execute_user(self, request_params: Dict[str, FieldValue], auctions: list, start:datetime, stop:datetime) -> list:
         """
         Execute the bidding process for the list of auctions given
         that are required to support a resource request interval.

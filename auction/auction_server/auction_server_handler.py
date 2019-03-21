@@ -258,6 +258,7 @@ class HandleAskRequest(ScheduledTask):
         Handles a session request from an agent.
         """
         auctions = self.auction_processor.get_applicable_auctions(self.message)
+        self.logger.debug("nuber of applicable auctions: {0}".format(len(auctions)))
         session_info = self.auction_processor.get_session_information(self.message)
 
         if self.server_main_data.use_ipv6:

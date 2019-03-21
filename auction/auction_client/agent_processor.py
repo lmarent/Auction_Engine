@@ -12,9 +12,9 @@ from datetime import datetime
 class RequestProcess(AuctionProcessObject):
 
     def __init__(self, key: str, session_id: str, module: Module, auction: Auction, server_domain: int,
-                 config_dict: dict, start: datetime, stop: datetime):
+                 request_params: dict, start: datetime, stop: datetime):
         super(RequestProcess, self).__init__(key, module)
-        self.config_dict = config_dict
+        self.request_params = request_params
         self.start = start
         self.stop = stop
         self.session_id = session_id
@@ -36,12 +36,12 @@ class RequestProcess(AuctionProcessObject):
         """
         return self.module
 
-    def get_config_params(self) -> dict:
+    def get_request_params(self) -> dict:
         """
-        Gets config params
+        Gets the request params
         :return:
         """
-        return self.config_dict
+        return self.request_params
 
     def set_session_id(self, session_id: str):
         """
@@ -115,13 +115,18 @@ class AgentProcessor(metaclass=Singleton):
         else:
             ValueError('Configuration file does not have {0} entry,please include it'.format('AGNTProcessor'))
 
-    def add_request(self, session_id: str, config_dic: dict, auction: Auction, server_domain: int,
+    def create_config_params(self):
+        config_dict = {}
+        config_dict['domainid'] = self.domain
+        return config_dict
+
+    def add_request(self, session_id: str, request_params: dict, auction: Auction, server_domain: int,
                     start: datetime, stop: datetime) -> str:
         """
         Adds a new request to the list of request to execute.
 
         :param session_id: session Id to be used
-        :param config_dic: configuration parameters for the process
+        :param request_params: request parameters for the process
         :param auction: auction to be used
         :param server_domain: server domain
         :param start: start date time
@@ -130,9 +135,9 @@ class AgentProcessor(metaclass=Singleton):
         """
         module_name = auction.get_action().get_name() + "_user"
         module = self.module_loader.get_module(module_name)
-        module.init_module(config_dic)
+        module.init_module(self.create_config_params())
         key = str(IdSource().new_id())
-        request_process = RequestProcess(key, session_id, module, auction, server_domain, config_dic, start, stop)
+        request_process = RequestProcess(key, session_id, module, auction, server_domain, request_params, start, stop)
         self.requests[key] = request_process
         return key
 
@@ -175,7 +180,7 @@ class AgentProcessor(metaclass=Singleton):
 
         request_process = self.requests[key]
         module = request_process.get_module()
-        bids = module.execute_user(request_process.get_auctions(),
+        bids = module.execute_user(request_process.get_request_params(), request_process.get_auctions(),
                                    request_process.get_start(), request_process.get_stop())
         return bids
 
