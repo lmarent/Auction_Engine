@@ -296,13 +296,11 @@ class IpapMessageParser:
         :return: config values
         """
         config_params = {}
-        print(record.get_num_fields())
         for field_pos in range(0, record.get_num_fields()):
             ipap_field_key = record.get_field_at_pos(field_pos)
             ipap_field_value = record.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
             f_item = self.field_def_manager.get_field_by_code(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
 
-            print('field_pos:', field_pos, 'key:', f_item['key'])
             ipap_field_value.print_value()
 
             ipap_field = template.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
