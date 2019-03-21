@@ -319,7 +319,8 @@ class IpapMessageParser:
         else:
             raise ValueError("item with name {0} not found in config items".format(item_name))
 
-    def extract_param(self, config_items: dict, item_name: str) -> ConfigParam:
+    @staticmethod
+    def extract_param(config_items: dict, item_name: str) -> ConfigParam:
         """
         Extracts a parameter by name from the list of config items, returns the config param.
         the list config items is altered by removing the parameter.

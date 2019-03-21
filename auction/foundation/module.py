@@ -47,14 +47,15 @@ class Module(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def execute_user(self, auctions: list, start:datetime, stop:datetime) -> list:
+    def execute_user(self, request_params: dict, auctions: list, start:datetime, stop:datetime) -> list:
         """
         Execute the bidding process for the list of auctions given
         that are required to support a resource request interval.
 
-        :param auctions:    auctions that must be executed.
-        :param start: start datetime
-        :param stop: stop datetime
+        :param request_params: parameters given for bidding.
+        :param auctions:       auctions that must be executed.
+        :param start:          start datetime
+        :param stop:           stop datetime
 
         :return: bids created by the auction process.
         """
