@@ -50,7 +50,7 @@ class Module(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def execute_user(self, request_params: Dict[str, FieldValue], auctions: list, start:datetime, stop:datetime) -> list:
+    def execute_user(self, request_params: Dict[str, FieldValue], auctions: dict, start:datetime, stop:datetime) -> list:
         """
         Execute the bidding process for the list of auctions given
         that are required to support a resource request interval.

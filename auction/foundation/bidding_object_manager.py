@@ -3,6 +3,7 @@ from foundation.auctioning_object_manager import AuctioningObjectManager
 from foundation.singleton import Singleton
 from foundation.bidding_object import BiddingObject
 from foundation.ipap_bidding_object_parser import IpapBiddingObjectParser
+from foundation.auction_manager import AuctionManager
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
@@ -70,7 +71,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         ipap_message_parser = IpapBiddingObjectParser(self.domain)
         return ipap_message_parser.parse(ipap_message, template_container)
 
-    def get_ipap_message(self, bidding_objects: list, template_container: IpapTemplateContainer) -> IpapMessage:
+    def get_ipap_message(self, bidding_objects: List[BiddingObject], template_container: IpapTemplateContainer) -> IpapMessage:
         """
         get the ipap_message that contains all the bidding objects within the list given
 
@@ -78,5 +79,12 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         :param template_container: container with all the registered templates
         :return: ipap_message with the information
         """
-        ipap_message_parser = IpapBiddingObjectParser(self.domain)
-        return ipap_message_parser.get_ipap_message(bidding_objects, template_container)
+        ipap_bidding_object_parser = IpapBiddingObjectParser(self.domain)
+        message = IpapMessage(self.domain, IpapMessage.IPAP_VERSION, True)
+        auction_manager = AuctionManager(self.domain)
+
+        for bidding_object in bidding_objects:
+            auction = auction_manager.get_auction(bidding_object.get_auction_key())
+            ipap_bidding_object_parser.get_ipap_message(bidding_objects, auction, template_container, message)
+
+        return message

@@ -137,12 +137,10 @@ class IpapBiddingObjectParser(IpapMessageParser):
         message.include_data(template.get_template_id(), ipap_record)
 
     def get_ipap_message(self, bidding_object: BiddingObject, auction: Auction,
-                         template_container: IpapTemplateContainer) -> IpapMessage:
+                         template_container: IpapTemplateContainer, message: IpapMessage):
 
         if bidding_object.get_auction_key() != auction.get_key():
             raise ValueError("the auction is not the same as the one referenced in the bidding object")
-
-        message = IpapMessage(self.domain, IpapMessage.IPAP_VERSION, True)
 
         # Find both templates types for the bidding object.
         tempType = IpapTemplate.get_data_template(bidding_object.get_template_object_type())
@@ -171,5 +169,3 @@ class IpapBiddingObjectParser(IpapMessageParser):
             self.include_options_record(option_template, bidding_object,
                                         option_name, interval.start, interval.stop, config_params, message)
             last_stop = interval.stop
-
-        return message

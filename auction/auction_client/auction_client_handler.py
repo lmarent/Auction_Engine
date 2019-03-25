@@ -372,7 +372,6 @@ class HandleActivateSession(ScheduledTask):
         super(HandleActivateSession, self).__init__(seconds_to_start)
         self.session_key = session_key
         self.auction_session_manager = AuctionSessionManager()
-        self.logger = log().get_logger()
 
     def _run_specific(self):
         session = self.auction_session_manager.get_session(self.session_key)
@@ -392,12 +391,15 @@ class HandleRequestProcessExecution(ScheduledTask):
         self.request_process_key = request_process_key
         self.client_data = ClientMainData()
         self.agent_processor = AgentProcessor(self.client_data.domain, '')
-        self.logger = log().get_logger()
 
     async def _run_specific(self, **kwargs):
+        self.logger.debug("starting _run_specific")
         bids = self.agent_processor.execute_request(self.request_process_key)
-        handle_add_generate_bidding_object = HandledAddGenerateBiddingObject(self.resource_request_key, bids, 0)
+        self.logger.info("new bids created - nbr: {0}".format(str(len(bids))))
+
+        handle_add_generate_bidding_object = HandledAddGenerateBiddingObject(self.request_process_key, bids, 0)
         handle_add_generate_bidding_object.start()
+        self.logger.debug("ending _run_specific")
 
 
 class HandleRequestProcessRemove(ScheduledTask):
