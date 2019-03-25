@@ -486,8 +486,7 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
         ipap_message.set_seqno(session.get_next_message_id())
         ipap_message.set_ack_seq_no(0)
         session.add_pending_message(ipap_message)
-        self.message_processor.send_message(session.get_server_connnection(),ipap_message.get_message())
-
+        await self.message_processor.send_message(session.get_server_connnection(),ipap_message.get_message())
 
 
 

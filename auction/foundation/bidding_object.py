@@ -82,7 +82,6 @@ class BiddingObject(AuctioningObject):
 
         fstart = self.get_option_value(option_name, "Start")
         fstop = self.get_option_value(option_name, "Stop")
-        fduration = self.get_option_value(option_name, "BiddingDuration")
 
         if fstart.value:
             interval.start = ParseFormats.parse_time(fstart.value)
@@ -94,24 +93,6 @@ class BiddingObject(AuctioningObject):
             if not interval.stop:
                 raise ValueError("Invalid stop time {0}".format(fstart.value))
 
-        if fduration.value:
-            interval.duration = ParseFormats.parse_long(fduration.value)
-
-        if interval.duration > 0:
-            if interval.stop:
-                # stop + duration specified
-                interval.start = interval.stop - duration
-            else:
-                # stop[+ start] specified
-                if interval.start:
-                    interval.stop = interval.start + duration
-                else:
-                    interval.start = last_stop
-                    interval.stop = interval.start + duration
-
-        # now start has a defined value, while stop may still be zero
-        # indicating an infinite rule
-
         # do we have a stop time defined that is in the past ?
         if interval.stop and interval.stop <= datetime.now():
             logger = log().get_logger()
@@ -121,6 +102,7 @@ class BiddingObject(AuctioningObject):
             # start late tasks immediately
             interval.start = datetime.now()
 
+        interval.duration = (interval.stop - interval.start).total_seconds()
         return interval
 
     def set_session(self, session_key: str):

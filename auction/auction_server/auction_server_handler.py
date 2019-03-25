@@ -338,7 +338,7 @@ class HandleAddBiddingObjects(ScheduledTask):
         self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
-    def _run_specific(self):
+    async def _run_specific(self):
         """
         Adds bidding objects sent from an agent.
         """
@@ -363,7 +363,7 @@ class HandleAddBiddingObjects(ScheduledTask):
         # confirm the message
         confim_message = self.server_message_processor.build_ack_message(session.get_next_message_id(),
                                                                          self.ipap_message.get_seqno() + 1)
-        self.server_message_processor.send_message(self.client_connection, confim_message.get_message())
+        await self.server_message_processor.send_message(self.client_connection, confim_message.get_message())
         self.logger.debug("ending HandleAddBiddingObjects")
 
 
