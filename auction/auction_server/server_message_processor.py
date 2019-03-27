@@ -69,6 +69,13 @@ class ClientConnection:
         """
         return self.state
 
+    def get_auction_session(self) -> Session:
+        """
+        Gets the auction session
+        :return:
+        """
+        return self.session
+
 
 class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
     """

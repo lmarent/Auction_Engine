@@ -16,12 +16,15 @@ from foundation.ipap_message_parser import IpapMessageParser
 from foundation.auctioning_object import AuctioningObjectState
 from foundation.parse_format import ParseFormats
 
+from utils.auction_utils import log
+
 
 class IpapAuctionParser(IpapMessageParser):
 
     def __init__(self, domain):
         super(IpapAuctionParser, self).__init__(domain)
         self.ipap_template_container = IpapTemplateContainerSingleton()
+        self.logger = log().get_logger()
 
     def include_template_fields(self, template: IpapTemplate, template_fields: dict):
         """
@@ -54,7 +57,7 @@ class IpapAuctionParser(IpapMessageParser):
         template_fields = {}
         for template in templates:
             if template.get_type() not in [TemplateType.IPAP_SETID_AUCTION_TEMPLATE,
-                                           TemplateType.IPAP_SETID_AUCTION_TEMPLATE]:
+                                           TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE]:
                 self.include_template_fields(template, template_fields)
 
         build_templates = auction.build_templates(template_fields)
@@ -82,7 +85,7 @@ class IpapAuctionParser(IpapMessageParser):
         opts_misc = {}
 
         data_template, opts_template = self.insert_auction_templates(object_key.get_object_type(),
-                                                                      templates, ipap_template_container)
+                                                                     templates, ipap_template_container)
         # Read data records
         for data_record in data_records:
             template_id = data_record.get_template_id()
@@ -115,13 +118,10 @@ class IpapAuctionParser(IpapMessageParser):
         action = Action(action_name.value, True, opts_misc)
         auction = Auction(auction_key.value, resource_key.value, action, data_misc)
         auction.set_state(AuctioningObjectState(ParseFormats.parse_int(auction_status.value)))
-        self.build_associated_templates(templates, auction, ipap_template_container)
 
         template_ids = template_list.value.split(',')
-
         for template_sid in template_ids:
             template = ipap_template_container.get_template(ParseFormats.parse_int(template_sid))
-
             auction.set_bidding_object_template(template.get_object_type(template.get_type()),
                                                 template.get_type(), template.get_template_id())
 
@@ -143,7 +143,12 @@ class IpapAuctionParser(IpapMessageParser):
         # insert new templates not related (for example bidding templates to use for the auction) to the object.
         for template_id in templates_not_related:
             if not ipap_template_container.exists_template(template_id):
-                ipap_template_container.add_template(templates_not_related[template_id])
+                template = templates_not_related[template_id]
+                self.logger.debug("From domain {0} arriving template: {1} - num_fields {2}".format(
+                    str(ipap_message.get_domain()),
+                    str(template_id),
+                    str(template.get_num_fields())))
+                ipap_template_container.add_template(template)
 
         # loop through data records and parse the auction data
         for object_key in object_data_records:

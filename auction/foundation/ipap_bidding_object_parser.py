@@ -40,19 +40,28 @@ class IpapBiddingObjectParser(IpapMessageParser):
                                                                      templates, ipap_template_container)
 
         # Read data records
+        elements = {}
         for data_record in data_records:
             template_id = data_record.get_template_id()
             # Read a data record for a data template
             if template_id == data_template.get_template_id():
                 data_misc = self.read_record(data_template, data_record)
+                record_id = self.extract_param(data_misc, 'recordid').value
+                elements[record_id] = data_misc
+                # all records have the following same information.
                 bidding_object_key = self.extract_param(data_misc, 'biddingobjectid').value
                 auction_key = self.extract_param(data_misc, 'auctionid').value
                 s_bidding_object_type = self.extract_param(data_misc, 'biddingobjecttype').value
                 status = self.extract_param(data_misc, 'status').value
+                # a new record was read
                 nbr_data_read = nbr_data_read + 1
 
+            options = {}
             if template_id == opts_template.get_template_id():
                 opts_misc = self.read_record(opts_template, data_record)
+                record_id = self.extract_param(data_misc, 'recordid').value
+                options[record_id] = opts_misc
+                # a new record was read
                 nbr_option_read = nbr_option_read + 1
 
         if nbr_data_read == 0:
@@ -61,9 +70,10 @@ class IpapBiddingObjectParser(IpapMessageParser):
         if nbr_option_read == 0:
             raise ValueError("An option template was not given")
 
-        bidding_object_type = self.parse_type(s_bidding_object_type)
-        bidding_object = BiddingObject(auction_key, bidding_object_key, bidding_object_type, data_misc, opts_misc)
-        bidding_object.set_state(AuctioningObjectState(ParseFormats.parse_int(status.value)))
+        bidding_object_type = self.get_auctioning_object_type(self.parse_type(s_bidding_object_type))
+        bidding_object = BiddingObject(auction_key, bidding_object_key, bidding_object_type, elements, options)
+        status_val = ParseFormats.parse_int(status)
+        bidding_object.set_state(AuctioningObjectState(status_val))
 
         return bidding_object
 

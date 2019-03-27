@@ -3,7 +3,6 @@ from contextlib import suppress
 from abc import ABC
 from abc import abstractmethod
 from utils.auction_utils import log
-from datetime import datetime
 
 class AuctionTask(ABC):
     """

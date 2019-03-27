@@ -107,7 +107,9 @@ class IpapMessage:
             raise ValueError("Template with id:{} was not found".format(str(templ_id)))
 
     def include_data(self, template_id: int, ipap_data_record: IpapDataRecord):
-        return lib.ipap_message_include_data(self.obj, c_uint16(template_id), ipap_data_record.obj)
+        ret = lib.ipap_message_include_data(self.obj, c_uint16(template_id), ipap_data_record.obj)
+        if ret < 0:
+            raise ValueError("An error occurs inserting the data record in message")
 
     def get_data_record_size(self):
         return lib.ipap_message_get_data_record_size(self.obj)

@@ -7,6 +7,7 @@ from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from foundation.field_def_manager import FieldDefManager
 from foundation.config_param import ConfigParam
+from foundation.auctioning_object import AuctioningObjectType
 from datetime import datetime
 
 
@@ -280,6 +281,23 @@ class IpapMessageParser:
             raise ValueError("Bidding Object Parser Error: invalid bidding object type {0}".format(s_type))
 
         return object_type
+
+    @staticmethod
+    def get_auctioning_object_type(object_type: ObjectType) -> AuctioningObjectType:
+        """
+        Gets the auctioning object type for the object type in the ipap_message
+
+        :param object_type: object type to get the corresponding auctioning object type
+        :return: auctioning object type
+        """
+        if object_type == ObjectType.IPAP_AUCTION:
+            return AuctioningObjectType.AUCTION
+        elif object_type == ObjectType.IPAP_BID:
+            return AuctioningObjectType.BID
+        elif object_type == ObjectType.IPAP_ALLOCATION:
+            return AuctioningObjectType.ALLOCATION
+        else:
+            raise ValueError("invalid object type, it does not represent a valid auctioning object type")
 
     def get_domain(self) -> int:
         """
