@@ -206,7 +206,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
             raise ValueError("auction process with index:{0} was not found".format(key))
         action_process = self.auctions[key]
 
-        if bidding_object.parent_auction.get_key() != action_process.key:
+        if bidding_object.get_auction_key() != action_process.key:
             raise ValueError("bidding object given {0} is not for the auction {1}".format(
                 bidding_object.get_key(), key))
 

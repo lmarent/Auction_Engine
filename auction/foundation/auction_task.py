@@ -109,8 +109,8 @@ class ScheduledTask(AuctionTask):
         await asyncio.sleep(self.time)
         self.logger.debug("processing {0}".format(type(self).__name__))
         await self._run_specific()
-        self.notify()
         self.logger.debug("ending process for {0}".format(type(self).__name__))
+        self.notify()
 
 
 class PeriodicTask(AuctionTask):

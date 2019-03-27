@@ -62,7 +62,7 @@ class HandleAuctionExecution(PeriodicTask):
 
             # The start for the next execution is now setup again.
             self.start = next_start
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -97,7 +97,7 @@ class HandleActivateAuction(ScheduledTask):
             start = self.auction.get_start()
 
             # Activates its execution
-            when = self.auction.get_start() - datetime.now()
+            when = (self.auction.get_start() - datetime.now()).total_seconds()
             execution_task = HandleAuctionExecution(self.auction, start, when)
             self.auction.add_task(execution_task)
 
@@ -132,7 +132,7 @@ class HandleRemoveAuction(ScheduledTask):
         try:
             # Cancels all pending task scheduled for the auction
             await self.auction.stop_tasks()
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -209,13 +209,13 @@ class HandleLoadAuction(ScheduledTask):
                     if self.immediate_start:
                         seconds_to_start = 0
                     else:
-                        seconds_to_start = auction.get_start() - datetime.now()
+                        seconds_to_start = (auction.get_start() - datetime.now()).total_seconds()
 
                     activate_task = HandleActivateAuction(auction=auction, seconds_to_start=seconds_to_start)
                     activate_task.start()
                     auction.add_task(activate_task)
 
-                    seconds_to_start = auction.get_stop() - datetime.now()
+                    seconds_to_start = (auction.get_stop() - datetime.now()).total_seconds()
                     removal_task = HandleRemoveAuction(auction=auction, seconds_to_start=seconds_to_start)
                     removal_task.start()
                     auction.add_task(removal_task)
@@ -285,7 +285,7 @@ class HandleAskRequest(ScheduledTask):
                                                          self.message.get_seqno())
                 await self.message_processor.send_message(self.client_connection,
                                                           ack_message.get_message())
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -309,16 +309,16 @@ class HandleActivateBiddingObject(ScheduledTask):
                 self.bidding_object.set_state(AuctioningObjectState.ACTIVE)
             else:
                 raise ValueError("Auction {0} is not active".format(auction.get_key()))
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
-class HandleRemoveBiddingObject(ScheduledTask):
+class HandleInactivateBiddingObject(ScheduledTask):
     """
-    Handles the removal of a bidding object. This parte removes the bidding object from the auction for bidding.
+    Handles the removal of a bidding object from the auction process.
     """
     def __init__(self, client_connection: ClientConnection, bidding_object: BiddingObject, seconds_to_start: float):
-        super(HandleActivateBiddingObject, self).__init__(seconds_to_start)
+        super(HandleInactivateBiddingObject, self).__init__(seconds_to_start)
         self.client_connection = client_connection
         self.bidding_object = bidding_object
         self.server_main_data = ServerMainData()
@@ -331,10 +331,36 @@ class HandleRemoveBiddingObject(ScheduledTask):
             auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 self.auction_processor.delete_bidding_object_from_auction_process(auction.get_key(), self.bidding_object)
+            else:
+                raise ValueError("Auction {0} is not active".format(auction.get_key()))
+        except Exception as e:
+            self.logger.error(str(e))
+
+
+class HandleRemoveBiddingObject(ScheduledTask):
+    """
+    Handles the removal of a bidding object. This removes the bidding object from the auction for bidding.
+    """
+    def __init__(self, client_connection: ClientConnection, bidding_object: BiddingObject, seconds_to_start: float):
+        super(HandleRemoveBiddingObject, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
+        self.bidding_object = bidding_object
+        self.server_main_data = ServerMainData()
+        self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
+        self.auction_processor = AuctionProcessor(self.server_main_data.domain)
+
+    async def _run_specific(self):
+        try:
+
+            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            if auction.get_state() == AuctioningObjectState.ACTIVE:
+                self.auction_processor.delete_bidding_object_from_auction_process(auction.get_key(), self.bidding_object)
                 self.bidding_manager.del_actioning_object(self.bidding_object.get_key())
             else:
                 raise ValueError("Auction {0} is not active".format(auction.get_key()))
-        except ValueError as e:
+
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -367,20 +393,32 @@ class HandleAddBiddingObjects(ScheduledTask):
             for bidding_object in bidding_objects:
                 bidding_object.set_session(session.get_key())
                 self.bididing_manager.add_auctioning_object(bidding_object)
+                i = 0
+                num_options = len(bidding_object.options)
                 for option_name in sorted(bidding_object.options.keys()):
                     interval = bidding_object.calculate_interval(option_name, last_stop)
-                    handle_activate = HandleActivateBiddingObject()
+                    when = (interval.start - datetime.now()).total_seconds()
+                    handle_activate = HandleActivateBiddingObject(self.client_connection, bidding_object, when)
                     handle_activate.start()
-                    handle_remove = HandleRemoveBiddingObject()
-                    handle_remove.start()
+
+                    if i < num_options - 1:
+                        when = (interval.stop - datetime.now()).total_seconds()
+                        handle_inactivate = HandleInactivateBiddingObject(self.client_connection, bidding_object, when)
+                        handle_inactivate.start()
+                    else:
+                        when = (interval.stop - datetime.now()).total_seconds()
+                        handle_inactivate = HandleRemoveBiddingObject(self.client_connection, bidding_object, when)
+                        handle_inactivate.start()
+
                     last_stop = interval.stop
+                    i= i + 1
 
             # confirm the message
             confim_message = self.server_message_processor.build_ack_message(session.get_next_message_id(),
                                                                              self.ipap_message.get_seqno() + 1)
             await self.server_message_processor.send_message(self.client_connection, confim_message.get_message())
             self.logger.debug("ending HandleAddBiddingObjects")
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -420,5 +458,5 @@ class HandleAuctionMessage(ScheduledTask):
 
             else:
                 self.logger.error("invalid message type")
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))

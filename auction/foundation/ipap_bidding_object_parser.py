@@ -19,6 +19,38 @@ class IpapBiddingObjectParser(IpapMessageParser):
     def __init__(self, domain):
         super(IpapBiddingObjectParser, self).__init__(domain)
 
+    @staticmethod
+    def check_same_bidding_object(auction_key: str, bidding_object_key: str,
+                                  auction_key_tmp: str, bidding_object_key_tmp: str) -> (str, str):
+        """
+        checks the same bidding objectis being refered in the message
+        :param auction_key:
+        :param bidding_object_key:
+        :param auction_key_tmp:
+        :param bidding_object_key_tmp:
+        :return:
+        """
+        if auction_key is None:
+            auction_key = auction_key_tmp
+        else:
+            if auction_key != auction_key_tmp:
+                raise ValueError("The parte of the message is not for the same bidding object. original biddingobject \
+                                    {0}-{1} and the bidding object given is {2}-{3}".format(auction_key,
+                                                                                            bidding_object_key,
+                                                                                            auction_key_tmp,
+                                                                                            bidding_object_key_tmp))
+
+        if bidding_object_key is None:
+            bidding_object_key = bidding_object_key_tmp
+        else:
+            if bidding_object_key != bidding_object_key_tmp:
+                raise ValueError("The parte of the message is not for the same bidding object. original biddingobject \
+                                    {0}-{1} and the bidding object given is {2}-{3}".format(auction_key,
+                                                                                            bidding_object_key,
+                                                                                            auction_key_tmp,
+                                                                                            bidding_object_key_tmp))
+        return auction_key, bidding_object_key
+
     def parse_bidding_object(self, object_key: IpapObjectKey, templates: list, data_records: list,
                              ipap_template_container: IpapTemplateContainer) -> BiddingObject:
         """
@@ -49,8 +81,10 @@ class IpapBiddingObjectParser(IpapMessageParser):
                 record_id = self.extract_param(data_misc, 'recordid').value
                 elements[record_id] = data_misc
                 # all records have the following same information.
-                bidding_object_key = self.extract_param(data_misc, 'biddingobjectid').value
-                auction_key = self.extract_param(data_misc, 'auctionid').value
+                bidding_object_key_tmp = self.extract_param(data_misc, 'biddingobjectid').value
+                auction_key_tmp = self.extract_param(data_misc, 'auctionid').value
+                auction_key, bidding_object_key = self.check_same_bidding_object(auction_key, bidding_object_key,
+                                                                            auction_key_tmp, bidding_object_key_tmp)
                 s_bidding_object_type = self.extract_param(data_misc, 'biddingobjecttype').value
                 status = self.extract_param(data_misc, 'status').value
                 # a new record was read
@@ -59,7 +93,12 @@ class IpapBiddingObjectParser(IpapMessageParser):
             options = {}
             if template_id == opts_template.get_template_id():
                 opts_misc = self.read_record(opts_template, data_record)
-                record_id = self.extract_param(data_misc, 'recordid').value
+                record_id = self.extract_param(opts_misc, 'recordid').value
+                auction_key_tmp = self.extract_param(opts_misc, 'auctionid').value
+                bidding_object_key_tmp = self.extract_param(opts_misc, 'biddingobjectid').value
+                auction_key, bidding_object_key = self.check_same_bidding_object(auction_key, bidding_object_key,
+                                                                            auction_key_tmp, bidding_object_key_tmp)
+
                 options[record_id] = opts_misc
                 # a new record was read
                 nbr_option_read = nbr_option_read + 1

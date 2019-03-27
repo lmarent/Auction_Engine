@@ -21,8 +21,8 @@ from foundation.auction_manager import AuctionManager
 from foundation.session import SessionState
 from foundation.auction import Auction
 from foundation.bidding_object_manager import BiddingObjectManager
+from foundation.auctioning_object import AuctioningObjectState
 from foundation.bidding_object import BiddingObject
-from foundation.ipap_auction_parser import IpapAuctionParser
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
@@ -41,11 +41,9 @@ class HandleAddResourceRequest(ScheduledTask):
         self.file_name = file_name
         self.client_data = ClientMainData()
         self.resource_request_manager = ResourceRequestManager(self.client_data.domain)
-        self.logger = log().get_logger()
 
     async def _run_specific(self, **kwargs):
         try:
-            self.logger.debug('starting run HandleAddResourceRequest')
             resource_requests = self.resource_request_manager.parse_resource_request_from_file(self.file_name)
             for resource_request in resource_requests:
                 ret_start, ret_stop = self.resource_request_manager.add_resource_request(resource_request)
@@ -60,8 +58,8 @@ class HandleAddResourceRequest(ScheduledTask):
                     stop_resource_request_int = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
                     resource_request.add_task(stop_resource_request_int)
                     stop_resource_request_int.start()
-            self.logger.debug('Ending run HandleAddResourceRequest')
-        except ValueError as e:
+
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -82,14 +80,12 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
         self.auction_session_manager = AuctionSessionManager()
         self.resource_request_manager = ResourceRequestManager(domain=self.client_data.domain)
         self.client_message_processor = ClientMessageProcessor()
-        self.logger = log().get_logger()
 
     async def _run_specific(self):
         """
         Handles the activation of a resource request interval.
         :return:
         """
-        self.logger.debug("starting to run HandleActivateResourceRequestInterval")
         session = None
         try:
             # for now we request to any resource,
@@ -139,8 +135,6 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                 except ValueError:
                     pass
 
-        self.logger.debug("ending to run HandleActivateResourceRequestInterval")
-
 
 class HandleRemoveResourceRequestInterval(ScheduledTask):
 
@@ -176,7 +170,7 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
             auctions = session.get_auctions()
 
             # Teardowns the session created.
-            self.client_message_processor.process_disconnect(session)
+            await self.client_message_processor.process_disconnect(session)
 
             # Deletes active request process associated with this request interval.
             resource_request_process_ids = interval.get_resource_request_process()
@@ -205,7 +199,7 @@ class HandleAuctionMessage(ScheduledTask):
             # if the message has a ack nbr, then confirm the message
             ack_seq_no = self.message.get_ackseqno()
             if ack_seq_no > 0:
-                self.server_connection.session.confirm_message(ack_seq_no)
+                self.server_connection.get_auction_session().confirm_message(ack_seq_no)
 
             ipap_message_type = self.message.get_types()
             if ipap_message_type.is_auction_message():
@@ -223,7 +217,7 @@ class HandleAuctionMessage(ScheduledTask):
 
             else:
                 self.logger.error("invalid message type - types:{0}".format(ipap_message_type.__str__()))
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -360,7 +354,6 @@ class HandleAskResponseMessage(ScheduledTask):
         handle_request_process_remove.start()
 
     async def _run_specific(self):
-        self.logger.debug("starting _run_specific")
         try:
             self.get_template_container()
             auctions = self.auction_manager.parse_ipap_message(self.message, self.template_container)
@@ -383,7 +376,7 @@ class HandleActivateSession(ScheduledTask):
         try:
             session = self.auction_session_manager.get_session(self.session_key)
             session.set_state(SessionState.SS_ACTIVE)
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -403,14 +396,13 @@ class HandleRequestProcessExecution(ScheduledTask):
 
     async def _run_specific(self, **kwargs):
         try:
-            self.logger.debug("starting _run_specific")
             bids = self.agent_processor.execute_request(self.request_process_key)
             self.logger.info("new bids created - nbr: {0}".format(str(len(bids))))
 
             handle_add_generate_bidding_object = HandledAddGenerateBiddingObject(self.request_process_key, bids, 0)
             handle_add_generate_bidding_object.start()
-            self.logger.debug("ending _run_specific")
-        except ValueError as e:
+
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -432,7 +424,8 @@ class HandleRequestProcessRemove(ScheduledTask):
     async def _run_specific(self, **kwargs):
         try:
             self.agent_processor.delete_request(self.request_process_key)
-        except ValueError as e:
+
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -460,7 +453,8 @@ class HandleAuctionRemove(ScheduledTask):
             # TODO: remove binding objects
 
             self.auction_manager.delete_auction(self.auction.get_key())
-        except ValueError as e:
+
+        except Exception as e:
             self.logger.error(str(e))
 
 
@@ -490,6 +484,25 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
             # Inserts the objects in the bidding object container
             for bidding_object in self.bidding_objects:
                 self.bidding_manager.add_bidding_object(bidding_object)
+                i = 0
+                num_options = len(bidding_object.options)
+                for option_name in sorted(bidding_object.options.keys()):
+                    interval = bidding_object.calculate_interval(option_name, last_stop)
+                    when = (interval.start - datetime.now()).total_seconds()
+                    handle_activate = HandleActivateBiddingObject(self.client_connection, bidding_object, when)
+                    handle_activate.start()
+
+                    if i < num_options - 1:
+                        when = (interval.stop - datetime.now()).total_seconds()
+                        handle_inactivate = HandleInactivateBiddingObject(self.client_connection, bidding_object, when)
+                        handle_inactivate.start()
+                    else:
+                        when = (interval.stop - datetime.now()).total_seconds()
+                        handle_inactivate = HandleRemoveBiddingObject(self.client_connection, bidding_object, when)
+                        handle_inactivate.start()
+
+                    last_stop = interval.stop
+                    i= i + 1
 
             # Gets the server domain from the request process
             server_domain = self.agent_processor.get_server_domain(self.request_process_key)
@@ -506,42 +519,75 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
             session.add_pending_message(ipap_message)
             await self.message_processor.send_message(session.get_server_connnection(),ipap_message.get_message())
 
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(str(e))
 
-# class HandleActivateBiddingObject(ScheduledTask):
-#
-#     def __init__(self):
-#         pass
-#
-#     async def _run_specific(self, **kwargs):
-#         for bidding_object in bidding_objects:
-#             bidding_object.activate(loop)
+
+class HandleActivateBiddingObject(ScheduledTask):
+    """
+    Handles the activate of a bidding object. When active the bidding object is included in the auction for bidding.
+    """
+    def __init__(self, bidding_object: BiddingObject, seconds_to_start: float):
+        super(HandleActivateBiddingObject, self).__init__(seconds_to_start)
+        self.bidding_object = bidding_object
+        self.server_main_data = ClientMainData()
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
+
+    async def _run_specific(self):
+        try:
+            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            if auction.get_state() == AuctioningObjectState.ACTIVE:
+                self.bidding_object.set_state(AuctioningObjectState.ACTIVE)
+            else:
+                raise ValueError("Auction {0} is not active".format(auction.get_key()))
+        except Exception as e:
+            self.logger.error(str(e))
 
 
-# class HandleSendBiddingObject(ScheduledTask):
-#
-#     def __init__(self):
-#         pass
-#
-#     async def _run_specific(self, **kwargs):
-#         for bidding_object in bidding_objects:
-#             auction = bidding_object.get_auction()
-#             mid = session.get_next_message_id()
-#             message = get_message_bidding_object(mid, bidding_object)
-#             session.add_pending_message(message)
-#             loop.call_soon(functools.partial(handle_send_message, message, loop))
-#
+class HandleInactivateBiddingObject(ScheduledTask):
+    """
+    Handles the removal of a bidding object from the auction process.
+    """
+    def __init__(self, bidding_object: BiddingObject, seconds_to_start: float):
+        super(HandleInactivateBiddingObject, self).__init__(seconds_to_start)
+        self.bidding_object = bidding_object
+        self.server_main_data = ClientMainData()
+        self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
 
-# class HandleRemoveBiddingObject(ScheduledTask):
-#
-#     def __init__(self):
-#         pass
-#
-#     async def _run_specific(self, **kwargs):
-#         bidding_object_manager = app.get_bidding_object_manager()
-#         for bidding_object in bidding_objects:
-#             bidding_object_manager.del_bidding_object(bidding_object)
+    async def _run_specific(self):
+        try:
+            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            if auction.get_state() == AuctioningObjectState.ACTIVE:
+                self.bidding_object.set_state(AuctioningObjectState.SCHEDULED)
+            else:
+                raise ValueError("Auction {0} is not active".format(auction.get_key()))
+        except Exception as e:
+            self.logger.error(str(e))
+
+
+class HandleRemoveBiddingObject(ScheduledTask):
+    """
+    Handles the removal of a bidding object. This removes the bidding object from the auction for bidding.
+    """
+    def __init__(self, bidding_object: BiddingObject, seconds_to_start: float):
+        super(HandleRemoveBiddingObject, self).__init__(seconds_to_start)
+        self.bidding_object = bidding_object
+        self.server_main_data = ClientMainData()
+        self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
+
+    async def _run_specific(self):
+        try:
+
+            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            if auction.get_state() == AuctioningObjectState.ACTIVE:
+                self.bidding_manager.del_actioning_object(self.bidding_object.get_key())
+            else:
+                raise ValueError("Auction {0} is not active".format(auction.get_key()))
+
+        except Exception as e:
+            self.logger.error(str(e))
 
 
 # class HandleActivateAuction(ScheduledTask):
