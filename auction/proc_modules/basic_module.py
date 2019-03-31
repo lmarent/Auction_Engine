@@ -54,18 +54,8 @@ class BasicModule(Module):
 
         self.logger("bas module: start create allocation")
 
-        uint64_t timeUint64;
-
         elements = dict()
         config_elements = dict()
-
-
-        # The set for the allocation is the same as the initial bid.
-        string allocset = bidSet;
-
-        # Incrememt the next id given.
-        uint32_t lid = getId();
-        string allocname = uint32ToString(lid);
 
         # Insert quantity ipap_field
         record_id = "record_1";
@@ -86,7 +76,9 @@ class BasicModule(Module):
         self.proc_module.insert_datetime_field("stop", stop, config_options)
         options[option_id] = config_options
 
-        alloc = BiddingObject(auction_key, allocation_key, AuctioningObjectType.ALLOCATION, elements, options)
+        bidding_object_id = self.proc_module.get_bidding_object_id()
+        bidding_object_key = str(self.domain) + '.' + bidding_object_id
+        alloc = BiddingObject(auction_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
 
         # All objects must be inherit the session from the bid.
         alloc.set_session(session_id)

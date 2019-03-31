@@ -60,7 +60,7 @@ class BasicModuleUser(Module):
         options[option_id] = config_options
 
         bidding_object_id = self.proc_module.get_bidding_object_id()
-        bidding_object_key = str(self.domain) + '.' + str(bidding_object_id)
+        bidding_object_key = str(self.domain) + '.' + bidding_object_id
         bidding_object = BiddingObject(auction_key, bidding_object_key,
                                        AuctioningObjectType.BID, elements, options)
 

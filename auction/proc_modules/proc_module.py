@@ -6,8 +6,8 @@ from foundation.singleton import Singleton
 from foundation.parse_format import ParseFormats
 from foundation.field_def_manager import DataType
 
+import uuid
 from datetime import datetime
-from random import randint
 
 
 class ProcModule(metaclass=Singleton):
@@ -17,7 +17,6 @@ class ProcModule(metaclass=Singleton):
         self.field_container.initialize_reverse()
         self.field_container.initialize_forward()
         self.field_def_manager = FieldDefManager()
-        self.last_bidding_object_id = randint(0, 3000)
 
     def get_param_value(self, field_name:str, params: dict):
         """
@@ -151,11 +150,10 @@ class ProcModule(metaclass=Singleton):
         seconds = int((value - datetime.fromtimestamp(0)).total_seconds())
         self.insert_integer_field(field_name, seconds, config_params)
 
-    def get_bidding_object_id(self) -> int:
+    def get_bidding_object_id(self) -> str:
         """
         Generates a nex bidding object id
         :return:
         """
-        id = self.last_bidding_object_id
-        self.last_bidding_object_id = self.last_bidding_object_id + 1
-        return id
+        id = uuid.uuid1()
+        return str(id)
