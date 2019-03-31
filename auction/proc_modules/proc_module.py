@@ -10,6 +10,14 @@ import uuid
 from datetime import datetime
 
 
+class AllocProc:
+    def __init__(self, bidding_object_key: str, element_name: str, session_id:str, quantity: float, sell_price: float):
+        self.bidding_object_key = bidding_object_key
+        self.element_name = element_name
+        self.session_id = session_id
+        self.quantity = quantity
+        self.sell_price = sell_price
+
 class ProcModule(metaclass=Singleton):
 
     def __init__(self):
