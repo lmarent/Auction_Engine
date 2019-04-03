@@ -18,25 +18,47 @@ class BasicModule(Module):
 
     def __init__(self, module_name: str, module_file: str, module_handle, config_group: str):
         super(BasicModule, self).__init__(module_name, module_file, module_handle, config_group)
-        self.config_param_list = {}
+        self.config_params = {}
         self.logger = log().get_logger()
         self.bandwidth = 0
         self.reserved_price = 0
         self.domain = 0
         self.proc_module = ProcModule()
 
-    def init_module(self, config_param_list: Dict[str, ConfigParam]):
+    def init_module(self, config_params: Dict[str, ConfigParam]):
+        """
+        Initializes the module
+        
+        :param config_params: dictionary with the given configuration parameters
+        """
         self.logger.debug('in init_module')
-        self.config_param_list = config_param_list
-        self.domain = config_param_list['domainid']
+        self.config_params = config_params
+        self.domain = config_params['domainid']
 
     @staticmethod
     def make_key(auction_key: str, bid_key: str) -> str:
+        """
+        Make the key of an allocation from the auction key and bidding object key
+
+        :param auction_key: auction key
+        :param bid_key: bidding object key
+        :return:
+        """
         return auction_key + '-' + bid_key
 
     def create_allocation(self, session_id: str, auction_key: str, start: datetime,
-                          stop: datetime, quantity: float, price: float):
+                          stop: datetime, quantity: float, price: float) -> BiddingObject:
+        """
+        Creates a new allocation
 
+        :param session_id: session id to be associated
+        :param auction_key: auction key
+        :param start: allocation's start
+        :param stop: allocation's stop
+        :param quantity: quantity to assign
+        :param price: price to pay
+        :return: Bidding object
+        """
         self.logger.debug("bas module: start create allocation")
 
         elements = dict()
@@ -71,7 +93,12 @@ class BasicModule(Module):
         return alloc
 
     def increment_quantity_allocation(self, allocation: BiddingObject, quantity: float):
+        """
+        Increments the quantity assigned to an allocation
 
+        :param allocation: allocation to be incremented
+        :param quantity: quantity to increment
+        """
         self.logger.debug("bas module: starting increment quantity allocation")
         elements = allocation.elements
 
@@ -89,8 +116,13 @@ class BasicModule(Module):
 
         raise ValueError("Field quantity was not included in the allocation")
 
-    def calculate_requested_quantities(self, bidding_objects: Dict[str, BiddingObject]):
+    def calculate_requested_quantities(self, bidding_objects: Dict[str, BiddingObject]) -> float:
+        """
+        Calculates request quantity for a bunch of bidding objects
 
+        :param bidding_objects: bidding objects to aggregate the requested quantity
+        :return: total sum of quantities requested on bidding objects
+        """
         self.logger.debug("bas module: starting calculateRequestedQuantities")
         sum_quantity = 0
         for bidding_object_key in bidding_objects:
@@ -105,7 +137,13 @@ class BasicModule(Module):
         return sum_quantity
 
     @staticmethod
-    def get_bid_price(bidding_object: BiddingObject):
+    def get_bid_price(bidding_object: BiddingObject) -> float:
+        """
+        Gets the bid price from a bidding object
+
+        :param bidding_object: bidding object from where to get the price
+        :return: bid price
+        """
         unit_price = -1
 
         elements = bidding_object.elements
@@ -118,10 +156,11 @@ class BasicModule(Module):
     def separate_bids(self, bidding_objects: Dict[str, BiddingObject], bl: float) -> (Dict[str, BiddingObject],
                                                                                       Dict[str, BiddingObject]):
         """
+        Split bids as low budget and high budget bids
 
-        :param bidding_objects:
-        :param bl:
-        :return:
+        :param bidding_objects: bidding object to split
+        :param bl: low budget limit
+        :return: a dictionary for low budget bids, another dictionary for high budget bids.
         """
         self.logger.debug("bas module: Starting separateBids")
         bids_high = {}
@@ -139,6 +178,10 @@ class BasicModule(Module):
         return bids_low, bids_high
 
     def destroy_module(self):
+        """
+        method to be executed when destroying the class
+        :return:
+        """
         print('in destroy_module')
 
     def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
@@ -244,8 +287,21 @@ class BasicModule(Module):
 
     def execute_user(self, request_params: Dict[str, FieldValue], auctions: dict,
                      start: datetime, stop: datetime) -> list:
+        """
+        Executes the module for an agent
+
+        :param request_params: request params included
+        :param auctions: list of auction to create bids
+        :param start: start datetime
+        :param stop: stop datetime
+        :return: list of bids created.
+        """
         print('in execute_user')
         return []
 
     def reset(self):
+        """
+        restart the module
+        :return:
+        """
         print('in reset')

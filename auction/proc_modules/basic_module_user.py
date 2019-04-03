@@ -76,6 +76,14 @@ class BasicModuleUser(Module):
 
     def execute_user(self, request_params: Dict[str, FieldValue], auctions: dict,
                      start: datetime, stop: datetime) -> list:
+        """
+
+        :param request_params:
+        :param auctions:
+        :param start:
+        :param stop:
+        :return:
+        """
         self.logger.debug("starting execute user")
         try:
             total_budget = self.proc_module.get_param_value("totalbudget", request_params)
