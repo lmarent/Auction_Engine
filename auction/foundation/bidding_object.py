@@ -113,3 +113,10 @@ class BiddingObject(AuctioningObject):
         :return:
         """
         self.session_key = session_key
+
+    def get_session(self) -> str:
+        """
+        Gets the session key
+        :return:
+        """
+        return self.session_key

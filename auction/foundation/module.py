@@ -37,7 +37,7 @@ class Module(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def execute(self, auction_key: str, start:datetime, stop:datetime, bids: dict) -> dict:
+    def execute(self, request_params: Dict[str, FieldValue], auction_key: str, start:datetime, stop:datetime, bids: dict) -> list:
         """
         Executes the module (bidding process)
 
