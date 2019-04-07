@@ -3,90 +3,67 @@ int lastBidGenerated = 0;
 int domainId = 0;
 ipap_field_container g_ipap_fields;
 
-void auction::initModule( auction::configParam_t *params )
-{
+class SubsidyAuctionUser(Module):
 
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: start init module \n");
-    # endif
+    def __init__(self, module_name: str, module_file: str, module_handle, config_group: str):
+        super(SubsidyAuctionUser, self).__init__(module_name, module_file, module_handle, config_group)
+        self.config_param_list = {}
+        self.proc_module = ProcModule()
+        self.domain = 0
+        self.logger = log().get_logger()
 
-    # Randomly assign the domain Id.
-    uint32_t nbr;
-    int ret = RAND_bytes((unsigned char *) & nbr, sizeof(uint32_t));
-    assert (ret == 1);
-    domainId = nbr;
+    def init_module(self, config_params: dict):
+        self.config_param_list = config_params
+        self.domain = config_params['domainid']
 
-    # Bring fields defined for ipap_messages;
-    g_ipap_fields.clear();
-    g_ipap_fields.initialize_forward();
-    g_ipap_fields.initialize_reverse();
+    def check_parameters(self, request_params):
+        required_fields = set()
+        required_fields.add(self.proc_module.field_def_manager.get_field("quantity"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("unitbudget"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue"))
 
-
-    # ifdef DEBUG
-    fprintf( stdout, "subsidy auction module: end init module \n");
-    # endif
-
-}
-
-void
-auction::destroyModule(auction::configParam_t * params )
-{
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: start destroy module \n");
-    # endif
-
-    # Return the lastBid generated.
-
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: end destroy module \n");
-    # endif
-
-}
-
-#-- Return 1 if Ok, 0 otherwise.
-int check(auction::fieldDefList_t * fieldDefs, auction::fieldList_t * requestparams)
-{
-
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: starting check own data \n");
-    # endif
-
-    set < ipap_field_key > requiredFields;
-    requiredFields.insert(ipap_field_key(0, IPAP_FT_QUANTITY)); # Requested quantity.
-    requiredFields.insert(ipap_field_key(0, IPAP_FT_UNITBUDGET)); # Budget by unit for all auctions.
-    requiredFields.insert(ipap_field_key(0, IPAP_FT_MAXUNITVALUATION)); # Own valuation
+        for field in required_fields:
+            if field['key'] not in request_params:
+                raise ValueError("basic module: ending check - it does not pass the check, \
+                                 field not included {0}".format(field['key']))
 
 
-    set< ipap_field_key >::iterator iter;
+    def create_bidding_object(self, auction_key: str, quantity: float, unit_budget: float,
+                              unit_price: float, start: datetime, stop: datetime) -> BiddingObject:
 
-    for (iter = requiredFields.begin(); iter != requiredFields.end(); ++iter)
-    {
-        auction:: fieldDefItem_t
-        fieldItem = auction::IpApMessageParser::findField(fieldDefs, iter->get_eno(), iter->get_ftype());
-        if ((fieldItem.name).empty()){
-            # ifdef DEBUG
-            fprintf( stdout, "subsidy auction module: ending check own data - it does not pass the check, field not parametrized %d.%d \n",
-            iter->get_eno(), iter->get_ftype());
-            # endif
-            return 0;
+        self.logger.debug("starting create bidding object")
+        if unit_budget < unit_price:
+            unit_price = unit_budget
 
-        } else {
-            if (auction::IpApMessageParser::isFieldIncluded(requestparams, fieldItem.name) == false){
-                # ifdef DEBUG
-                fprintf( stdout, "subsidy auction module: ending check own data - it does not pass the check, field not included %d.%d \n",
-                iter->get_eno(), iter->get_ftype());
-                # endif
-                return 0;
-            }
-        }
-    }
+        # build the elements of the bidding object
+        elements = dict()
+        config_elements = dict()
+        record_id = "record_1"
+        self.proc_module.insert_string_field("recordid", record_id, config_elements)
+        self.proc_module.insert_float_field("quantity", quantity, config_elements)
+        self.proc_module.insert_double_field("unitprice", unit_price, config_elements)
+        elements[record_id] = config_elements
 
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: ending check - it pass the check \n");
-    # endif
+        # build the options (time intervals)
+        options = dict()
+        option_id = 'option_1'
+        config_options = dict()
+        self.proc_module.insert_datetime_field("start", start, config_options)
+        self.proc_module.insert_datetime_field("stop", stop, config_options)
+        options[option_id] = config_options
 
-    return 1;
-}
+        bidding_object_id = self.proc_module.get_bidding_object_id()
+        bidding_object_key = str(self.domain) + '.' + bidding_object_id
+        bidding_object = BiddingObject(auction_key, bidding_object_key,
+                                       AuctioningObjectType.BID, elements, options)
+
+        self.logger.debug("ending create bidding object")
+        return bidding_object
+
+
+    def destroy_module(self):
+        pass
+
 
 float getSubsidy(auction::configParam_t * params )
 {
@@ -162,81 +139,10 @@ double getDiscriminatingBid(auction::configParam_t * params )
 
 }
 
+    def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
+                start: datetime, stop: datetime, bids: dict) -> list:
+        return []
 
-auction::BiddingObject *
-createBid(auction::fieldDefList_t * fieldDefs, auction::fieldValList_t * fieldVals, auction::Auction * auct, \
-          float quantity, double unitprice, time_t start, time_t stop )
-{
-    uint64_t timeUint64;
-    auction::BiddingObject * bid = NULL;
-
-    auction::elementList_t elements;
-    auction::optionList_t options;
-
-    # Insert elements that belong to the bid
-
-    auction::fieldList_t elementFields;
-
-    # Insert Record Id.
-    string recordId = "Unique";
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_IDRECORD, recordId, & elementFields);
-
-    # Insert quantity ipap_field
-    fQuantity = g_ipap_fields.get_field(0, IPAP_FT_QUANTITY);
-    ipap_value_field fVQuantity = fQuantity.get_ipap_value_field(quantity);
-    string squantity = fQuantity.writeValue(fVQuantity);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_QUANTITY, squantity, & elementFields);
-
-    # Insert unit price ipap_field
-    fUnitPrice = g_ipap_fields.get_field(0, IPAP_FT_UNITVALUE);
-    ipap_value_field fVUnitPrice = fUnitPrice.get_ipap_value_field(unitprice);
-    string sunitprice = fUnitPrice.writeValue(fVUnitPrice);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_UNITVALUE, sunitprice, & elementFields);
-
-    elements[recordId] = elementFields;
-
-    # Insert options that belong to the bid.
-    string optionId = "Unique";
-    auction::fieldList_t optionFields;
-
-    # Insert start ipap_field
-    fStart = g_ipap_fields.get_field(0, IPAP_FT_STARTSECONDS);
-    timeUint64 = *reinterpret_cast < uint64_t * > (& start);
-    ipap_value_field fVStart = fStart.get_ipap_value_field(timeUint64);
-    string sstart = fStart.writeValue(fVStart);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_STARTSECONDS, sstart, & optionFields);
-
-    # Insert stop ipap_field
-    fStop = g_ipap_fields.get_field(0, IPAP_FT_ENDSECONDS);
-    timeUint64 = *reinterpret_cast < uint64_t * > (& stop);
-    ipap_value_field fVStop = fStop.get_ipap_value_field(timeUint64);
-    string sstop = fStop.writeValue(fVStop);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_ENDSECONDS, sstop, & optionFields);
-
-    std::pair < string, auction::fieldList_t > data;
-    data = std::make_pair(optionId, optionFields);
-    options.push_back(data);
-
-    # Bid Set and name
-    string bidSet = intToString(domainId);
-    uint32_t lid = getId();
-    string bidName = uint32ToString(lid);
-
-    bid = new
-    auction::BiddingObject(auct->getSet(), auct->getName(),
-                                                 bidSet, bidName, IPAP_BID, elements, options);
-
-    return bid;
-
-}
-
-void auction::execute(auction::fieldDefList_t * fieldDefs, auction::fieldValList_t * fieldVals,
-                      auction::configParam_t * params, string aset, string aname, time_t start, \
-                      time_t stop, auction::auctioningObjectDB_t * bids,
-                      auction::auctioningObjectDB_t ** allocationdata )
-{
-    # NOTHING TO DO.
-}
 
 void auction::execute_user(auction::fieldDefList_t * fieldDefs, auction::fieldValList_t * fieldVals,
                            auction::fieldList_t * requestparams, auction::auctioningObjectDB_t * auctions,
@@ -330,37 +236,9 @@ auction::destroy(auction::configParam_t * params )
     # endif
 }
 
-void auction::reset(auction::configParam_t * params )
-{
+    def reset(self):
+        print('reset')
 
-    # ifdef DEBUG
-    cout << "subsidy auction user module: start reset module" << endl;
-    # endif
-
-    int numparams = 0;
-
-    while (params[0].name != NULL) {
-        # in all the application we receive the next allocation id to create
-
-        if (caseInsensitiveStringCompare(params[0].name, "domainid")) {
-            domainId = parseUInt32( params[0].value );
-            numparams++;
-            # ifdef DEBUG
-            cout << "subsidy auction user module: domainId:" << domainId << endl;
-            # endif
-        }
-        params++;
-    }
-
-    if (numparams != MOD_REINIT_REQUIRED_PARAMS)
-        throw ProcError("subsidy auction user init module - not enought parameters");
-
-    # ifdef DEBUG
-    cout << "subsidy auction user module: end reset module" << endl;
-    # endif
-
-
-}
 
 const char * auction::getModuleInfo(int i )
 {
@@ -423,15 +301,3 @@ const char * auction::getModuleInfo(int i )
     # endif
 }
 
-char * auction::getErrorMsg(int code )
-{
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction user module: start getErrorMsg \n");
-    # endif
-
-    return NULL;
-
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction user module: end getErrorMsg \n");
-    # endif
-}
