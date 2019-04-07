@@ -1,7 +1,15 @@
+from foundation.module import Module
+from foundation.auction import AuctioningObjectType
+from foundation.bidding_object import BiddingObject
+from foundation.field_value import FieldValue
+from foundation.module import ModuleInformation
 
-int lastBidGenerated = 0;
-int domainId = 0;
-ipap_field_container g_ipap_fields;
+from proc_modules.proc_module import ProcModule
+
+from datetime import datetime
+from typing import Dict
+from utils.auction_utils import log
+
 
 class SubsidyAuctionUser(Module):
 
@@ -27,10 +35,18 @@ class SubsidyAuctionUser(Module):
                 raise ValueError("basic module: ending check - it does not pass the check, \
                                  field not included {0}".format(field['key']))
 
-
     def create_bidding_object(self, auction_key: str, quantity: float, unit_budget: float,
                               unit_price: float, start: datetime, stop: datetime) -> BiddingObject:
-
+        """
+        Create bidding objects
+        :param auction_key:
+        :param quantity:
+        :param unit_budget:
+        :param unit_price:
+        :param start:
+        :param stop:
+        :return:
+        """
         self.logger.debug("starting create bidding object")
         if unit_budget < unit_price:
             unit_price = unit_budget
@@ -60,244 +76,95 @@ class SubsidyAuctionUser(Module):
         self.logger.debug("ending create bidding object")
         return bidding_object
 
-
     def destroy_module(self):
         pass
-
-
-float getSubsidy(auction::configParam_t * params )
-{
-
-    # ifdef DEBUG
-    cout << "Starting getSubsidy" << endl;
-    # endif
-
-    float subsidy = 0;
-    int numparams = 0;
-
-    while (params[0].name != NULL) {
-        # in all the application we establish the rates and
-        # burst parameters in bytes
-
-        if (!strcmp(params[0].name, "subsidy")) {
-            subsidy = (float) parseFloat( params[0].value );
-            numparams++;
-        }
-        params++;
-    }
-
-    if (numparams == 0)
-        throw auction::ProcError(AUM_PROC_PARAMETER_ERROR,
-                           "subsidy auction init module - not enought parameters");
-
-    if (subsidy <= 0)
-        throw auction::ProcError(AUM_FIELD_NOT_FOUND_ERROR,
-                           "subsidy auction init module - The given subsidy parameter is incorrect");
-
-    # ifdef DEBUG
-    cout << "Ending getSubsidy - Subsidy:" << subsidy << endl;
-    # endif
-
-    return subsidy;
-
-}
-
-double getDiscriminatingBid(auction::configParam_t * params )
-{
-
-    # ifdef DEBUG
-    cout << "Starting get Discriminating Bid" << endl;
-    # endif
-
-    double discriminatingBid = 0;
-    int numparams = 0;
-
-    while (params[0].name != NULL) {
-        # in all the application we establish the rates and
-        # burst parameters in bytes
-
-        if (!strcmp(params[0].name, "maxvalue01")) {
-            discriminatingBid = (float) parseDouble( params[0].value );
-            numparams++;
-        }
-        params++;
-    }
-
-    if (numparams == 0)
-        throw auction::ProcError(AUM_PROC_PARAMETER_ERROR,
-                           "subsidy auction init module - not enought parameters");
-
-    if (discriminatingBid <= 0)
-        throw auction::ProcError(AUM_FIELD_NOT_FOUND_ERROR,
-                           "subsidy auction init module - The given discriminating bid parameter (maxvalue01) is incorrect");
-
-    # ifdef DEBUG
-    cout << "Ending Discriminating Bid:" << discriminatingBid << endl;
-    # endif
-
-    return discriminatingBid;
-
-}
 
     def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
                 start: datetime, stop: datetime, bids: dict) -> list:
         return []
 
+    def execute_user(self, request_params: Dict[str, FieldValue], auctions: dict,
+                     start: datetime, stop: datetime) -> list:
+        """
 
-void auction::execute_user(auction::fieldDefList_t * fieldDefs, auction::fieldValList_t * fieldVals,
-                           auction::fieldList_t * requestparams, auction::auctioningObjectDB_t * auctions,
-                           time_t start, time_t stop, auction::auctioningObjectDB_t ** biddata )
-{
+        :param request_params:
+        :param auctions:
+        :param start:
+        :param stop:
+        :return:
+        """
+        self.logger.debug("subsidy auction module: start execute with # {0} of auctions".format(len(auctions)))
+        list_return = []
+        self.check_parameters(request_params)
+        if len(auctions) > 0:
 
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: start execute with # %d of auctions \n", (int)
-    auctions->size() );
-    # endif
+            # Get the total money and budget and divide them by the number of auctions
+            budget = self.proc_module.get_param_value("unitbudget", request_params)
+            max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
+            quantity = self.proc_module.get_param_value("quantity", request_params)
 
-    auction::fieldDefItem_t fieldItem;
-    double budget, valuation;
-    double budgetByAuction, valuationByAuction, maxGrpValation;
-    float quantity, subsidy;
-    double unitPrice;
+            subsidy = self.proc_module.get_param_value('subsidy', request_params)
+            discriminatory_price = self.proc_module.get_param_value('maxvalue01', request_params)
 
-    int check_ret = check(fieldDefs, requestparams);
+            budget_by_auction = budget / len(auctions)
+            valuation_by_auction = max_unit_valuation / len(auctions)
 
-    if ((check_ret > 0) & & (auctions->size() > 0) ){
+            unit_price = valuation_by_auction
+            if budget_by_auction < valuation_by_auction:
+                unit_price = budget_by_auction
 
-        # Get the total money and budget and divide them by the number of auctions
-        fieldItem = auction::IpApMessageParser::findField(fieldDefs, 0, IPAP_FT_UNITBUDGET);
-        budget = getDoubleField(requestparams, fieldItem.name);
+            self.logger.debug("subsidy auction module - after setting up parameters")
 
-        fieldItem = auction::IpApMessageParser::findField(fieldDefs, 0, IPAP_FT_MAXUNITVALUATION);
-        valuation = getDoubleField(requestparams, fieldItem.name);
+            for auction_key in auctions:
 
-        fieldItem = auction::IpApMessageParser::findField(fieldDefs, 0, IPAP_FT_QUANTITY);
-        quantity = getFloatField(requestparams, fieldItem.name);
+                # Set the optimal bid.
+                if unit_price < (discriminatory_price * subsidy):
+                    if unit_price > discriminatory_price:
+                        unit_price = discriminatory_price
 
-        budgetByAuction = budget / (int) auctions->size();
-        valuationByAuction = valuation / (int) auctions->size();
+                bidding_object = self.create_bidding_object(auction_key, quantity, budget_by_auction,
+                                                            unit_price, start, stop)
 
-        unitPrice = valuationByAuction;
-        if (budgetByAuction < valuationByAuction)
-        {
-            unitPrice = budgetByAuction;
-        }
+                list_return.append(bidding_object)
 
-
-        auctioningObjectDBIter_t auctIter;
-        for (auctIter = auctions->begin(); auctIter != auctions->end(); ++auctIter)
-        {
-
-            Auction * auctionTmp = dynamic_cast < Auction * > (*auctIter);
-
-            subsidy = getSubsidy(ConfigManager::getParamList(auctionTmp->getAction()->conf ));
-
-            maxGrpValation = getDiscriminatingBid(ConfigManager::getParamList(auctionTmp->getAction()->conf ));
-
-            # Set the optimal bid.
-            if (unitPrice < (maxGrpValation * subsidy))
-            {
-                if (unitPrice > maxGrpValation)
-                {
-                    unitPrice = maxGrpValation;
-                }
-            }
-
-            auction::BiddingObject * bid = createBid(fieldDefs, fieldVals, auctionTmp, quantity,
-                                                     unitPrice, start, stop);
-            (*biddata)->push_back(bid);
-        }
-
-        # ifdef DEBUG
-        fprintf(stdout, "subsidy auction module: in the middle 2 \n");
-        # endif
-
-    } else {
-        throw ProcError("A required field was not provided");
-    }
-
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: end execute \n");
-    # endif
-
-}
-
-void
-auction::destroy(auction::configParam_t * params )
-{
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: start destroy \n");
-    # endif
-
-    g_ipap_fields.clear();
-
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: end destroy \n");
-    # endif
-}
+        self.logger.debug("subsidy auction module: end execute")
+        return list_return
 
     def reset(self):
         print('reset')
 
+    def get_module_info(self, option: ModuleInformation) -> str:
+        self.logger.debug("subsidy auction module: start getModuleInfo")
 
-const char * auction::getModuleInfo(int i )
-{
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction module: start getModuleInfo \n");
-    # endif
-
-    / *fprintf(stderr, "count : getModuleInfo(%d)\n", i); * /
-
-    switch(i)
-    {
-        case
-    auction::I_MODNAME:
-    return "Subsidy Auction User procedure";
-    case
-    auction::I_ID:
-    return "subsidyauctionuser";
-    case
-    auction::I_VERSION:
-    return "0.1";
-    case
-    auction::I_CREATED:
-    return "2015/12/30";
-    case
-    auction::I_MODIFIED:
-    return "2015/12/30";
-    case
-    auction::I_BRIEF:
-    return "Bid process that gives subsidies to a target user group";
-    case
-    auction::I_VERBOSE:
-    return "The auction just put the budget and unit price given as parameters";
-    case
-    auction::I_HTMLDOCS:
-    return "http://www.uniandes.edu.co/... ";
-    case
-    auction::I_PARAMS:
-    return "IPAP_FT_QUANTITY (requested quantiry), IPAP_FT_UNITBUDGET (Total Budget by unit), IPAP_FT_MAXUNITVALUATION (own valuation), IPAP_FT_MAXUNITVALUATION01 (Discriminating Bid), IPAP_FT_SUBSIDY (Subsidy), IPAP_FT_STARTSECONDS, IPAP_FT_ENDSECONDS";
-    case
-    auction::I_RESULTS:
-    return "The user's bid";
-    case
-    auction::I_AUTHOR:
-    return "Andres Marentes";
-    case
-    auction::I_AFFILI:
-    return "Universidad de los Andes, Colombia";
-    case
-    auction::I_EMAIL:
-    return "la.marentes455@uniandes.edu.co";
-    case
-    auction::I_HOMEPAGE:
-    return "http://homepage";
-    default:
-    return NULL;
-    }
-
-    # ifdef DEBUG
-    fprintf(stdout, "subsidy auction user module: end getModuleInfo \n");
-    # endif
-}
-
+        if option == ModuleInformation.I_MODNAME:
+            return "Subsidy Auction User procedure"
+        elif option == ModuleInformation.I_ID:
+            return "subsidyauctionuser"
+        elif option == ModuleInformation.I_VERSION:
+            return "0.1"
+        elif option == ModuleInformation.I_CREATED:
+            return "2015/12/30"
+        elif option == ModuleInformation.I_MODIFIED:
+            return "2015/12/30"
+        elif option == ModuleInformation.I_BRIEF:
+            return "Bid process that gives subsidies to a target user group"
+        elif option == ModuleInformation.I_VERBOSE:
+            return "The auction just put the budget and unit price given as parameters"
+        elif option == ModuleInformation.I_HTMLDOCS:
+            return "http://www.uniandes.edu.co/... "
+        elif option == ModuleInformation.I_PARAMS:
+            return "IPAP_FT_QUANTITY (requested quantiry), IPAP_FT_UNITBUDGET (Total Budget by unit), \
+                        IPAP_FT_MAXUNITVALUATION (own valuation), IPAP_FT_MAXUNITVALUATION01 (Discriminating Bid), \
+                        IPAP_FT_SUBSIDY (Subsidy), IPAP_FT_STARTSECONDS, IPAP_FT_ENDSECONDS"
+        elif option == ModuleInformation.I_RESULTS:
+            return "The user's bid"
+        elif option == ModuleInformation.I_AUTHOR:
+            return "Andres Marentes"
+        elif option == ModuleInformation.I_AFFILI:
+            return "Universidad de los Andes, Colombia"
+        elif option == ModuleInformation.I_EMAIL:
+            return "la.marentes455@uniandes.edu.co"
+        elif option == ModuleInformation.I_HOMEPAGE:
+            return "http://homepage"
+        else:
+            return ''

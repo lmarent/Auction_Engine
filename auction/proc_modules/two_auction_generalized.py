@@ -6,6 +6,39 @@ ipap_field_container g_ipap_fields;
  * 			= 1 if the auction corresponds to high budget
 */
 
+class TwoAuctionGeneralized(Module):
+
+    def __init__(self, module_name: str, module_file: str, module_handle, config_group: str):
+        super(TwoAuctionGeneralized, self).__init__(module_name, module_file, module_handle, config_group)
+        self.config_params = {}
+        self.logger = log().get_logger()
+        self.bandwidth = 0
+        self.reserved_price = 0
+        self.domain = 0
+        self.proc_module = ProcModule()
+
+    def init_module(self, config_params: Dict[str, ConfigParam]):
+        """
+        Initializes the module
+
+        :param config_params: dictionary with the given configuration parameters
+        """
+        self.logger.debug('in init_module')
+        self.config_params = config_params
+        self.domain = config_params['domainid']
+
+    @staticmethod
+    def make_key(auction_key: str, bid_key: str) -> str:
+        """
+        Make the key of an allocation from the auction key and bidding object key
+
+        :param auction_key: auction key
+        :param bid_key: bidding object key
+        :return:
+        """
+        return auction_key + '-' + bid_key
+
+
 float
 getResourceAvailability(auction::configParam_t *p arams, int auction )
 {
@@ -200,40 +233,60 @@ time_t getTime(auction::configParam_t *p arams, string name )
 
 }
 
-
-void
-auction::initModule(auction::configParam_t *p arams )
-{
-
-    cout << "two auction generalized module: start init module" << endl;
-
-    # Bring fields defined for ipap_messages;
-    g_ipap_fields.initialize_forward();
-    g_ipap_fields.initialize_reverse();
-
-    cout << "two auction generalized module: end init module" << endl;
-
-}
-
-void
-auction::destroyModule(auction::configParam_t *p arams )
-{
-    # ifdef DEBUG
-    fprintf(stdout, "two auction generalized module: start destroy module \n");
-    # endif
+    def destroy_module(self):
+        """
+        method to be executed when destroying the class
+        :return:
+        """
+        self.logger.debug('in destroy_module')
 
 
-    # ifdef DEBUG
-    fprintf(stdout, "two auction generalized module: end destroy module \n");
-    # endif
+    def create_allocation(self, session_id: str, auction_key: str, start: datetime,
+                          stop: datetime, quantity: float, price: float) -> BiddingObject:
+        """
+        Creates a new allocation
 
-}
+        :param session_id: session id to be associated
+        :param auction_key: auction key
+        :param start: allocation's start
+        :param stop: allocation's stop
+        :param quantity: quantity to assign
+        :param price: price to pay
+        :return: Bidding object
+        """
+        self.logger.debug("bas module: start create allocation")
 
+        elements = dict()
+        config_elements = dict()
 
-string makeKey(string auctionSet, string auctionName, string bidSet, string bidName)
-{
-    return auctionSet + "|" + auctionName + "|" + bidSet + "|" + bidName;
-}
+        # Insert quantity ipap_field
+        record_id = "record_1"
+        self.proc_module.insert_string_field("recordid", record_id, config_elements)
+        self.proc_module.insert_float_field("quantity", quantity, config_elements)
+        self.proc_module.insert_double_field("unitprice", price, config_elements)
+        elements[record_id] = config_elements
+
+        # construct the interval with the allocation, based on start datetime
+        # and interval for the requesting auction
+
+        options = dict()
+        option_id = 'option_1'
+        config_options = dict()
+
+        self.proc_module.insert_string_field("recordid", option_id, config_elements)
+        self.proc_module.insert_datetime_field("start", start, config_options)
+        self.proc_module.insert_datetime_field("stop", stop, config_options)
+        options[option_id] = config_options
+
+        bidding_object_id = self.proc_module.get_bidding_object_id()
+        bidding_object_key = str(self.domain) + '.' + bidding_object_id
+        alloc = BiddingObject(auction_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
+
+        # All objects must be inherit the session from the bid.
+        alloc.set_session(session_id)
+
+        return alloc
+
 
 string getBidName(string allocationKey)
 {
@@ -246,104 +299,6 @@ string getBidName(string allocationKey)
     return bidName;
 }
 
-auction::BiddingObject * createAllocation(auction::fieldDefList_t *f ieldDefs,
-                                          auction::fieldValList_t *f ieldVals,
-                                          string auctionSet, string auctionName, \
-                                          string bidSet, string bidName, string sessionId,
-                                          time_t start, time_t stop, float quantity, double price )
-{
-    # ifdef DEBUG
-    fprintf(stdout, "two auction generalized module: start create allocation \n");
-    # endif
-
-    uint64_t timeUint64;
-
-    auction::elementList_t elements;
-    auction::optionList_t options;
-
-    auction::fieldList_t elementFields;
-    string elementName = "key_1";
-
-    # The set for the allocation is the same as the initial bid.
-    string allocset = bidSet;
-
-    # Create the id given.
-    uint32_t lid = getId();
-    string allocname = uint32ToString(lid);
-    cout << "before calling refidobject" << endl;
-
-    # Insert reference bidding object
-    ipap_field fRef = g_ipap_fields.get_field(0, IPAP_FT_REFIDBIDDINGOBJECT);
-
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_REFIDBIDDINGOBJECT, bidName, &e lementFields);
-
-    # Insert quantity ipap_field
-    fQuantity = g_ipap_fields.get_field(0, IPAP_FT_QUANTITY);
-    ipap_value_field fVQuantity = fQuantity.get_ipap_value_field(quantity );
-    string squantity = fQuantity.writeValue(fVQuantity);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_QUANTITY, squantity, & elementFields);
-
-    # ifdef DEBUG
-    cout << "two auction generalized module: start create allocation after quantity" << std::endl;
-    # endif
-
-    # Insert Unit Value
-    ipap_field fvalue = g_ipap_fields.get_field(0, IPAP_FT_UNITVALUE);
-    ipap_value_field fVValue = fvalue.get_ipap_value_field(price);
-    string svalue = fvalue.writeValue(fVValue);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_UNITVALUE, svalue, & elementFields);
-
-    # ifdef DEBUG
-    cout << "two auction generalized module: start create allocation after unitvalue " << std::endl;
-    # endif
-
-    string recordId = "Unique";
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_IDRECORD, recordId, & elementFields);
-
-    elements[elementName] = elementFields;
-
-    # construct the interval with the allocation, based on start datetime and interval for the requesting auction
-
-    auction::fieldList_t optionFields;
-
-    # Insert start ipap_field
-    fStart = g_ipap_fields.get_field(0, IPAP_FT_STARTSECONDS);
-    timeUint64 = *reinterpret_cast < uint64_t * > (& start);
-    ipap_value_field fVStart = fStart.get_ipap_value_field(timeUint64);
-    string sstart = fStart.writeValue(fVStart);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_STARTSECONDS, sstart, & optionFields);
-
-    # ifdef DEBUG
-    cout << "two auction generalized module: start create allocation after startSeconds" << std::endl;
-    # endif
-
-    # Insert stop ipap_field
-    fStop = g_ipap_fields.get_field(0, IPAP_FT_ENDSECONDS);
-    timeUint64 = *reinterpret_cast < uint64_t * > (& stop);
-    ipap_value_field fVStop = fStop.get_ipap_value_field(timeUint64);
-    string sstop = fStop.writeValue(fVStop);
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_ENDSECONDS, sstop, & optionFields);
-
-    # ifdef DEBUG
-    cout << "two auction generalized module: start create allocation after endSeconds" << std::endl;
-    # endif
-
-    fillField(fieldDefs, fieldVals, 0, IPAP_FT_IDRECORD, recordId, & optionFields);
-    options.push_back(pair < string, auction::fieldList_t > (elementName, optionFields));
-
-    auction::BiddingObject * alloc = new
-    auction::BiddingObject(auctionSet, auctionName,
-                           allocset, allocname, IPAP_ALLOCATION, elements, options);
-
-    # All objects must be inherit the session from the bid.
-    alloc->setSession(sessionId);
-
-    # ifdef DEBUG
-    cout << "two auction generalized module: ending create allocation" << std::endl;
-    # endif
-
-    return alloc;
-}
 
 double
 getProbability()
@@ -413,39 +368,6 @@ double getBidPrice(auction::BiddingObject * bid)
     }
 
     return unitPrice;
-
-}
-
-void
-separateBids(auction::auctioningObjectDB_t * bids, double bl, double bh, auction::auctioningObjectDB_t * bids_low,
-             auction::auctioningObjectDB_t * bids_high)
-{
-
-    # ifdef DEBUG
-    cout << "Starting separateBids" << endl;
-    # endif
-
-    auction::auctioningObjectDB_t::iterator iter;
-    for (iter = bids->begin();iter != bids->end(); ++iter){
-        auction::BiddingObject * bid = dynamic_cast < auction::BiddingObject * > (*iter);
-
-        double price = getBidPrice(bid);
-
-        if (price >= 0)
-        {
-            if (price > bl)
-            {
-                bids_high->push_back(bid);
-            }
-            else {
-                bids_low->push_back(bid);
-            }
-        }
-    }
-
-    # ifdef DEBUG
-    cout << "Ending separateBids" << endl;
-    # endif
 
 }
 
