@@ -4,6 +4,24 @@ from datetime import datetime
 from foundation.field_value import FieldValue
 
 from typing import Dict
+from enum import Enum
+
+
+class ModuleInformation(Enum):
+    I_MODNAME = 0
+    I_ID = 0
+    I_VERSION = 1
+    I_CREATED = 2
+    I_MODIFIED = 3
+    I_BRIEF = 4
+    I_VERBOSE = 5
+    I_HTMLDOCS = 6
+    I_PARAMS = 7
+    I_RESULTS = 8
+    I_AUTHOR = 9
+    I_AFFILI = 10
+    I_EMAIL = 11
+    I_HOMEPAGE = 12
 
 
 class Module(metaclass=ABCMeta):

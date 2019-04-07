@@ -5,18 +5,26 @@ from foundation.config_param import ConfigParam
 from foundation.singleton import Singleton
 from foundation.parse_format import ParseFormats
 from foundation.field_def_manager import DataType
+from foundation.bidding_object import BiddingObject
 
 import uuid
 from datetime import datetime
+from typing import Dict
+from collections import defaultdict
+
+
+
 
 
 class AllocProc:
-    def __init__(self, auction_key: str, bidding_object_key: str, element_name: str, session_id:str, quantity: float):
+    def __init__(self, auction_key: str, bidding_object_key: str, element_name: str,
+                 session_id:str, quantity: float, price:float):
         self.auction_key = auction_key
         self.bidding_object_key = bidding_object_key
         self.element_name = element_name
         self.session_id = session_id
         self.quantity = quantity
+        self.original_price = price
 
 class ProcModule(metaclass=Singleton):
 
@@ -165,3 +173,112 @@ class ProcModule(metaclass=Singleton):
         """
         id = uuid.uuid1()
         return str(id)
+
+    @staticmethod
+    def increment_quantity_allocation(allocation: BiddingObject, quantity: float):
+        """
+        Increments the quantity assigned to an allocation
+
+        :param allocation: allocation to be incremented
+        :param quantity: quantity to increment
+        """
+        elements = allocation.elements
+
+        # there is only one element
+        for element_name in elements:
+            config_dict = elements[element_name]
+            # remove the field for updating quantities
+            field: ConfigParam = config_dict.pop('quantity')
+            # Insert again the field.
+            temp_qty = ParseFormats.parse_float(field.value)
+            temp_qty += quantity
+            fvalue = str(temp_qty)
+            field.value = fvalue
+            config_dict[field.name] = field
+
+        raise ValueError("Field quantity was not included in the allocation")
+
+    @staticmethod
+    def get_bid_price(bidding_object: BiddingObject) -> float:
+        """
+        Gets the bid price from a bidding object
+
+        :param bidding_object: bidding object from where to get the price
+        :return: bid price
+        """
+        unit_price = -1
+
+        elements = bidding_object.elements
+        for element_name in elements:
+            config_dict = elements[element_name]
+            unit_price = float(config_dict['unitprice'].value)
+            break
+        return unit_price
+
+    @staticmethod
+    def calculate_requested_quantities(bidding_objects: Dict[str, BiddingObject]) -> float:
+        """
+        Calculates request quantity for a bunch of bidding objects
+
+        :param bidding_objects: bidding objects to aggregate the requested quantity
+        :return: total sum of quantities requested on bidding objects
+        """
+        sum_quantity = 0
+        for bidding_object_key in bidding_objects:
+            bidding_object = bidding_objects[bidding_object_key]
+            elements = bidding_object.elements
+            for element_name in elements:
+                config_dict = elements[element_name]
+                quantity = float(config_dict['quantity'].value)
+                sum_quantity = sum_quantity + quantity
+
+        return sum_quantity
+
+    def separate_bids(self, bidding_objects: Dict[str, BiddingObject], bl: float) -> (Dict[str, BiddingObject],
+                                                                                Dict[str, BiddingObject]):
+        """
+        Split bids as low budget and high budget bids
+
+        :param bidding_objects: bidding object to split
+        :param bl: low budget limit
+        :return: a dictionary for low budget bids, another dictionary for high budget bids.
+        """
+        bids_high = {}
+        bids_low = {}
+        for bidding_object_key in bidding_objects:
+            bidding_object = bidding_objects[bidding_object_key]
+            price = self.get_bid_price(bidding_object)
+            if price >= 0:
+                if price > bl:
+                    bids_high[bidding_object_key] = bidding_object
+                else:
+                    bids_low[bidding_object_key] = bidding_object
+
+        return bids_low, bids_high
+
+    def sort_bids_by_price(self, bids: Dict[str, BiddingObject], discriminatory_price: float=0,
+                            subsidy: float=1 )-> defaultdict(list):
+        """
+        sort bids by price in descending order
+
+        :return:
+        """
+        ordered_bids = defaultdict(list)
+        for bidding_object_key in bids:
+            bidding_object = bids[bidding_object_key]
+            elements = bidding_object.elements
+            for element_name in elements:
+                config_params = elements[element_name]
+                price = ParseFormats.parse_float(config_params["unitprice"].value)
+                quantity = ParseFormats.parse_float(config_params["quantity"].value)
+                alloc = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                                  element_name, bidding_object.get_session(), quantity, price)
+                # applies the subsidy if it was given,
+                if discriminatory_price > 0:
+                    if price < discriminatory_price:
+                        price = price * subsidy
+
+                ordered_bids[price].append(alloc)
+
+        return ordered_bids
+

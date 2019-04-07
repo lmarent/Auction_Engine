@@ -92,91 +92,6 @@ class BasicModule(Module):
 
         return alloc
 
-    def increment_quantity_allocation(self, allocation: BiddingObject, quantity: float):
-        """
-        Increments the quantity assigned to an allocation
-
-        :param allocation: allocation to be incremented
-        :param quantity: quantity to increment
-        """
-        self.logger.debug("bas module: starting increment quantity allocation")
-        elements = allocation.elements
-
-        # there is only one element
-        for element_name in elements:
-            config_dict = elements[element_name]
-            # remove the field for updating quantities
-            field: ConfigParam = config_dict.pop('quantity')
-            # Insert again the field.
-            temp_qty = ParseFormats.parse_float(field.value)
-            temp_qty += quantity
-            fvalue = str(temp_qty)
-            field.value = fvalue
-            config_dict[field.name] = field
-
-        raise ValueError("Field quantity was not included in the allocation")
-
-    def calculate_requested_quantities(self, bidding_objects: Dict[str, BiddingObject]) -> float:
-        """
-        Calculates request quantity for a bunch of bidding objects
-
-        :param bidding_objects: bidding objects to aggregate the requested quantity
-        :return: total sum of quantities requested on bidding objects
-        """
-        self.logger.debug("bas module: starting calculateRequestedQuantities")
-        sum_quantity = 0
-        for bidding_object_key in bidding_objects:
-            bidding_object = bidding_objects[bidding_object_key]
-            elements = bidding_object.elements
-            for element_name in elements:
-                config_dict = elements[element_name]
-                quantity = float(config_dict['quantity'].value)
-                sum_quantity = sum_quantity + quantity
-
-        self.logger.debug("bas module - ending calculateRequestedQuantities: {0}".format(sum_quantity))
-        return sum_quantity
-
-    @staticmethod
-    def get_bid_price(bidding_object: BiddingObject) -> float:
-        """
-        Gets the bid price from a bidding object
-
-        :param bidding_object: bidding object from where to get the price
-        :return: bid price
-        """
-        unit_price = -1
-
-        elements = bidding_object.elements
-        for element_name in elements:
-            config_dict = elements[element_name]
-            unit_price = float(config_dict['unitprice'].value)
-            break
-        return unit_price
-
-    def separate_bids(self, bidding_objects: Dict[str, BiddingObject], bl: float) -> (Dict[str, BiddingObject],
-                                                                                      Dict[str, BiddingObject]):
-        """
-        Split bids as low budget and high budget bids
-
-        :param bidding_objects: bidding object to split
-        :param bl: low budget limit
-        :return: a dictionary for low budget bids, another dictionary for high budget bids.
-        """
-        self.logger.debug("bas module: Starting separateBids")
-        bids_high = {}
-        bids_low = {}
-        for bidding_object_key in bidding_objects:
-            bidding_object = bidding_objects[bidding_object_key]
-            price = self.get_bid_price(bidding_object)
-            if price >= 0:
-                if price > bl:
-                    bids_high[bidding_object_key] = bidding_object
-                else:
-                    bids_low[bidding_object_key] = bidding_object
-
-        self.logger.debug("bas module: Ending separateBids")
-        return bids_low, bids_high
-
     def destroy_module(self):
         """
         method to be executed when destroying the class
@@ -198,16 +113,16 @@ class BasicModule(Module):
         """
         self.logger.debug("bas module: start execute num bids:{0}".format(str(len(bids))))
 
-        tot_demand = self.calculate_requested_quantities(bids)
+        tot_demand = self.proc_module.calculate_requested_quantities(bids)
         bandwidth_to_sell = self.proc_module.get_param_value('bandwidth', request_params)
         reserve_price = self.proc_module.get_param_value('reserveprice', request_params)
 
         # Order bids classifying them by whether they compete on the low and high auction.
-        bids_low_rct, bids_high_rct = self.separate_bids(bids, 0.5)
+        bids_low_rct, bids_high_rct = self.proc_module.separate_bids(bids, 0.5)
 
         # Calculate the number of bids on both auctions.
-        nl = self.calculate_requested_quantities(bids_low_rct)
-        nh = self.calculate_requested_quantities(bids_high_rct)
+        nl = self.proc_module.calculate_requested_quantities(bids_low_rct)
+        nh = self.proc_module.calculate_requested_quantities(bids_high_rct)
 
         ordered_bids = defaultdict(list)
         for bidding_object_key in bids:
@@ -257,8 +172,9 @@ class BasicModule(Module):
         for price in sorted_prices:
             alloc_temp = sorted_prices[price]
             for i in range(0, len(alloc_temp)):
-                if self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key) in allocations:
-                    self.increment_quantity_allocation(allocations[alloc_temp[i].bidding_object_key],
+                key = self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
+                if key in allocations:
+                    self.proc_module.increment_quantity_allocation(allocations[alloc_temp[i].bidding_object_key],
                                                        alloc_temp[i].quantity)
                 else:
                     allocation = self.create_allocation(alloc_temp[i].session_id,
@@ -267,7 +183,7 @@ class BasicModule(Module):
                                                         alloc_temp[i].quantity,
                                                         sell_price)
 
-                    allocations[self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)] = allocation
+                    allocations[key] = allocation
 
         # Convert from the map to the final allocationDB result
         allocation_res = []
@@ -275,7 +191,6 @@ class BasicModule(Module):
             allocation_res.append(allocations[allocation_key])
 
         # Write a log with data of the auction
-
         self.logger.debug("starttime: {0} endtime:{1}".format(str(start), str(stop)))
         self.logger.debug("demand: {0} - demand low: {1} demand high {2}".format(str(tot_demand), str(nl), str(nh)))
         self.logger.debug("qty_sell: {0}".format(str(bandwidth_to_sell - qty_available)))
