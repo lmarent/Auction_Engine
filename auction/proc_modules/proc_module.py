@@ -13,9 +13,6 @@ from typing import Dict
 from collections import defaultdict
 
 
-
-
-
 class AllocProc:
     def __init__(self, auction_key: str, bidding_object_key: str, element_name: str,
                  session_id:str, quantity: float, price:float):

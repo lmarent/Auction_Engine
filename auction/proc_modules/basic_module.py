@@ -6,11 +6,11 @@ from foundation.bidding_object import BiddingObject
 from foundation.auction import AuctioningObjectType
 
 from proc_modules.proc_module import ProcModule
+from proc_modules.proc_module import AllocProc
 
 from datetime import datetime
 from utils.auction_utils import log
 from typing import Dict
-from proc_modules.proc_module import AllocProc
 from collections import defaultdict
 
 
