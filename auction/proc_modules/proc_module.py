@@ -199,6 +199,28 @@ class ProcModule(metaclass=Singleton):
         raise ValueError("Field quantity was not included in the allocation")
 
     @staticmethod
+    def change_allocation_price(allocation: BiddingObject, price: float):
+        """
+        Change allocation price
+
+        :param allocation: allocation to be incremented
+        :param price: price to be assigned
+        """
+        elements = allocation.elements
+
+        # there is only one element
+        for element_name in elements:
+            config_dict = elements[element_name]
+            # remove the field for updating quantities
+            field: ConfigParam = config_dict.pop('unitprice')
+            # Insert again the field.
+            fvalue = str(price)
+            field.value = fvalue
+            config_dict[field.name] = field
+
+        raise ValueError("Field price was not included in the allocation")
+
+    @staticmethod
     def get_bid_price(bidding_object: BiddingObject) -> float:
         """
         Gets the bid price from a bidding object
