@@ -10,18 +10,20 @@ from foundation.bidding_object import BiddingObject
 import uuid
 from datetime import datetime
 from typing import Dict
+from typing import DefaultDict
 from collections import defaultdict
 
 
 class AllocProc:
     def __init__(self, auction_key: str, bidding_object_key: str, element_name: str,
-                 session_id:str, quantity: float, price:float):
+                 session_id: str, quantity: float, price: float):
         self.auction_key = auction_key
         self.bidding_object_key = bidding_object_key
         self.element_name = element_name
         self.session_id = session_id
         self.quantity = quantity
         self.original_price = price
+
 
 class ProcModule(metaclass=Singleton):
 
@@ -31,7 +33,7 @@ class ProcModule(metaclass=Singleton):
         self.field_container.initialize_forward()
         self.field_def_manager = FieldDefManager()
 
-    def get_param_value(self, field_name:str, params: dict):
+    def get_param_value(self, field_name: str, params: dict):
         """
         Get the value of a parameter
         :param field_name: name of the parameter
@@ -196,6 +198,26 @@ class ProcModule(metaclass=Singleton):
         raise ValueError("Field quantity was not included in the allocation")
 
     @staticmethod
+    def get_allocation_quantity(bidding_object: BiddingObject) -> float:
+        """
+
+        :param bidding_object:
+        :return:
+        """
+        temp_qty = 0
+        elements = bidding_object.elements
+
+        # there is only one element.
+        for element_name in elements:
+            config_dict = elements[element_name]
+            # remove the field for updating quantities
+            field: ConfigParam = config_dict['quantity']
+            temp_qty = ParseFormats.parse_float(field.value)
+            break
+
+        return temp_qty
+
+    @staticmethod
     def change_allocation_price(allocation: BiddingObject, price: float):
         """
         Change allocation price
@@ -254,7 +276,7 @@ class ProcModule(metaclass=Singleton):
         return sum_quantity
 
     def separate_bids(self, bidding_objects: Dict[str, BiddingObject], bl: float) -> (Dict[str, BiddingObject],
-                                                                                Dict[str, BiddingObject]):
+                                                                                      Dict[str, BiddingObject]):
         """
         Split bids as low budget and high budget bids
 
@@ -275,14 +297,14 @@ class ProcModule(metaclass=Singleton):
 
         return bids_low, bids_high
 
-    def sort_bids_by_price(self, bids: Dict[str, BiddingObject], discriminatory_price: float=0,
-                            subsidy: float=1 )-> defaultdict(list):
+    def sort_bids_by_price(self, bids: Dict[str, BiddingObject], discriminatory_price: float = 0,
+                           subsidy: float = 1) -> DefaultDict[float, list]:
         """
         sort bids by price in descending order
 
         :return:
         """
-        ordered_bids = defaultdict(list)
+        ordered_bids: DefaultDict[float, list] = defaultdict(list)
         for bidding_object_key in bids:
             bidding_object = bids[bidding_object_key]
             elements = bidding_object.elements
@@ -300,4 +322,3 @@ class ProcModule(metaclass=Singleton):
                 ordered_bids[price].append(alloc)
 
         return ordered_bids
-

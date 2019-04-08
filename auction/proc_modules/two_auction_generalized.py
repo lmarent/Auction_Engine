@@ -12,7 +12,9 @@ from proc_modules.proc_module import AllocProc
 from math import floor
 import random
 from utils.auction_utils import log
+from typing import List
 from typing import Dict
+from typing import DefaultDict
 from datetime import datetime
 from collections import defaultdict
 
@@ -106,8 +108,9 @@ class TwoAuctionGeneralized(Module):
     def get_probability() -> float:
         return random.uniform(0, 1)
 
+
     def create_request(self, bids_low: Dict[str, BiddingObject], bids_high: Dict[str, BiddingObject],
-                       q_star: float) -> (defaultdict(list), defaultdict(list), int, int):
+                       q_star: float) -> (DefaultDict[int, list], DefaultDict[float, list], int, int):
         """
 
         :param self:
@@ -123,7 +126,7 @@ class TwoAuctionGeneralized(Module):
 
         # creates the request for the L auction.
         index = 0
-        low_auction_allocs = defaultdict(list)
+        low_auction_allocs: DefaultDict[float, list] = defaultdict(list)
         for bidding_object_key in bids_low:
             bidding_object = bids_low[bidding_object_key]
             elements = bidding_object.elements
@@ -147,7 +150,7 @@ class TwoAuctionGeneralized(Module):
         self.logger.debug("create requests after low budget bids")
 
         # go through all high budget bids and pass some of their units as low auction requests.
-        high_auction_allocs = defaultdict(list)
+        high_auction_allocs: DefaultDict[float, list] = defaultdict(list)
         for bidding_object_key in bids_high:
             alloc_bids = []
             bidding_object = bids_high[bidding_object_key]
@@ -189,20 +192,27 @@ class TwoAuctionGeneralized(Module):
         self.logger.debug("ending create requests -nl: {0} nh: {1}".format(str(nl), str(nh)))
         return low_auction_allocs, high_auction_allocs, nl, nh
 
-    def execute_auction_random_allocation(self, reserved_price_low: float, auction_key: str, start: datetime, stop: datetime,
-                                          bids_to_fulfill: defaultdict(list), qty_available: float) -> dict:
+    def execute_auction_random_allocation(self, reserved_price_low: float, start: datetime, stop: datetime,
+                                          bids_to_fulfill: DefaultDict[int, list], qty_available: float) -> dict:
+        """
 
+        :param reserved_price_low:
+        :param start:
+        :param stop:
+        :param bids_to_fulfill:
+        :param qty_available:
+        :return:
+        """
         self.logger.debug("execute Action random allocation")
 
         allocations = {}
 
         # Create allocations with zero quantity for bids that are below the reserved price.
-        sorted_indexes = sorted(bids_to_fulfill.keys(), reverse=True)
+        sorted_indexes: List[int] = sorted(bids_to_fulfill.keys(), reverse=True)
         for index in sorted_indexes:
-            self.logger.debug("execute Action random allocation 1")
-            sorted_bids = sorted(bids_to_fulfill[index], reverse=True)
-            for bid_index in sorted_bids:
-                self.logger.debug("execute Action random allocation m: {0} l:{1}".format(str(m), str(l)))
+            self.logger.debug("execute action random allocation 1")
+            sorted_bids = bids_to_fulfill[index]
+            for bid_index in range(len(sorted_bids) - 1, -1, -1):
                 if sorted_bids[bid_index].original_price < reserved_price_low:
                     key = self.make_key(sorted_bids[bid_index].auction_key, sorted_bids[bid_index].bidding_object_key)
                     if key not in allocations:
@@ -222,7 +232,7 @@ class TwoAuctionGeneralized(Module):
             self.logger.debug("execute Action random allocation 2")
 
             # Remove the bid if all their price elements were less than the reserved price.
-            if len(sorted_indexes[index]) == 0:
+            if len(bids_to_fulfill[index]) == 0:
                 del bids_to_fulfill[index]
 
             self.logger.debug("execute Action random allocation 3")
@@ -245,8 +255,8 @@ class TwoAuctionGeneralized(Module):
                 if key in allocations:
                     self.proc_module.increment_quantity_allocation(allocations[key], 1)
                 else:
-                    allocation = self.create_allocation(bids_to_fulfill[index].session_id,
-                                                        bids_to_fulfill[index].auction_key, start,
+                    allocation = self.create_allocation(bids_to_fulfill[index][0].session_id,
+                                                        bids_to_fulfill[index][0].auction_key, start,
                                                         stop, 1, reserved_price_low)
                     allocations[key] = allocation
 
@@ -261,7 +271,7 @@ class TwoAuctionGeneralized(Module):
         self.logger.debug("execute Action random allocation")
         return allocations
 
-    def execute_auction(self, start: datetime, stop: datetime, bids_to_fulfill: defaultdict(list),
+    def execute_auction(self, start: datetime, stop: datetime, bids_to_fulfill: DefaultDict[float, list],
                         qty_available: float, reserved_price: float) -> (dict, float):
         """
 
@@ -301,7 +311,7 @@ class TwoAuctionGeneralized(Module):
         # Creates allocations
         sorted_prices = sorted(bids_to_fulfill.keys(), reverse=True)
         for price in sorted_prices:
-            alloc_temp = sorted_prices[price]
+            alloc_temp: List[AllocProc] = bids_to_fulfill[price]
             for i in range(0, len(alloc_temp)):
                 key = self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
                 if key in allocations:
@@ -335,7 +345,7 @@ class TwoAuctionGeneralized(Module):
 
         for bidding_object_key in allocations:
             alloc = allocations[bidding_object_key]
-            quantity = floor(getAllocationQuantity(fieldVals, alloc));
+            quantity = floor(self.proc_module.get_allocation_quantity(alloc))
             units_to_pass = 0.0
             for j in range(0, quantity):
                 prob = self.get_probability()
@@ -343,11 +353,11 @@ class TwoAuctionGeneralized(Module):
                 if prob <= q:  # pass a unit.
                     units_to_pass = units_to_pass + 1
 
-            self.logger.debug("qty to pass: {1}".format(str(units_to_pass)))
+            self.logger.debug("qty to pass: {0}".format(str(units_to_pass)))
             if units_to_pass > 0:
                 if units_to_pass < quantity:
-                    alloc2 = self.create_allocation(alloc.session_id,
-                                                    alloc.auction_key,
+                    alloc2 = self.create_allocation(alloc.get_session(),
+                                                    alloc.get_auction_key(),
                                                     start, stop,
                                                     units_to_pass,
                                                     price)
@@ -406,8 +416,7 @@ class TwoAuctionGeneralized(Module):
             if nl > 0 and nh > 0:
 
                 # Find the probability of changing from the high budget to low budget auction.
-                TwoAuctionMechanismGeneralized * mechanism = new
-                TwoAuctionMechanismGeneralized();
+                TwoAuctionMechanismGeneralized * mechanism = new TwoAuctionMechanismGeneralized();
                 a = 0.01
                 b = 0.8
 
@@ -439,7 +448,7 @@ class TwoAuctionGeneralized(Module):
                                                                      low_auction_allocs, bandwidth_to_sell_low)
 
             alloctions_high, reserve_price_high = self.execute_auction(start, stop, high_auction_allocs,
-                                                                       bandwidth_to_sell_low)
+                                                                       bandwidth_to_sell_low, reserve_price_high)
 
             self.logger.debug("after executeAuction high budget users")
 
