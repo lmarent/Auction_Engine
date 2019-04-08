@@ -8,8 +8,10 @@ from foundation.parse_format import ParseFormats
 
 from proc_modules.proc_module import ProcModule
 from proc_modules.proc_module import AllocProc
+from proc_modules.two_auction_mechanism_generalized import TwoAuctionMechanismGeneralized
 
 from math import floor
+from math import ceil
 import random
 from utils.auction_utils import log
 from typing import List
@@ -108,7 +110,6 @@ class TwoAuctionGeneralized(Module):
     def get_probability() -> float:
         return random.uniform(0, 1)
 
-
     def create_request(self, bids_low: Dict[str, BiddingObject], bids_high: Dict[str, BiddingObject],
                        q_star: float) -> (DefaultDict[int, list], DefaultDict[float, list], int, int):
         """
@@ -126,7 +127,7 @@ class TwoAuctionGeneralized(Module):
 
         # creates the request for the L auction.
         index = 0
-        low_auction_allocs: DefaultDict[float, list] = defaultdict(list)
+        low_auction_allocs: DefaultDict[int, list] = defaultdict(list)
         for bidding_object_key in bids_low:
             bidding_object = bids_low[bidding_object_key]
             elements = bidding_object.elements
@@ -365,7 +366,7 @@ class TwoAuctionGeneralized(Module):
                     units_to_add = units_to_pass * -1
                     self.proc_module.increment_quantity_allocation(alloc, units_to_add)
 
-                    allocations[self.make_key(alloc2.auction_key, alloc2.bidding_object_key)] = alloc2
+                    allocations[self.make_key(alloc2.get_auction_key(), alloc2.get_key())] = alloc2
                 else:
                     self.proc_module.change_allocation_price(alloc, price)
         self.logger.debug("ending ApplyMechanism")
@@ -388,8 +389,8 @@ class TwoAuctionGeneralized(Module):
         bandwidth_to_sell_low = self.proc_module.get_param_value('bandwidth01', request_params)
         bandwidth_to_sell_high = self.proc_module.get_param_value('bandwidth02', request_params)
 
-        reserve_price_low = self.proc_module.get_param_value('reserveprice01', request_params)
-        reserve_price_high = self.proc_module.get_param_value('reserveprice02', request_params)
+        reserve_price_low: float = self.proc_module.get_param_value('reserveprice01', request_params)
+        reserve_price_high: float = self.proc_module.get_param_value('reserveprice02', request_params)
 
         bl = self.proc_module.get_param_value('maxvalue01', request_params)
         bh = self.proc_module.get_param_value('maxvalue02', request_params)
@@ -405,46 +406,45 @@ class TwoAuctionGeneralized(Module):
             bids_low, bids_high = self.proc_module.separate_bids(bids, bl)
 
             # Calculate the number of bids on both auctions.
-            nl = self.proc_module.calculate_requested_quantities(bids_low)
-            nh = self.proc_module.calculate_requested_quantities(bids_high)
+            nl = ceil(self.proc_module.calculate_requested_quantities(bids_low))
+            nh = ceil(self.proc_module.calculate_requested_quantities(bids_high))
 
-            qStar = 0
-            Q = 0.2
+            q_star = 0
+            q = 0.2
 
             self.logger.debug("Starting the execution of the mechanism")
 
             if nl > 0 and nh > 0:
 
                 # Find the probability of changing from the high budget to low budget auction.
-                TwoAuctionMechanismGeneralized * mechanism = new TwoAuctionMechanismGeneralized();
+                mechanism = TwoAuctionMechanismGeneralized()
                 a = 0.01
                 b = 0.8
 
-                mechanism->zeroin(nh, nl, bh, bl, bandwidth_to_sell_high,
-                                  bandwidth_to_sell_low, reserve_price_high, reserve_price_low, Q, & a, & b);
-                qStar = a
+                res, a, b = mechanism.zero_in(nh, nl, bh, bl, bandwidth_to_sell_high,
+                                              bandwidth_to_sell_low, reserve_price_high, reserve_price_low, q, a, b)
+                q_star = a
 
-                while (qStar >= 0.25) and (Q <= 1.0):
-                    Q = Q + 0.03
+                while (q_star >= 0.25) and (q <= 1.0):
+                    q = q + 0.03
                     a = 0.01
                     b = 0.8
 
-                    mechanism->zeroin(nh, nl, bh, bl, bandwidth_to_sell_high,
-                                      bandwidth_to_sell_low, reserve_price_high, reserve_price_low, Q, & a, & b)
+                    res, a, b = mechanism.zero_in(nh, nl, bh, bl, bandwidth_to_sell_high,
+                                                  bandwidth_to_sell_low, reserve_price_high, reserve_price_low, q, a, b)
 
-                    qStar = a
+                    q_star = a
 
-                    self.logger.debug("Q: {0} qStar: {1}".format(str(Q), str(qStar)))
+                    self.logger.debug("Q: {0} qStar: {1}".format(str(q), str(q_star)))
 
             self.logger.debug("Finished the execution of the mechanism")
 
             # Create requests for both auctions, it pass the users from an auction to the other.
-            low_auction_allocs, high_auction_allocs, nl, nh = self.create_request(bids_low, bids_high, qStar,
-                                                                                  reserve_price_low)
+            low_auction_allocs, high_auction_allocs, nl, nh = self.create_request(bids_low, bids_high, q_star)
 
             # Execute auctions.
 
-            allocations_low = self.execute_auction_random_allocation(reserve_price_low, auction_key, start, stop,
+            allocations_low = self.execute_auction_random_allocation(reserve_price_low, start, stop,
                                                                      low_auction_allocs, bandwidth_to_sell_low)
 
             alloctions_high, reserve_price_high = self.execute_auction(start, stop, high_auction_allocs,
@@ -452,9 +452,9 @@ class TwoAuctionGeneralized(Module):
 
             self.logger.debug("after executeAuction high budget users")
 
-            if Q > 0:
+            if q > 0:
                 # change bids from the high budget to low budget auction.
-                self.apply_mechanism(start, stop, alloctions_high, reserve_price_low, Q)
+                self.apply_mechanism(start, stop, alloctions_high, reserve_price_low, q)
 
             # Convert from the map to the final returning vector
             allocation_res = []
@@ -470,9 +470,9 @@ class TwoAuctionGeneralized(Module):
 
             # All bids get units and pay the reserved price of the L Auction
             bids_low = {}
-            low_auction_allocs, high_auction_allocs, nl, nh = self.create_request(bids_low, bids, 0, reserve_price_low)
+            low_auction_allocs, high_auction_allocs, nl, nh = self.create_request(bids_low, bids, 0)
             allocations, reserve_price_low = self.execute_auction(start, stop, high_auction_allocs,
-                                                                  bandwidth_to_sell_low)
+                                                                  bandwidth_to_sell_low, reserve_price_high)
 
             # Convert from the map to the final allocationDB result
             allocation_res = []
