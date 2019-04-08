@@ -108,17 +108,26 @@ class TwoAuctionGeneralized(Module):
 
     @staticmethod
     def get_probability() -> float:
+        """
+        Gets a uniform distribution sample for checking if a request should be promoted to
+        the low auction
+
+        :return:
+        """
         return random.uniform(0, 1)
 
     def create_request(self, bids_low: Dict[str, BiddingObject], bids_high: Dict[str, BiddingObject],
                        q_star: float) -> (DefaultDict[int, list], DefaultDict[float, list], int, int):
         """
+        Creates allocation requests for low and high auctions. It promotes some high auction bid into the
+        low auction
 
         :param self:
-        :param bids_low:
-        :param bids_high:
-        :param q_star:
-        :return:
+        :param bids_low:    bids competing in the low auction
+        :param bids_high:   bids competing in the high auction
+        :param q_star:      probability of being promoted.
+
+        :return: allocations request in the low and high auctions.
         """
         self.logger.debug("create requests")
 
@@ -193,16 +202,19 @@ class TwoAuctionGeneralized(Module):
         self.logger.debug("ending create requests -nl: {0} nh: {1}".format(str(nl), str(nh)))
         return low_auction_allocs, high_auction_allocs, nl, nh
 
-    def execute_auction_random_allocation(self, reserved_price_low: float, start: datetime, stop: datetime,
-                                          bids_to_fulfill: DefaultDict[int, list], qty_available: float) -> dict:
+    def execute_auction_random_allocation(self, start: datetime, stop: datetime,
+                                          bids_to_fulfill: DefaultDict[int, list],
+                                          qty_available: float, reserved_price: float) -> dict:
         """
+        Creates allocations according with a random allocation.
 
-        :param reserved_price_low:
-        :param start:
-        :param stop:
-        :param bids_to_fulfill:
-        :param qty_available:
-        :return:
+        :param start:              datetime when the allocation will start
+        :param stop:               datetime when the allocation will stop
+        :param bids_to_fulfill:    allocation requests to be allocated
+        :param qty_available:      quantity available to allocations
+        :param reserved_price:     minimum price for selling and to be used in the allocation.
+
+        :return: dictionary with created allocations
         """
         self.logger.debug("execute Action random allocation")
 
@@ -214,12 +226,12 @@ class TwoAuctionGeneralized(Module):
             self.logger.debug("execute action random allocation 1")
             sorted_bids = bids_to_fulfill[index]
             for bid_index in range(len(sorted_bids) - 1, -1, -1):
-                if sorted_bids[bid_index].original_price < reserved_price_low:
+                if sorted_bids[bid_index].original_price < reserved_price:
                     key = self.make_key(sorted_bids[bid_index].auction_key, sorted_bids[bid_index].bidding_object_key)
                     if key not in allocations:
                         allocation = self.create_allocation(sorted_bids[bid_index].session_id,
                                                             sorted_bids[bid_index].auction_key, start,
-                                                            stop, 0, reserved_price_low)
+                                                            stop, 0, reserved_price)
 
                         allocations[key] = allocation
 
@@ -258,7 +270,7 @@ class TwoAuctionGeneralized(Module):
                 else:
                     allocation = self.create_allocation(bids_to_fulfill[index][0].session_id,
                                                         bids_to_fulfill[index][0].auction_key, start,
-                                                        stop, 1, reserved_price_low)
+                                                        stop, 1, reserved_price)
                     allocations[key] = allocation
 
                 # Remove the node in case of no more units required.
@@ -275,13 +287,13 @@ class TwoAuctionGeneralized(Module):
     def execute_auction(self, start: datetime, stop: datetime, bids_to_fulfill: DefaultDict[float, list],
                         qty_available: float, reserved_price: float) -> (dict, float):
         """
+        Executes a second price auction for high budget users.
 
-        :param self:
-        :param start:
-        :param stop:
-        :param bids_to_fulfill:
-        :param qty_available:
-        :param reserved_price:
+        :param start: datetime when the allocation will start
+        :param stop:  datetime when the allocation will stop
+        :param bids_to_fulfill: allocation requests to be allocated
+        :param qty_available:   quantity available to allocations
+        :param reserved_price:  minimum price for selling and to be used in the allocation.
         :return:
         """
         sell_price = 0
@@ -331,15 +343,15 @@ class TwoAuctionGeneralized(Module):
         return allocations, sell_price
 
     def apply_mechanism(self, start: datetime, stop: datetime, allocations: Dict[str, BiddingObject],
-                        price: float, q: float):
+                        reserved_price: float, q: float):
         """
-        Apply mechanism
-        :param self:
-        :param start:
-        :param stop:
-        :param allocations:
-        :param price:
-        :param q:
+        Apply the two auction mechanism for a set of bidding objects.
+
+        :param start: datetime when the allocation will start
+        :param stop:  datetime when the allocation will stop
+        :param allocations:  allocation request to allocate
+        :param reserved_price: reserved price to be used for applying the mechanism.
+        :param q:     probability of promoting a user competing in the high budget auction.
         :return:
         """
         self.logger.debug("starting ApplyMechanism Q: {0}".format(q))
@@ -361,14 +373,14 @@ class TwoAuctionGeneralized(Module):
                                                     alloc.get_auction_key(),
                                                     start, stop,
                                                     units_to_pass,
-                                                    price)
+                                                    reserved_price)
 
                     units_to_add = units_to_pass * -1
                     self.proc_module.increment_quantity_allocation(alloc, units_to_add)
 
                     allocations[self.make_key(alloc2.get_auction_key(), alloc2.get_key())] = alloc2
                 else:
-                    self.proc_module.change_allocation_price(alloc, price)
+                    self.proc_module.change_allocation_price(alloc, reserved_price)
         self.logger.debug("ending ApplyMechanism")
 
     def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
@@ -444,8 +456,8 @@ class TwoAuctionGeneralized(Module):
 
             # Execute auctions.
 
-            allocations_low = self.execute_auction_random_allocation(reserve_price_low, start, stop,
-                                                                     low_auction_allocs, bandwidth_to_sell_low)
+            allocations_low = self.execute_auction_random_allocation(start, stop, low_auction_allocs,
+                                                                     bandwidth_to_sell_low, reserve_price_low)
 
             alloctions_high, reserve_price_high = self.execute_auction(start, stop, high_auction_allocs,
                                                                        bandwidth_to_sell_low, reserve_price_high)
@@ -493,7 +505,6 @@ class TwoAuctionGeneralized(Module):
         :param stop: stop datetime
         :return: list of bids created.
         """
-        print('in execute_user')
         return []
 
     def reset(self):
@@ -504,6 +515,12 @@ class TwoAuctionGeneralized(Module):
         print('in reset')
 
     def get_module_info(self, option: ModuleInformation) -> str:
+        """
+        Gets module information for who is implementing the mechanism.
+
+        :param option: option (type of information) to be reported.
+        :return: string with the information
+        """
         self.logger.debug("two auction generalized module: start getModuleInfo")
 
         if option == ModuleInformation.I_MODNAME:
