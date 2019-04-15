@@ -184,6 +184,7 @@ class ProcModule(metaclass=Singleton):
         elements = allocation.elements
 
         # there is only one element
+        updated = False
         for element_name in elements:
             config_dict = elements[element_name]
             # remove the field for updating quantities
@@ -194,8 +195,11 @@ class ProcModule(metaclass=Singleton):
             fvalue = str(temp_qty)
             field.value = fvalue
             config_dict[field.name] = field
+            updated = True
+            break
 
-        raise ValueError("Field quantity was not included in the allocation")
+        if not updated:
+            raise ValueError("Field quantity was not included in the allocation")
 
     @staticmethod
     def get_allocation_quantity(bidding_object: BiddingObject) -> float:

@@ -129,7 +129,7 @@ class TwoAuctionGeneralized(Module):
 
         :return: allocations request in the low and high auctions.
         """
-        self.logger.debug("create requests")
+        self.logger.debug("create requests Nbr low bids {0} - Nbr high bids {1}".format(str(len(bids_low)), str(len(bids_high)) ))
 
         nhtmp = 0
         nltmp = 0
@@ -157,7 +157,7 @@ class TwoAuctionGeneralized(Module):
             if inserted:
                 index = index + 1
 
-        self.logger.debug("create requests after low budget bids")
+        self.logger.debug("create requests after low budget bids {0}".format(str(len(low_auction_allocs))))
 
         # go through all high budget bids and pass some of their units as low auction requests.
         high_auction_allocs: DefaultDict[float, list] = defaultdict(list)
@@ -182,107 +182,27 @@ class TwoAuctionGeneralized(Module):
                 high_auction_allocs[price].append(alloc1)
                 nhtmp = nhtmp + quantity - units_to_pass
 
-                # quantities in the L auction.
-                alloc2 = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                if units_to_pass > 0:
+                    # quantities in the L auction.
+                    alloc2 = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
                                    element_name, bidding_object.get_session(), units_to_pass, price)
-                alloc_bids.append(alloc2)
-                inserted = True
+                    alloc_bids.append(alloc2)
+                    inserted = True
 
                 self.logger.debug("bid set: {0} units pass: {1}".format(bidding_object.get_key(), str(units_to_pass)))
                 nltmp = nltmp + units_to_pass
 
             # Only increase index if there was another node inserted.
             if inserted:
-                low_auction_allocs[index].append(alloc_bids)
+                low_auction_allocs[index].extend(alloc_bids)
                 index = index + 1
 
         nl = nltmp
         nh = nhtmp
 
-        self.logger.debug("ending create requests -nl: {0} nh: {1}".format(str(nl), str(nh)))
+        self.logger.debug("ending create requests low_auction request {0} nl: {1}-high auction request {2} nh: {3}".format(
+                     str(len(low_auction_allocs)), str(nl), str(len(high_auction_allocs)), str(nh) ))
         return low_auction_allocs, high_auction_allocs, nl, nh
-
-    def execute_auction_random_allocation(self, start: datetime, stop: datetime,
-                                          bids_to_fulfill: DefaultDict[int, list],
-                                          qty_available: float, reserved_price: float) -> dict:
-        """
-        Creates allocations according with a random allocation.
-
-        :param start:              datetime when the allocation will start
-        :param stop:               datetime when the allocation will stop
-        :param bids_to_fulfill:    allocation requests to be allocated
-        :param qty_available:      quantity available to allocations
-        :param reserved_price:     minimum price for selling and to be used in the allocation.
-
-        :return: dictionary with created allocations
-        """
-        self.logger.debug("execute Action random allocation")
-
-        allocations = {}
-
-        # Create allocations with zero quantity for bids that are below the reserved price.
-        sorted_indexes: List[int] = sorted(bids_to_fulfill.keys(), reverse=True)
-        for index in sorted_indexes:
-            self.logger.debug("execute action random allocation 1")
-            sorted_bids = bids_to_fulfill[index]
-            for bid_index in range(len(sorted_bids) - 1, -1, -1):
-                if sorted_bids[bid_index].original_price < reserved_price:
-                    key = self.make_key(sorted_bids[bid_index].auction_key, sorted_bids[bid_index].bidding_object_key)
-                    if key not in allocations:
-                        allocation = self.create_allocation(sorted_bids[bid_index].session_id,
-                                                            sorted_bids[bid_index].auction_key, start,
-                                                            stop, 0, reserved_price)
-
-                        allocations[key] = allocation
-
-                    original_price = sorted_bids[bid_index].original_price
-                    self.logger.debug("execute Action random allocation 2 - item:{0} original price:{1}".format(
-                        str(bid_index), str(original_price)))
-
-                    # Remove the node.
-                    del sorted_bids[bid_index]
-
-            self.logger.debug("execute Action random allocation 2")
-
-            # Remove the bid if all their price elements were less than the reserved price.
-            if len(bids_to_fulfill[index]) == 0:
-                del bids_to_fulfill[index]
-
-            self.logger.debug("execute Action random allocation 3")
-
-        # Allocates randomly the available quantities
-        for j in range(0, floor(qty_available)):
-
-            prob = self.get_probability()
-            index = floor(prob * len(bids_to_fulfill))
-            if len(bids_to_fulfill) == 0:
-                # All units have been assigned and there are no more bids.
-                break
-            else:
-
-                # the unit is assigned to the first allocation proc for the bid.
-                bids_to_fulfill[index][0].quantity = bids_to_fulfill[index][0].quantity - 1
-                key = self.make_key(bids_to_fulfill[index][0].auction_key, bids_to_fulfill[index][0].bidding_object_key)
-
-                # Create or update the allocation
-                if key in allocations:
-                    self.proc_module.increment_quantity_allocation(allocations[key], 1)
-                else:
-                    allocation = self.create_allocation(bids_to_fulfill[index][0].session_id,
-                                                        bids_to_fulfill[index][0].auction_key, start,
-                                                        stop, 1, reserved_price)
-                    allocations[key] = allocation
-
-                # Remove the node in case of no more units required.
-                if bids_to_fulfill[index][0].quantity == 0:
-                    bids = bids_to_fulfill[index]
-                    del bids[0]
-
-                    if len(bids_to_fulfill[index]) == 0:
-                        del bids_to_fulfill[index]
-
-        self.logger.debug("execute Action random allocation")
-        return allocations
 
     def execute_auction(self, start: datetime, stop: datetime, bids_to_fulfill: DefaultDict[float, list],
                         qty_available: float, reserved_price: float) -> (dict, float):
@@ -341,6 +261,92 @@ class TwoAuctionGeneralized(Module):
 
         self.logger.debug("two auction module: after create allocations - # nbr created: {0}".format(len(allocations)))
         return allocations, sell_price
+
+    def execute_auction_random_allocation(self, start: datetime, stop: datetime,
+                                          bids_to_fulfill: DefaultDict[int, list],
+                                          qty_available: float, reserved_price: float) -> dict:
+        """
+        Creates allocations according with a random allocation.
+
+        :param start:              datetime when the allocation will start
+        :param stop:               datetime when the allocation will stop
+        :param bids_to_fulfill:    allocation requests to be allocated
+        :param qty_available:      quantity available to allocations
+        :param reserved_price:     minimum price for selling and to be used in the allocation.
+
+        :return: dictionary with created allocations
+        """
+        self.logger.debug("execute Action random allocation")
+
+        allocations = {}
+
+        # Create allocations with zero quantity for bids that are below the reserved price.
+        sorted_indexes: List[int] = sorted(bids_to_fulfill.keys(), reverse=True)
+        for index in sorted_indexes:
+            self.logger.debug("execute action random allocation 1")
+            sorted_bids = bids_to_fulfill[index]
+            for bid_index in range(len(sorted_bids) - 1, -1, -1):
+                alloc_proc = sorted_bids[bid_index]
+                if alloc_proc.original_price < reserved_price:
+                    key = self.make_key(alloc_proc.auction_key, alloc_proc.bidding_object_key)
+                    if key not in allocations:
+                        allocation = self.create_allocation(alloc_proc.session_id,
+                                                            alloc_proc.auction_key, start,
+                                                            stop, 0, reserved_price)
+
+                        allocations[key] = allocation
+
+                    original_price = alloc_proc.original_price
+                    self.logger.debug("execute Action random allocation 2 - item:{0} original price:{1}".format(
+                        str(bid_index), str(original_price)))
+
+                    # Remove the node.
+                    del sorted_bids[bid_index]
+
+            self.logger.debug("execute Action random allocation 2")
+
+            # Remove the bid if all their price elements were less than the reserved price.
+            if len(bids_to_fulfill[index]) == 0:
+                del bids_to_fulfill[index]
+
+            self.logger.debug("execute Action random allocation 3")
+
+        # Allocates randomly the available quantities
+        indexes = list(bids_to_fulfill.keys())
+        for j in range(0, ceil(qty_available)):
+
+            prob = self.get_probability()
+            length = len(indexes)
+            main_index = floor(prob * length)
+            if len(indexes) == 0:
+                # All units have been assigned and there are no more bids.
+                break
+            else:
+                index = indexes[main_index]
+                # the unit is assigned to the first allocation proc for the bid.
+                bids_to_fulfill[index][0].quantity = bids_to_fulfill[index][0].quantity - 1
+                key = self.make_key(bids_to_fulfill[index][0].auction_key, bids_to_fulfill[index][0].bidding_object_key)
+
+                # Create or update the allocation
+                if key in allocations:
+                    self.proc_module.increment_quantity_allocation(allocations[key], 1)
+                else:
+                    allocation = self.create_allocation(bids_to_fulfill[index][0].session_id,
+                                                        bids_to_fulfill[index][0].auction_key, start,
+                                                        stop, 1, reserved_price)
+                    allocations[key] = allocation
+
+                # Remove the node in case of no more units required.
+                if bids_to_fulfill[index][0].quantity == 0:
+                    bids = bids_to_fulfill[index]
+                    del bids[0]
+
+                    if len(bids_to_fulfill[index]) == 0:
+                        del bids_to_fulfill[index]
+                        del indexes[main_index]
+
+        self.logger.debug("execute Action random allocation")
+        return allocations
 
     def apply_mechanism(self, start: datetime, stop: datetime, allocations: Dict[str, BiddingObject],
                         reserved_price: float, q: float):
@@ -417,7 +423,7 @@ class TwoAuctionGeneralized(Module):
             self.logger.debug("Splitting resources")
             bids_low, bids_high = self.proc_module.separate_bids(bids, bl)
 
-            # Calculate the number of bids on both auctions.
+            # Calculate the number of quantities requested on both auctions.
             nl = ceil(self.proc_module.calculate_requested_quantities(bids_low))
             nh = ceil(self.proc_module.calculate_requested_quantities(bids_high))
 
@@ -449,7 +455,7 @@ class TwoAuctionGeneralized(Module):
 
                     self.logger.debug("Q: {0} qStar: {1}".format(str(q), str(q_star)))
 
-            self.logger.debug("Finished the execution of the mechanism")
+            self.logger.debug("Finished the execution of the mechanism q_start {0}".format(str(q_star)))
 
             # Create requests for both auctions, it pass the users from an auction to the other.
             low_auction_allocs, high_auction_allocs, nl, nh = self.create_request(bids_low, bids_high, q_star)
