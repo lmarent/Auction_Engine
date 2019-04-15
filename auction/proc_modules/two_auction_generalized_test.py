@@ -4,7 +4,6 @@ from foundation.module_loader import ModuleLoader
 from foundation.config import Config
 from foundation.field_value import FieldValue
 
-
 from datetime import datetime
 from datetime import timedelta
 
@@ -48,7 +47,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             # Parse the bidding objects in file example_bids4.xml, it allocates the memory.
             domain = 4
             manager = BiddingObjectManager(domain)
-    
+
             filename = "../etc/example_generalized_bids4.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
@@ -134,7 +133,6 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
         module = self.loader.get_module("two_auction_generalized")
 
         if module:
-
             params = {}
             # The following are the required parameters
             config_param_1 = FieldValue(name="bandwidth01")
@@ -161,7 +159,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             config_param_6.parse_field_value("0.9")
             params["maxvalue02"] = config_param_6
 
-            allocations = module.execute( params, auction_key, start, stop, self.bids)
+            allocations = module.execute(params, auction_key, start, stop, self.bids)
             self.assertEqual(len(allocations), 10)
 
     def test_enough_quantities(self):
@@ -173,7 +171,6 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
         module = self.loader.get_module("two_auction_generalized")
 
         if module:
-
             params = {}
             # The following are the required parameters
             config_param_1 = FieldValue(name="bandwidth01")
@@ -200,5 +197,5 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             config_param_6.parse_field_value("0.9")
             params["maxvalue02"] = config_param_6
 
-            allocations = module.execute(params, auction_key, start, stop, self.bids )
+            allocations = module.execute(params, auction_key, start, stop, self.bids)
             self.assertEqual(len(allocations), 10)
