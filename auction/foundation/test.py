@@ -310,23 +310,23 @@ class BiddingObjectXmlFileParserTest(unittest.TestCase):
         bidding_object = lst_bids[0]
 
         self.assertEqual(bidding_object.get_auction_key(), "1.1")
-        self.assertEqual(bidding_object.get_key(), "Bid1")
+        self.assertEqual(bidding_object.get_key(), "bid1")
         self.assertEqual(len(bidding_object.elements), 2)
         self.assertEqual(len(bidding_object.options), 2)
 
         # Verifies the first element
-        element = bidding_object.element['element1']
+        element = bidding_object.elements['element1']
         self.assertEqual(element['quantity'].value, "1")
 
         # Verifies the first option
-        option = bidding_object.element['option1']
-        self.assertEqual(option['BiddingDuration'].value, "600")
+        option = bidding_object.options['option1']
+        self.assertEqual(option['biddingduration'].value, "600")
 
     def test_parse_many_auctions(self):
         lst_bids = self.bidding_xml_file_parser.parse(
             "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_bids2.xml")
 
-        self.assertEqual(len(lst_bids), 3)
+        self.assertEqual(len(lst_bids), 2)
 
 
 class ModuleLoaderTest(unittest.TestCase):

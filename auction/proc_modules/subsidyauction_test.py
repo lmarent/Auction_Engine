@@ -1,19 +1,11 @@
 import unittest
 from foundation.bidding_object_manager import BiddingObjectManager
+from foundation.module_loader import ModuleLoader
+from foundation.config import Config
+from foundation.field_value import FieldValue
 
-# include <cppunit/TestCase.h>
-# include <cppunit/extensions/HelperMacros.h>
-
-# include "BiddingObject.h"
-# include "FieldValue.h"
-# include "FieldValParser.h"
-# include "FieldDefParser.h"
-# include "BiddingObjectFileParser.h"
-# include "BiddingObjectManager.h"
-# include "ModuleLoader.h"
-# include "Module.h"
-# include "ConstantsAum.h"
-# include "ProcModule.h"
+from datetime import datetime
+from datetime import timedelta
 
 
 class SubsidyAuctionTest(unittest.TestCase):
@@ -21,333 +13,174 @@ class SubsidyAuctionTest(unittest.TestCase):
     def setUp(self):
         try:
 
-            string filename;
-            auctioningObjectDB_t * new_bids = NULL;
-            bids = new auctioningObjectDB_t();
-            moduleName = "libsubsidyauction.so";
+            self.bids = []
 
-            BiddingObject * ptrBid, *ptrBid2;
-
-            int domain = 1;
-            string fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            string fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
+            domain = 1
             manager = BiddingObjectManager(domain)
 
             # Parse the bidding objects in file example_bids1.xml, it allocates the memory.
             filename = "../etc/example_generalized_bids1.xml"
             new_bids = manager.parse_bidding_objects(filename)
-            self.assertEqual(len(new_bids) == 1)
-            ptrBid = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            self.assertEqual(len(new_bids), 1)
+            bid = new_bids[0]
+            self.bids.append(bid)
 
             # Parse the bidding objects in file example_bids2.xml, it allocates the memory.
-            domain = 2;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new
-            BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 2
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids2.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids2.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid2 = new_bids[0]
+            self.bids.append(bid2)
 
             # Parse the bidding objects in file example_bids3.xml, it allocates the memory.
-            domain = 3;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 3
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids3.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids3.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid3 = new_bids[0]
+            self.bids.append(bid3)
 
             # Parse the bidding objects in file example_bids4.xml, it allocates the memory.
-            domain = 4;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 4
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids4.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids4.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid4 = new_bids[0]
+            self.bids.append(bid4)
 
             # Parse the bidding objects in file example_bids5.xml, it allocates the memory.
-            domain = 5;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 5
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids5.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids5.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid5 = new_bids[0]
+            self.bids.append(bid5)
 
             # Parse the bidding objects in file example_bids6.xml, it allocates the memory.
-            domain = 6;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 6
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids6.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids6.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid6 = new_bids[0]
+            self.bids.append(bid6)
 
             # Parse the bidding objects in file example_bids7.xml, it allocates the memory.
-            domain = 7;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 7
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids7.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids7.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid7 = new_bids[0]
+            self.bids.append(bid7)
 
             # Parse the bidding objects in file example_bids8.xml, it allocates the memory.
-            domain = 8;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 8
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids8.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids8.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid8 = new_bids[0]
+            self.bids.append(bid8)
 
             # Parse the bidding objects in file example_bids9.xml, it allocates the memory.
-            domain = 9;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            domain = 9
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids9.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids9.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid9 = new_bids[0]
+            self.bids.append(bid9)
 
-            // Parse the bidding objects in file example_bids10.xml, it allocates the memory.
-            domain = 10;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+            # Parse the bidding objects in file example_bids10.xml, it allocates the memory.
+            domain = 10
+            manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids10.xml";
-            new_bids = manager->parseBiddingObjects(filename);
-            self.assertEqual(new_bids->size() == 1 );
-            ptrBid2 = dynamic_cast < BiddingObject * > ((*new_bids)[0]);
-            ptrBid = new BiddingObject(*ptrBid2);
-            bids->push_back(ptrBid);
-            saveDelete(new_bids);
-            saveDelete(manager);
+            filename = "../etc/example_generalized_bids10.xml"
+            new_bids = manager.parse_bidding_objects(filename)
+            self.assertEqual(len(new_bids), 1)
+            bid10 = new_bids[0]
+            self.bids.append(bid10)
 
             # Load the configuration
-            string configFileName = DEF_SYSCONFDIR "/auctionmanager/netaum.conf.xml";
-
-            conf = new ConfigManager(AUM_CONFIGFILE_DTD, configFileName, "");
 
             # Load the module
-            string libname, path, ext;
+            module_name = "subsidy_auction"
+            module_directory = Config('auction_sever.yaml').get_config_param('AUMProcessor', 'ModuleDir')
+            self.loader = ModuleLoader(module_directory, "AUM_PROCESSOR", module_name)
 
-            string moduleDir = DEF_LIBDIR;
-            loader = new ModuleLoader(conf, moduleDir.c_str() # module(lib) basedir
-                                      moduleName, # modlist
-                                      "Proc", # channel name prefix
-                                      "AUM_PROCESSOR",  # Configuration group
-                                      );
+        except Exception as e:
+            print(str(e))
 
-            # Finally, we create the bidding object manager required to execute the auction.
-            domain = 11;
-            fieldname = DEF_SYSCONFDIR "/auctionmanager/fielddef.xml";
-            fieldValuename = DEF_SYSCONFDIR "/auctionmanager/fieldval.xml";
-            manager = new BiddingObjectManager(domain, fieldname, fieldValuename, "");
+    def test_not_enough_quantities(self):
 
-        }
-        catch(Error & e)
-        {
-            std:: cout << "Error:" << e.getError() << std::endl << std::flush;
+        auction_key = "1.1"
+        start = datetime.now()
+        stop = start + timedelta(seconds=100)
 
-        if (loader) {
-            saveDelete(loader);
-        }
-            throw e;
-        }
+        module = self.loader.get_module("subsidy_auction")
 
-void
-subsidyauction_Test::tearDown()
-{
-    if (loader != NULL){
-        saveDelete(loader);
-    }
+        if module:
+            params = {}
+            # The following are the required parameters
+            config_param_1 = FieldValue(name="bandwidth")
+            config_param_1.parse_field_value("40")
+            params["bandwidth"] = config_param_1
 
-    if (manager != NULL){
-        saveDelete(manager);
-    }
+            config_param_2 = FieldValue(name="subsidy")
+            config_param_2.parse_field_value("1.2")
+            params["subsidy"] = config_param_2
 
-    if (conf != NULL){
-        saveDelete(conf);
-    }
+            config_param_3 = FieldValue(name="maxvalue01")
+            config_param_3.parse_field_value("0.5")
+            params["maxvalue01"] = config_param_3
 
-    if (bids != NULL){
-        saveDelete(bids);
-    }
-}
+            config_param_4 = FieldValue(name="reserveprice")
+            config_param_4.parse_field_value("0.15")
+            params["reserveprice"] = config_param_4
 
+            allocations = module.execute(params, auction_key, start, stop, self.bids)
+            self.assertEqual(len(allocations), 10)
 
-void
-subsidyauction_Test::test_not_enough_quantities()
-{
-    auctioningObjectDB_t allocations;
-    auctioningObjectDB_t * ptr = & allocations;
-    string auctionSet = "1";
-    string auctionName = "1";
-    time_t start = time(NULL);
-    time_t stop = start + 100;
-    string paramName;
-    string paramValue;
+    def test_enough_quantities(self):
 
-    mod = loader->getModule(moduleName.c_str());
-    procmod = dynamic_cast < ProcModule * > (mod);
+        auction_key = "1.1"
+        start = datetime.now()
+        stop = start + timedelta(seconds=100)
 
-    if (procmod != NULL){
+        module = self.loader.get_module("subsidy_auction")
+        if module:
+            # The following are the required parameters
+            params = {}
+            # The following are the required parameters
+            config_param_1 = FieldValue(name="bandwidth")
+            config_param_1.parse_field_value("90")
+            params["bandwidth"] = config_param_1
 
-        # The following are the required parameters
+            config_param_2 = FieldValue(name="subsidy")
+            config_param_2.parse_field_value("1.2")
+            params["subsidy"] = config_param_2
 
-        configParam_t * params = new configParam_t[5];
-        int i = 0;
+            config_param_3 = FieldValue(name="maxvalue01")
+            config_param_3.parse_field_value("0.5")
+            params["maxvalue01"] = config_param_3
 
-        string paramName1 = "bandwidth";
-        string paramValue1 = "40";
-        params[i].name = (char * ) paramName1.c_str();
-        params[i].value = (char * ) paramValue1.c_str();
-        i++;
+            config_param_4 = FieldValue(name="reserveprice")
+            config_param_4.parse_field_value("0.15")
+            params["reserveprice"] = config_param_4
 
-        string paramName2 = "subsidy";
-        string paramValue2 = "1.2";
-        params[i].name = (char * ) paramName2.c_str();
-        params[i].value = (char * ) paramValue2.c_str();
-        i++;
-
-        # Discriminating bid.
-        string paramName3 = "maxvalue01";
-        string paramValue3 = "0.5";
-        params[i].name = (char * ) paramName3.c_str();
-        params[i].value = (char * ) paramValue3.c_str();
-        i++;
-
-        string paramName4 = "reserveprice";
-        string paramValue4 = "0.15";
-        params[i].name = (char * ) paramName4.c_str();
-        params[i].value = (char * ) paramValue4.c_str();
-        i++;
-
-        params[i].name = NULL;
-        params[i].value = NULL;
-
-        procmod->getAPI()->execute(manager->getFieldDefs(), manager->getFieldVals(), params,
-            auctionSet, auctionName, start, stop, bids, & ptr );
-
-        auctioningObjectDBIter_t iter;
-        for (iter = ptr->begin(); iter != ptr->end(); iter++){
-            cout << "info:" << ( * iter)->getInfo() << endl;
-        }
-    }
-}
-
-
-void
-subsidyauction_Test::test_enough_quantities()
-{
-    auctioningObjectDB_t allocations;
-    auctioningObjectDB_t * ptr = & allocations;
-    string auctionSet = "1";
-    string auctionName = "1";
-    time_t start = time(NULL);
-    time_t stop = start + 100;
-    string paramName;
-    string paramValue;
-
-    mod = loader->getModule(moduleName.c_str());
-    procmod = dynamic_cast < ProcModule * > (mod);
-
-    if (procmod != NULL){
-
-        # The following are the required parameters
-
-        configParam_t * params = new configParam_t[5];
-        int i = 0;
-
-        string paramName1 = "bandwidth";
-        string paramValue1 = "90";
-        params[i].name = (char * ) paramName1.c_str();
-        params[i].value = (char * ) paramValue1.c_str();
-        i++;
-
-        string paramName2 = "subsidy";
-        string paramValue2 = "1.2";
-        params[i].name = (char * ) paramName2.c_str();
-        params[i].value = (char * ) paramValue2.c_str();
-        i++;
-
-        // Discriminating bid.
-        string paramName3 = "maxvalue01";
-        string paramValue3 = "0.5";
-        params[i].name = (char * ) paramName3.c_str();
-        params[i].value = (char * ) paramValue3.c_str();
-        i++;
-
-        string paramName4 = "reserveprice";
-        string paramValue4 = "0.15";
-        params[i].name = (char * ) paramName4.c_str();
-        params[i].value = (char * ) paramValue4.c_str();
-        i++;
-
-        params[i].name = NULL;
-        params[i].value = NULL;
-
-        procmod->getAPI()->execute(manager->getFieldDefs(), manager->getFieldVals(), params, auctionSet, auctionName,
-                                   start, stop, bids, & ptr );
-
-        auctioningObjectDBIter_t iter;
-        for (iter = ptr->begin(); iter != ptr->end(); iter++){
-            cout << "info:" << ( * iter)->getInfo() << endl;
-        }
-    }
-}
+            allocations = module.execute(params, auction_key, start, stop, self.bids)
+            self.assertEqual(len(allocations), 10)

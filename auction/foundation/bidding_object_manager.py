@@ -4,12 +4,12 @@ from foundation.singleton import Singleton
 from foundation.bidding_object import BiddingObject
 from foundation.ipap_bidding_object_parser import IpapBiddingObjectParser
 from foundation.auction_manager import AuctionManager
+from foundation.bidding_object_file_parser import BiddingObjectXmlFileParser
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from typing import List
-from datetime import datetime
 
 class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
@@ -61,14 +61,15 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         """
         return super(BiddingObjectManager, self).get_auctioning_object_keys()
 
-    def parse_bidding_objects(self, filename: str):
+    def parse_bidding_objects(self, filename: str) -> List[BiddingObject]:
         """
         Parses bidding objects within the xml file
 
         :param filename: file name to parse.
         :return:
         """
-
+        file_parser = BiddingObjectXmlFileParser(self.domain)
+        return  file_parser.parse(filename)
 
     def parse_ipap_message(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer)-> List[BiddingObject]:
         """
