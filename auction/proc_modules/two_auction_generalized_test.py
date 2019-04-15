@@ -215,3 +215,16 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
 
             allocations = module.execute(params, auction_key, start, stop, self.bids)
             self.assertEqual(len(allocations), 10)
+
+            sell_prices = []
+            qty_allocates = []
+            revenue = 0
+            for allocation in allocations:
+                qty = module.proc_module.get_allocation_quantity(allocation)
+                sell_price = module.proc_module.get_bid_price(allocation)
+                revenue = revenue + (qty*sell_price)
+                sell_prices.append(sell_price)
+                qty_allocates.append(qty)
+
+            print(sell_prices)
+            print(qty_allocates)

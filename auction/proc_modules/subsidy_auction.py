@@ -51,52 +51,6 @@ class SubsidyAuction(Module):
         """
         return auction_key + '-' + bid_key
 
-    def create_allocation(self, session_id: str, auction_key: str, start: datetime,
-                          stop: datetime, quantity: float, price: float) -> BiddingObject:
-        """
-        Creates a new allocation
-
-        :param session_id: session id to be associated
-        :param auction_key: auction key
-        :param start: allocation's start
-        :param stop: allocation's stop
-        :param quantity: quantity to assign
-        :param price: price to pay
-        :return: Bidding object
-        """
-        self.logger.debug("bas module: start create allocation")
-
-        elements = dict()
-        config_elements = dict()
-
-        # Insert quantity ipap_field
-        record_id = "record_1"
-        self.proc_module.insert_string_field("recordid", record_id, config_elements)
-        self.proc_module.insert_float_field("quantity", quantity, config_elements)
-        self.proc_module.insert_double_field("unitprice", price, config_elements)
-        elements[record_id] = config_elements
-
-        # construct the interval with the allocation, based on start datetime
-        # and interval for the requesting auction
-
-        options = dict()
-        option_id = 'option_1'
-        config_options = dict()
-
-        self.proc_module.insert_string_field("recordid", option_id, config_elements)
-        self.proc_module.insert_datetime_field("start", start, config_options)
-        self.proc_module.insert_datetime_field("stop", stop, config_options)
-        options[option_id] = config_options
-
-        bidding_object_id = self.proc_module.get_bidding_object_id()
-        bidding_object_key = str(self.domain) + '.' + bidding_object_id
-        alloc = BiddingObject(auction_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
-
-        # All objects must be inherit the session from the bid.
-        alloc.set_session(session_id)
-
-        return alloc
-
     def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
                 start: datetime, stop: datetime, bids: dict) -> list:
         """
@@ -173,7 +127,7 @@ class SubsidyAuction(Module):
                     else:
                         set_price = sell_price
 
-                    allocation = self.create_allocation(alloc_temp[i].session_id,
+                    allocation = self.proc_module.create_allocation(alloc_temp[i].session_id,
                                                         alloc_temp[i].auction_key,
                                                         start, stop,
                                                         alloc_temp[i].quantity,

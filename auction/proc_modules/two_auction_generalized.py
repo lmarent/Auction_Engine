@@ -60,52 +60,6 @@ class TwoAuctionGeneralized(Module):
         """
         self.logger.debug('in destroy_module')
 
-    def create_allocation(self, session_id: str, auction_key: str, start: datetime,
-                          stop: datetime, quantity: float, price: float) -> BiddingObject:
-        """
-        Creates a new allocation
-
-        :param session_id: session id to be associated
-        :param auction_key: auction key
-        :param start: allocation's start
-        :param stop: allocation's stop
-        :param quantity: quantity to assign
-        :param price: price to pay
-        :return: Bidding object
-        """
-        self.logger.debug("bas module: start create allocation")
-
-        elements = dict()
-        config_elements = dict()
-
-        # Insert quantity ipap_field
-        record_id = "record_1"
-        self.proc_module.insert_string_field("recordid", record_id, config_elements)
-        self.proc_module.insert_float_field("quantity", quantity, config_elements)
-        self.proc_module.insert_double_field("unitprice", price, config_elements)
-        elements[record_id] = config_elements
-
-        # construct the interval with the allocation, based on start datetime
-        # and interval for the requesting auction
-
-        options = dict()
-        option_id = 'option_1'
-        config_options = dict()
-
-        self.proc_module.insert_string_field("recordid", option_id, config_elements)
-        self.proc_module.insert_datetime_field("start", start, config_options)
-        self.proc_module.insert_datetime_field("stop", stop, config_options)
-        options[option_id] = config_options
-
-        bidding_object_id = self.proc_module.get_bidding_object_id()
-        bidding_object_key = str(self.domain) + '.' + bidding_object_id
-        alloc = BiddingObject(auction_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
-
-        # All objects must be inherit the session from the bid.
-        alloc.set_session(session_id)
-
-        return alloc
-
     @staticmethod
     def get_probability() -> float:
         """
@@ -129,7 +83,8 @@ class TwoAuctionGeneralized(Module):
 
         :return: allocations request in the low and high auctions.
         """
-        self.logger.debug("create requests Nbr low bids {0} - Nbr high bids {1}".format(str(len(bids_low)), str(len(bids_high)) ))
+        self.logger.debug(
+            "create requests Nbr low bids {0} - Nbr high bids {1}".format(str(len(bids_low)), str(len(bids_high))))
 
         nhtmp = 0
         nltmp = 0
@@ -185,7 +140,7 @@ class TwoAuctionGeneralized(Module):
                 if units_to_pass > 0:
                     # quantities in the L auction.
                     alloc2 = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
-                                   element_name, bidding_object.get_session(), units_to_pass, price)
+                                       element_name, bidding_object.get_session(), units_to_pass, price)
                     alloc_bids.append(alloc2)
                     inserted = True
 
@@ -200,8 +155,9 @@ class TwoAuctionGeneralized(Module):
         nl = nltmp
         nh = nhtmp
 
-        self.logger.debug("ending create requests low_auction request {0} nl: {1}-high auction request {2} nh: {3}".format(
-                     str(len(low_auction_allocs)), str(nl), str(len(high_auction_allocs)), str(nh) ))
+        self.logger.debug(
+            "ending create requests low_auction request {0} nl: {1}-high auction request {2} nh: {3}".format(
+                str(len(low_auction_allocs)), str(nl), str(len(high_auction_allocs)), str(nh)))
         return low_auction_allocs, high_auction_allocs, nl, nh
 
     def execute_auction(self, start: datetime, stop: datetime, bids_to_fulfill: DefaultDict[float, list],
@@ -251,7 +207,7 @@ class TwoAuctionGeneralized(Module):
                     self.proc_module.increment_quantity_allocation(allocations[alloc_temp[i].bidding_object_key],
                                                                    alloc_temp[i].quantity)
                 else:
-                    allocation = self.create_allocation(alloc_temp[i].session_id,
+                    allocation = self.proc_module.create_allocation(alloc_temp[i].session_id,
                                                         alloc_temp[i].auction_key,
                                                         start, stop,
                                                         alloc_temp[i].quantity,
@@ -290,7 +246,7 @@ class TwoAuctionGeneralized(Module):
                 if alloc_proc.original_price < reserved_price:
                     key = self.make_key(alloc_proc.auction_key, alloc_proc.bidding_object_key)
                     if key not in allocations:
-                        allocation = self.create_allocation(alloc_proc.session_id,
+                        allocation = self.proc_module.create_allocation(alloc_proc.session_id,
                                                             alloc_proc.auction_key, start,
                                                             stop, 0, reserved_price)
 
@@ -331,7 +287,7 @@ class TwoAuctionGeneralized(Module):
                 if key in allocations:
                     self.proc_module.increment_quantity_allocation(allocations[key], 1)
                 else:
-                    allocation = self.create_allocation(bids_to_fulfill[index][0].session_id,
+                    allocation = self.proc_module.create_allocation(bids_to_fulfill[index][0].session_id,
                                                         bids_to_fulfill[index][0].auction_key, start,
                                                         stop, 1, reserved_price)
                     allocations[key] = allocation
@@ -376,7 +332,7 @@ class TwoAuctionGeneralized(Module):
             self.logger.debug("qty to pass: {0}".format(str(units_to_pass)))
             if units_to_pass > 0:
                 if units_to_pass < quantity:
-                    alloc2 = self.create_allocation(alloc.get_session(),
+                    alloc2 = self.proc_module.create_allocation(alloc.get_session(),
                                                     alloc.get_auction_key(),
                                                     start, stop,
                                                     units_to_pass,
@@ -413,12 +369,14 @@ class TwoAuctionGeneralized(Module):
         bandwidth_to_sell_low = self.proc_module.get_param_value('bandwidth01', request_params)
         bandwidth_to_sell_high = self.proc_module.get_param_value('bandwidth02', request_params)
 
-        print('bandwidth_to_sell_low', bandwidth_to_sell_low, ' bandwidth_to_sell_high', bandwidth_to_sell_high )
+        self.logger.debug('bandwidth_to_sell_low:{0} - bandwidth_to_sell_high:{1}'.format(str(bandwidth_to_sell_low),
+                                                                                          str(bandwidth_to_sell_high)))
 
         reserve_price_low: float = self.proc_module.get_param_value('reserveprice01', request_params)
         reserve_price_high: float = self.proc_module.get_param_value('reserveprice02', request_params)
 
-        print('reserve_price_low', reserve_price_low, ' reserve_price_high', reserve_price_high )
+        self.logger.debug('reserve_price_low: {0} - reserve_price_high:{1}'.format(str(reserve_price_low),
+                                                                                   str(reserve_price_high)))
 
         bl = self.proc_module.get_param_value('maxvalue01', request_params)
         bh = self.proc_module.get_param_value('maxvalue02', request_params)
@@ -512,8 +470,10 @@ class TwoAuctionGeneralized(Module):
             # All bids get units and pay the reserved price of the L Auction
             bids_low = {}
             low_auction_allocs, high_auction_allocs, nl, nh = self.create_request(bids_low, bids, 0)
+
             allocations, reserve_price_low = self.execute_auction(start, stop, high_auction_allocs,
-                                                                  bandwidth_to_sell_low, reserve_price_high)
+                                                                  bandwidth_to_sell_low + bandwidth_to_sell_high,
+                                                                  reserve_price_low)
 
             # Convert from the map to the final allocationDB result
             allocation_res = []

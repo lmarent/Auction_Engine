@@ -6,6 +6,7 @@ from foundation.singleton import Singleton
 from foundation.parse_format import ParseFormats
 from foundation.field_def_manager import DataType
 from foundation.bidding_object import BiddingObject
+from foundation.auction import AuctioningObjectType
 
 import uuid
 from datetime import datetime
@@ -172,6 +173,61 @@ class ProcModule(metaclass=Singleton):
         """
         id = uuid.uuid1()
         return str(id)
+
+    @staticmethod
+    def make_key(auction_key: str, bid_key: str) -> str:
+        """
+        Make the key of an allocation from the auction key and bidding object key
+
+        :param auction_key: auction key
+        :param bid_key: bidding object key
+        :return:
+        """
+        return auction_key + '-' + bid_key
+
+    def create_allocation(self, session_id: str, auction_key: str, start: datetime,
+                          stop: datetime, quantity: float, price: float) -> BiddingObject:
+        """
+        Creates a new allocation
+
+        :param session_id: session id to be associated
+        :param auction_key: auction key
+        :param start: allocation's start
+        :param stop: allocation's stop
+        :param quantity: quantity to assign
+        :param price: price to pay
+        :return: Bidding object
+        """
+        elements = dict()
+        config_elements = dict()
+
+        # Insert quantity ipap_field
+        record_id = "record_1"
+        self.insert_string_field("recordid", record_id, config_elements)
+        self.insert_float_field("quantity", quantity, config_elements)
+        self.insert_double_field("unitprice", price, config_elements)
+        elements[record_id] = config_elements
+
+        # construct the interval with the allocation, based on start datetime
+        # and interval for the requesting auction
+
+        options = dict()
+        option_id = 'option_1'
+        config_options = dict()
+
+        self.insert_string_field("recordid", option_id, config_elements)
+        self.insert_datetime_field("start", start, config_options)
+        self.insert_datetime_field("stop", stop, config_options)
+        options[option_id] = config_options
+
+        bidding_object_id = self.proc_module.get_bidding_object_id()
+        bidding_object_key = str(self.domain) + '.' + bidding_object_id
+        alloc = BiddingObject(auction_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
+
+        # All objects must be inherit the session from the bid.
+        alloc.set_session(session_id)
+
+        return alloc
 
     @staticmethod
     def increment_quantity_allocation(allocation: BiddingObject, quantity: float):
