@@ -14,11 +14,16 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
         try:
             self.bids = []
 
+            # Load the module
+            module_name = "two_auction_generalized"
+            module_directory = Config('auction_server.yaml').get_config_param('AUMProcessor', 'ModuleDir')
+            self.loader = ModuleLoader(module_directory, "AUMProcessor", module_name)
+
             domain = 1
             manager = BiddingObjectManager(domain)
 
             # Parse the bidding objects in file example_bids1.xml, it allocates the memory.
-            filename = "../etc/example_generalized_bids1.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids1.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid = new_bids[0]
@@ -28,7 +33,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 2
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids2.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids2.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid2 = new_bids[0]
@@ -38,7 +43,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 3
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids3.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids3.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid3 = new_bids[0]
@@ -48,7 +53,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 4
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids4.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids4.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid4 = new_bids[0]
@@ -58,7 +63,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 5
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids5.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids5.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid5 = new_bids[0]
@@ -68,7 +73,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 6
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids6.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids6.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid6 = new_bids[0]
@@ -78,7 +83,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 7
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids7.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids7.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid7 = new_bids[0]
@@ -88,7 +93,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 8
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids8.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids8.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid8 = new_bids[0]
@@ -98,7 +103,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 9
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids9.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids9.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid9 = new_bids[0]
@@ -108,18 +113,11 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             domain = 10
             manager = BiddingObjectManager(domain)
 
-            filename = "../etc/example_generalized_bids10.xml"
+            filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids10.xml"
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid10 = new_bids[0]
             self.bids.append(bid10)
-
-            # Load the configuration
-
-            # Load the module
-            module_name = "subsidy_auction"
-            module_directory = Config('auction_sever.yaml').get_config_param('AUMProcessor', 'ModuleDir')
-            self.loader = ModuleLoader(module_directory, "AUM_PROCESSOR", module_name)
 
         except Exception as e:
             print(str(e))
