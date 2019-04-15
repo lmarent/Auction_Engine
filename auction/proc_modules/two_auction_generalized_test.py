@@ -12,7 +12,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
 
     def setUp(self):
         try:
-            self.bids = []
+            self.bids = {}
 
             # Load the module
             module_name = "two_auction_generalized"
@@ -27,7 +27,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid = new_bids[0]
-            self.bids.append(bid)
+            self.bids[bid.get_key()] = bid
 
             # Parse the bidding objects in file example_bids2.xml, it allocates the memory.
             domain = 2
@@ -37,7 +37,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid2 = new_bids[0]
-            self.bids.append(bid2)
+            self.bids[bid2.get_key()] = bid2
 
             # Parse the bidding objects in file example_bids3.xml, it allocates the memory.
             domain = 3
@@ -47,7 +47,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid3 = new_bids[0]
-            self.bids.append(bid3)
+            self.bids[bid3.get_key()] = bid3
 
             # Parse the bidding objects in file example_bids4.xml, it allocates the memory.
             domain = 4
@@ -57,7 +57,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid4 = new_bids[0]
-            self.bids.append(bid4)
+            self.bids[bid4.get_key()] = bid4
 
             # Parse the bidding objects in file example_bids5.xml, it allocates the memory.
             domain = 5
@@ -67,7 +67,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid5 = new_bids[0]
-            self.bids.append(bid5)
+            self.bids[bid5.get_key()] = bid5
 
             # Parse the bidding objects in file example_bids6.xml, it allocates the memory.
             domain = 6
@@ -77,7 +77,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid6 = new_bids[0]
-            self.bids.append(bid6)
+            self.bids[bid6.get_key()] = bid6
 
             # Parse the bidding objects in file example_bids7.xml, it allocates the memory.
             domain = 7
@@ -87,7 +87,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid7 = new_bids[0]
-            self.bids.append(bid7)
+            self.bids[bid7.get_key()] = bid7
 
             # Parse the bidding objects in file example_bids8.xml, it allocates the memory.
             domain = 8
@@ -97,7 +97,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid8 = new_bids[0]
-            self.bids.append(bid8)
+            self.bids[bid8.get_key()] = bid8
 
             # Parse the bidding objects in file example_bids9.xml, it allocates the memory.
             domain = 9
@@ -107,7 +107,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid9 = new_bids[0]
-            self.bids.append(bid9)
+            self.bids[bid9.get_key()] = bid9
 
             # Parse the bidding objects in file example_bids10.xml, it allocates the memory.
             domain = 10
@@ -117,7 +117,7 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             new_bids = manager.parse_bidding_objects(filename)
             self.assertEqual(len(new_bids), 1)
             bid10 = new_bids[0]
-            self.bids.append(bid10)
+            self.bids[bid10.get_key()] = bid10
 
         except Exception as e:
             print(str(e))

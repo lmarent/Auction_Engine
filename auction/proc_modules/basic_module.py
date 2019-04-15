@@ -120,7 +120,7 @@ class BasicModule(Module):
         # Order bids classifying them by whether they compete on the low and high auction.
         bids_low_rct, bids_high_rct = self.proc_module.separate_bids(bids, 0.5)
 
-        # Calculate the number of bids on both auctions.
+        # Calculate the number of requested quantities on both auctions.
         nl = self.proc_module.calculate_requested_quantities(bids_low_rct)
         nh = self.proc_module.calculate_requested_quantities(bids_high_rct)
 
@@ -133,7 +133,7 @@ class BasicModule(Module):
                 price = ParseFormats.parse_float(config_params["unitprice"].value)
                 quantity = ParseFormats.parse_float(config_params["quantity"].value)
                 alloc = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
-                                  element_name, bidding_object.get_session(), quantity)
+                                  element_name, bidding_object.get_session(), quantity, price)
                 ordered_bids[price].append(alloc)
 
         qty_available = bandwidth_to_sell
@@ -143,7 +143,7 @@ class BasicModule(Module):
 
         sorted_prices = sorted(ordered_bids.keys(), reverse=True)
         for price in sorted_prices:
-            alloc_temp = sorted_prices[price]
+            alloc_temp = ordered_bids[price]
 
             if price < reserve_price:
                 for i in range(0, len(alloc_temp)):
@@ -170,7 +170,7 @@ class BasicModule(Module):
         # Creates allocations
         sorted_prices = sorted(ordered_bids.keys(), reverse=True)
         for price in sorted_prices:
-            alloc_temp = sorted_prices[price]
+            alloc_temp = ordered_bids[price]
             for i in range(0, len(alloc_temp)):
                 key = self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
                 if key in allocations:

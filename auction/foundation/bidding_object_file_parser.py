@@ -62,7 +62,7 @@ class BiddingObjectXmlFileParser(IpapMessageParser):
 
         return option_fields
 
-    def _parse_bidding_object(self, item: Element) -> BiddingObject:
+    def _parse_bidding_object(self, item: Element, bidding_object_set: str ) -> BiddingObject:
         """
         Parses a bidding object within the xml
 
@@ -77,7 +77,7 @@ class BiddingObjectXmlFileParser(IpapMessageParser):
         bidding_object_type = self.parse_type(stype)
 
         # Get Bidding object Id
-        bidding_object_key = item.get("ID").lower()
+        bidding_object_key = bidding_object_set + '.' + item.get("ID").lower()
 
         # Get elements and options.
         elements = {}
@@ -124,10 +124,13 @@ class BiddingObjectXmlFileParser(IpapMessageParser):
 
             root = tree.getroot()
 
+            # Get Bidding set Id
+            bidding_object_set = root.get("ID").lower()
+
             for item in root.iterchildren():
                 if isinstance(item.tag, str):  # Only it takes xml nodes (remove comments).
                     if item.tag.lower() == "bidding_object":
-                        bidding_object = self._parse_bidding_object(item)
+                        bidding_object = self._parse_bidding_object(item, bidding_object_set)
                         bidding_objects.append(bidding_object)
 
         return bidding_objects
