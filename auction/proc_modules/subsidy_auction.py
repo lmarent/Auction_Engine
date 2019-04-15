@@ -40,17 +40,6 @@ class SubsidyAuction(Module):
         """
         print('in destroy_module')
 
-    @staticmethod
-    def make_key(auction_key: str, bid_key: str) -> str:
-        """
-        Make the key of an allocation from the auction key and bidding object key
-
-        :param auction_key: auction key
-        :param bid_key: bidding object key
-        :return:
-        """
-        return auction_key + '-' + bid_key
-
     def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
                 start: datetime, stop: datetime, bids: dict) -> list:
         """
@@ -117,7 +106,7 @@ class SubsidyAuction(Module):
         for price in sorted_prices:
             alloc_temp = ordered_bids[price]
             for i in range(0, len(alloc_temp)):
-                key = self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
+                key = self.proc_module.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
                 if key in allocations:
                     self.proc_module.increment_quantity_allocation(allocations[alloc_temp[i].bidding_object_key],
                                                                    alloc_temp[i].quantity)
@@ -127,8 +116,8 @@ class SubsidyAuction(Module):
                     else:
                         set_price = sell_price
 
-                    allocation = self.proc_module.create_allocation(alloc_temp[i].session_id,
-                                                        alloc_temp[i].auction_key,
+                    allocation = self.proc_module.create_allocation(self.domain, alloc_temp[i].session_id,
+                                                        alloc_temp[i].bidding_object_key,
                                                         start, stop,
                                                         alloc_temp[i].quantity,
                                                         set_price)

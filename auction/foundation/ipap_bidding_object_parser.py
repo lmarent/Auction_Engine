@@ -138,7 +138,7 @@ class IpapBiddingObjectParser(IpapMessageParser):
         ipap_data_record = IpapDataRecord(obj=None, templ_id=template.get_template_id())
 
         # Insert the auction id field.
-        self.insert_string_field('auctionid', bidding_object.get_auction_key(), ipap_data_record)
+        self.insert_string_field('auctionid', bidding_object.get_parent_key(), ipap_data_record)
 
         # Insert the bidding object id field.
         self.insert_string_field('biddingobjectid', bidding_object.get_key(), ipap_data_record)
@@ -165,7 +165,7 @@ class IpapBiddingObjectParser(IpapMessageParser):
         ipap_record = IpapDataRecord(obj=None, templ_id=template.get_template_id())
 
         # Insert the auction id field.
-        self.insert_string_field('auctionid', bidding_object.get_auction_key(), ipap_record)
+        self.insert_string_field('auctionid', bidding_object.get_parent_key(), ipap_record)
 
         # Insert the bidding object id field.
         self.insert_string_field('biddingobjectid', bidding_object.get_key(), ipap_record)
@@ -188,7 +188,7 @@ class IpapBiddingObjectParser(IpapMessageParser):
     def get_ipap_message(self, bidding_object: BiddingObject, auction: Auction,
                          template_container: IpapTemplateContainer, message: IpapMessage):
 
-        if bidding_object.get_auction_key() != auction.get_key():
+        if bidding_object.get_parent_key() != auction.get_key():
             raise ValueError("the auction is not the same as the one referenced in the bidding object")
 
         # Find both templates types for the bidding object.

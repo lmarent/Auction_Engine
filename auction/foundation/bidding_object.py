@@ -19,7 +19,7 @@ class BiddingObject(AuctioningObject):
       2. A set of options which establish the duration of the bidding object. 
     """
 
-    def __init__(self, auction_key: str, bidding_object_key: str, object_type: AuctioningObjectType,
+    def __init__(self, parent_key: str, bidding_object_key: str, object_type: AuctioningObjectType,
                  elements: dict, options: dict):
 
         assert (object_type == AuctioningObjectType.BID or object_type == AuctioningObjectType.ALLOCATION)
@@ -28,15 +28,15 @@ class BiddingObject(AuctioningObject):
         # elements and options whenever used should be sorted by key.
         self.elements = elements
         self.options = options
-        self.parent_auction = auction_key
+        self.parent_key = parent_key
         self.session_key = None
 
-    def get_auction_key(self):
+    def get_parent_key(self):
         """
-        Returns the auction parant key
-        :return: key of the parent auction
+        Returns the bidding object parent's key
+        :return: key of the parent for bids it is an auction, for allocations it is a bid.
         """
-        return self.parent_auction
+        return self.parent_key
 
     def get_element(self, element_name):
         if element_name in self.elements.keys():

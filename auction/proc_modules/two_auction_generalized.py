@@ -42,17 +42,6 @@ class TwoAuctionGeneralized(Module):
         self.config_params = config_params
         self.domain = config_params['domainid']
 
-    @staticmethod
-    def make_key(auction_key: str, bid_key: str) -> str:
-        """
-        Make the key of an allocation from the auction key and bidding object key
-
-        :param auction_key: auction key
-        :param bid_key: bidding object key
-        :return:
-        """
-        return auction_key + '-' + bid_key
-
     def destroy_module(self):
         """
         method to be executed when destroying the class
@@ -102,7 +91,7 @@ class TwoAuctionGeneralized(Module):
                 quantity = ParseFormats.parse_float(config_params["quantity"].value)
 
                 if quantity > 0:
-                    alloc = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                    alloc = AllocProc(bidding_object.get_parent_key(), bidding_object.get_key(),
                                       element_name, bidding_object.get_session(), quantity, price)
                     low_auction_allocs[index].append(alloc)
                     nltmp = nltmp + quantity
@@ -131,7 +120,7 @@ class TwoAuctionGeneralized(Module):
                         units_to_pass = units_to_pass + 1
 
                 # quantities in the H auction.
-                alloc1 = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                alloc1 = AllocProc(bidding_object.get_parent_key(), bidding_object.get_key(),
                                    element_name, bidding_object.get_session(), quantity, price)
 
                 high_auction_allocs[price].append(alloc1)
@@ -139,7 +128,7 @@ class TwoAuctionGeneralized(Module):
 
                 if units_to_pass > 0:
                     # quantities in the L auction.
-                    alloc2 = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                    alloc2 = AllocProc(bidding_object.get_parent_key(), bidding_object.get_key(),
                                        element_name, bidding_object.get_session(), units_to_pass, price)
                     alloc_bids.append(alloc2)
                     inserted = True
@@ -202,16 +191,17 @@ class TwoAuctionGeneralized(Module):
         for price in sorted_prices:
             alloc_temp: List[AllocProc] = bids_to_fulfill[price]
             for i in range(0, len(alloc_temp)):
-                key = self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
+                key = self.proc_module.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
                 if key in allocations:
                     self.proc_module.increment_quantity_allocation(allocations[alloc_temp[i].bidding_object_key],
                                                                    alloc_temp[i].quantity)
                 else:
-                    allocation = self.proc_module.create_allocation(alloc_temp[i].session_id,
-                                                        alloc_temp[i].auction_key,
-                                                        start, stop,
-                                                        alloc_temp[i].quantity,
-                                                        sell_price)
+                    allocation = self.proc_module.create_allocation(self.domain,
+                                                                    alloc_temp[i].session_id,
+                                                                    alloc_temp[i].bidding_object_key,
+                                                                    start, stop,
+                                                                    alloc_temp[i].quantity,
+                                                                    sell_price)
 
                     allocations[key] = allocation
 
@@ -244,11 +234,13 @@ class TwoAuctionGeneralized(Module):
             for bid_index in range(len(sorted_bids) - 1, -1, -1):
                 alloc_proc = sorted_bids[bid_index]
                 if alloc_proc.original_price < reserved_price:
-                    key = self.make_key(alloc_proc.auction_key, alloc_proc.bidding_object_key)
+                    key = self.proc_module.make_key(alloc_proc.auction_key, alloc_proc.bidding_object_key)
                     if key not in allocations:
-                        allocation = self.proc_module.create_allocation(alloc_proc.session_id,
-                                                            alloc_proc.auction_key, start,
-                                                            stop, 0, reserved_price)
+                        allocation = self.proc_module.create_allocation(self.domain,
+                                                                        alloc_proc.session_id,
+                                                                        alloc_proc.bidding_object_key,
+                                                                        start,
+                                                                        stop, 0, reserved_price)
 
                         allocations[key] = allocation
 
@@ -281,15 +273,18 @@ class TwoAuctionGeneralized(Module):
                 index = indexes[main_index]
                 # the unit is assigned to the first allocation proc for the bid.
                 bids_to_fulfill[index][0].quantity = bids_to_fulfill[index][0].quantity - 1
-                key = self.make_key(bids_to_fulfill[index][0].auction_key, bids_to_fulfill[index][0].bidding_object_key)
+                key = self.proc_module.make_key(bids_to_fulfill[index][0].auction_key,
+                                                bids_to_fulfill[index][0].bidding_object_key)
 
                 # Create or update the allocation
                 if key in allocations:
                     self.proc_module.increment_quantity_allocation(allocations[key], 1)
                 else:
-                    allocation = self.proc_module.create_allocation(bids_to_fulfill[index][0].session_id,
-                                                        bids_to_fulfill[index][0].auction_key, start,
-                                                        stop, 1, reserved_price)
+                    allocation = self.proc_module.create_allocation(self.domain,
+                                                                    bids_to_fulfill[index][0].session_id,
+                                                                    bids_to_fulfill[index][0].bidding_object_key,
+                                                                    start,
+                                                                    stop, 1, reserved_price)
                     allocations[key] = allocation
 
                 # Remove the node in case of no more units required.
@@ -332,16 +327,17 @@ class TwoAuctionGeneralized(Module):
             self.logger.debug("qty to pass: {0}".format(str(units_to_pass)))
             if units_to_pass > 0:
                 if units_to_pass < quantity:
-                    alloc2 = self.proc_module.create_allocation(alloc.get_session(),
-                                                    alloc.get_auction_key(),
-                                                    start, stop,
-                                                    units_to_pass,
-                                                    reserved_price)
+                    alloc2 = self.proc_module.create_allocation(self.domain,
+                                                                alloc.get_session(),
+                                                                alloc.get_parent_key(),
+                                                                start, stop,
+                                                                units_to_pass,
+                                                                reserved_price)
 
                     units_to_add = units_to_pass * -1
                     self.proc_module.increment_quantity_allocation(alloc, units_to_add)
 
-                    allocations2[self.make_key(alloc2.get_auction_key(), alloc2.get_key())] = alloc2
+                    allocations2[self.proc_module.make_key(alloc2.get_parent_key(), alloc2.get_key())] = alloc2
                 else:
                     self.proc_module.change_allocation_price(alloc, reserved_price)
 

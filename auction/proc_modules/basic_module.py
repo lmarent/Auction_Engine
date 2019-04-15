@@ -35,17 +35,6 @@ class BasicModule(Module):
         self.config_params = config_params
         self.domain = config_params['domainid']
 
-    @staticmethod
-    def make_key(auction_key: str, bid_key: str) -> str:
-        """
-        Make the key of an allocation from the auction key and bidding object key
-
-        :param auction_key: auction key
-        :param bid_key: bidding object key
-        :return:
-        """
-        return auction_key + '-' + bid_key
-
     def destroy_module(self):
         """
         method to be executed when destroying the class
@@ -86,7 +75,7 @@ class BasicModule(Module):
                 config_params = elements[element_name]
                 price = ParseFormats.parse_float(config_params["unitprice"].value)
                 quantity = ParseFormats.parse_float(config_params["quantity"].value)
-                alloc = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                alloc = AllocProc(bidding_object.get_parent_key(), bidding_object.get_key(),
                                   element_name, bidding_object.get_session(), quantity, price)
                 ordered_bids[price].append(alloc)
 
@@ -126,13 +115,13 @@ class BasicModule(Module):
         for price in sorted_prices:
             alloc_temp = ordered_bids[price]
             for i in range(0, len(alloc_temp)):
-                key = self.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
+                key = self.proc_module.make_key(alloc_temp[i].auction_key, alloc_temp[i].bidding_object_key)
                 if key in allocations:
                     self.proc_module.increment_quantity_allocation(allocations[alloc_temp[i].bidding_object_key],
                                                        alloc_temp[i].quantity)
                 else:
-                    allocation = self.proc_module.create_allocation(alloc_temp[i].session_id,
-                                                        alloc_temp[i].auction_key,
+                    allocation = self.proc_module.create_allocation(self.domain, alloc_temp[i].session_id,
+                                                        alloc_temp[i].bidding_object_key,
                                                         start, stop,
                                                         alloc_temp[i].quantity,
                                                         sell_price)

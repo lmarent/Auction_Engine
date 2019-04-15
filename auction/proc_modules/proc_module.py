@@ -185,13 +185,14 @@ class ProcModule(metaclass=Singleton):
         """
         return auction_key + '-' + bid_key
 
-    def create_allocation(self, session_id: str, auction_key: str, start: datetime,
+    def create_allocation(self, domain: int, session_id: str, parent_key: str, start: datetime,
                           stop: datetime, quantity: float, price: float) -> BiddingObject:
         """
         Creates a new allocation
 
+        :param domain: agent's domain
         :param session_id: session id to be associated
-        :param auction_key: auction key
+        :param parent_key: parent bid key
         :param start: allocation's start
         :param stop: allocation's stop
         :param quantity: quantity to assign
@@ -220,9 +221,9 @@ class ProcModule(metaclass=Singleton):
         self.insert_datetime_field("stop", stop, config_options)
         options[option_id] = config_options
 
-        bidding_object_id = self.proc_module.get_bidding_object_id()
-        bidding_object_key = str(self.domain) + '.' + bidding_object_id
-        alloc = BiddingObject(auction_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
+        bidding_object_id = self.get_bidding_object_id()
+        bidding_object_key = str(domain) + '.' + bidding_object_id
+        alloc = BiddingObject(parent_key, bidding_object_key, AuctioningObjectType.ALLOCATION, elements, options)
 
         # All objects must be inherit the session from the bid.
         alloc.set_session(session_id)
@@ -376,7 +377,7 @@ class ProcModule(metaclass=Singleton):
                 config_params = elements[element_name]
                 price = ParseFormats.parse_float(config_params["unitprice"].value)
                 quantity = ParseFormats.parse_float(config_params["quantity"].value)
-                alloc = AllocProc(bidding_object.get_auction_key(), bidding_object.get_key(),
+                alloc = AllocProc(bidding_object.get_parent_key(), bidding_object.get_key(),
                                   element_name, bidding_object.get_session(), quantity, price)
                 # applies the subsidy if it was given,
                 if discriminatory_price > 0:

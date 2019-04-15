@@ -94,7 +94,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         auction_manager = AuctionManager(self.domain)
 
         for bidding_object in bidding_objects:
-            auction = auction_manager.get_auction(bidding_object.get_auction_key())
+            auction = auction_manager.get_auction(bidding_object.get_parent_key())
             ipap_bidding_object_parser.get_ipap_message(bidding_object, auction, template_container, message)
 
         return message

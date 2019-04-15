@@ -309,7 +309,7 @@ class BiddingObjectXmlFileParserTest(unittest.TestCase):
         self.assertEqual(len(lst_bids), 1)
         bidding_object = lst_bids[0]
 
-        self.assertEqual(bidding_object.get_auction_key(), "1.1")
+        self.assertEqual(bidding_object.get_parent_key(), "1.1")
         self.assertEqual(bidding_object.get_key(), "bid1")
         self.assertEqual(len(bidding_object.elements), 2)
         self.assertEqual(len(bidding_object.options), 2)

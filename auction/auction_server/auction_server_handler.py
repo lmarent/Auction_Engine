@@ -303,7 +303,7 @@ class HandleActivateBiddingObject(ScheduledTask):
 
     async def _run_specific(self):
         try:
-            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), self.bidding_object)
                 self.bidding_object.set_state(AuctioningObjectState.ACTIVE)
@@ -328,7 +328,7 @@ class HandleInactivateBiddingObject(ScheduledTask):
 
     async def _run_specific(self):
         try:
-            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 self.auction_processor.delete_bidding_object_from_auction_process(auction.get_key(), self.bidding_object)
             else:
@@ -353,7 +353,7 @@ class HandleRemoveBiddingObject(ScheduledTask):
     async def _run_specific(self):
         try:
 
-            auction = self.auction_manager.get_auction(self.bidding_object.get_auction_key())
+            auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 self.auction_processor.delete_bidding_object_from_auction_process(auction.get_key(), self.bidding_object)
                 self.bidding_manager.del_actioning_object(self.bidding_object.get_key())
