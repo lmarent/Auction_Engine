@@ -156,9 +156,6 @@ class AuctionXmlFileParser(IpapMessageParser):
         """
 
         the_dtd = Config().get_config_param('Main', 'AuctionFileDtd')
-        root_node = Config().get_config_param('Main', 'AuctionRootNode')
-
-        parser = etree.XMLParser(dtd_validation=True)
         base_dir = pathlib.Path(__file__).parent.parent
         the_dtd = base_dir / 'xmls' / the_dtd
 

@@ -3,6 +3,7 @@ from foundation.field_def_manager import FieldDefManager
 from foundation.field_def_manager import DataType
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.auction_parser import AuctionXmlFileParser
+from foundation.bidding_object_file_parser import BiddingObjectXmlFileParser
 from foundation.module_loader import ModuleLoader
 
 from foundation.field_value import FieldValue
@@ -13,6 +14,7 @@ from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_value_field import IpapValueField
 from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
+
 
 class DefFileManagerTest(unittest.TestCase):
 
@@ -37,16 +39,16 @@ class DefFileManagerTest(unittest.TestCase):
             field_not_found = self.def_file_manager.get_field("templatelist0")
 
     def test_get_field_by_code(self):
-        field_found = self.def_file_manager.get_field_by_code(0,31)
+        field_found = self.def_file_manager.get_field_by_code(0, 31)
         self.assertEqual(field_found['name'], "AlgorithmName")
 
         # Field not found
         with self.assertRaises(ValueError):
-            field_not_found = self.def_file_manager.get_field_by_code(0,310)
+            field_not_found = self.def_file_manager.get_field_by_code(0, 310)
 
         # Field not found
         with self.assertRaises(ValueError):
-            field_not_found = self.def_file_manager.get_field_by_code(100,31)
+            field_not_found = self.def_file_manager.get_field_by_code(100, 31)
 
     def test_get_field_value(self):
         field_value = self.def_file_manager.get_field_value('IpAddr', 'srcip')
@@ -64,7 +66,6 @@ class DefFileManagerTest(unittest.TestCase):
 class FieldValueTest(unittest.TestCase):
 
     def test_parse_field_value(self):
-
         field_value = FieldValue()
 
         value = "*"
@@ -111,12 +112,12 @@ class IpapMessageParserTest(unittest.TestCase):
         self.assertEqual(auction_name, "1")
 
         auction_id = "1.5"
-        set_name, auction_name =  self.ipap_message_parser.parse_name(auction_id)
+        set_name, auction_name = self.ipap_message_parser.parse_name(auction_id)
         self.assertEqual(set_name, "1")
         self.assertEqual(auction_name, "5")
 
         auction_id = "sees.asdasd"
-        set_name, auction_name =  self.ipap_message_parser.parse_name(auction_id)
+        set_name, auction_name = self.ipap_message_parser.parse_name(auction_id)
         self.assertEqual(set_name, "sees")
         self.assertEqual(auction_name, "asdasd")
 
@@ -127,35 +128,35 @@ class IpapMessageParserTest(unittest.TestCase):
     def test_parse_object_type(self):
         stype = "auction"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_AUCTION,ret)
+        self.assertEqual(ObjectType.IPAP_AUCTION, ret)
 
         stype = "bid"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_BID,ret)
+        self.assertEqual(ObjectType.IPAP_BID, ret)
 
         stype = "ask"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_ASK,ret)
+        self.assertEqual(ObjectType.IPAP_ASK, ret)
 
         stype = "allocation"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_ALLOCATION,ret)
+        self.assertEqual(ObjectType.IPAP_ALLOCATION, ret)
 
         stype = "0"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_AUCTION,ret)
+        self.assertEqual(ObjectType.IPAP_AUCTION, ret)
 
         stype = "1"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_BID,ret)
+        self.assertEqual(ObjectType.IPAP_BID, ret)
 
         stype = "2"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_ASK,ret)
+        self.assertEqual(ObjectType.IPAP_ASK, ret)
 
         stype = "3"
         ret = self.ipap_message_parser.parse_object_type(stype)
-        self.assertEqual(ObjectType.IPAP_ALLOCATION,ret)
+        self.assertEqual(ObjectType.IPAP_ALLOCATION, ret)
 
         stype = "4"
         with self.assertRaises(ValueError):
@@ -166,7 +167,6 @@ class IpapMessageParserTest(unittest.TestCase):
             ret = self.ipap_message_parser.parse_object_type(stype)
 
     def test_parse_template_type(self):
-
         templ_type = "data"
         ret = self.ipap_message_parser.parse_template_type(ObjectType.IPAP_AUCTION, templ_type)
         self.assertEqual(TemplateType.IPAP_SETID_AUCTION_TEMPLATE, ret)
@@ -204,7 +204,7 @@ class IpapMessageParserTest(unittest.TestCase):
             ret = self.ipap_message_parser.parse_template_type(ObjectType.IPAP_ALLOCATION, templ_type)
 
     def test_read_template(self):
-        ipap_message = IpapMessage(1,1,False)
+        ipap_message = IpapMessage(1, 1, False)
         template_id = ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         ipap_message.add_field(template_id, 0, 30)
 
@@ -224,7 +224,7 @@ class IpapMessageParserTest(unittest.TestCase):
             template = self.ipap_message_parser.read_template(ipap_message, TemplateType.IPAP_OPTNS_AUCTION_TEMPLATE)
 
     def test_read_data_records(self):
-        ipap_message = IpapMessage(1,1,False)
+        ipap_message = IpapMessage(1, 1, False)
         template_id = ipap_message.new_data_template(10, TemplateType.IPAP_SETID_AUCTION_TEMPLATE)
         ipap_message.add_field(template_id, 0, 30)
 
@@ -255,7 +255,7 @@ class AuctionXmlFileParserTest(unittest.TestCase):
 
     def test_parse(self):
         lst_auctions = self.auction_xml_file_parser.parse(
-                "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")
+            "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions1.xml")
 
         self.assertEqual(len(lst_auctions), 1)
         auction = lst_auctions[0]
@@ -270,11 +270,12 @@ class AuctionXmlFileParserTest(unittest.TestCase):
             auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_OPTNS_BID_OBJECT_TEMPLATE])
         self.assertEqual(exists, True)
 
-        templ_bid_data = auction.bidding_object_templates[ObjectType.IPAP_BID][TemplateType.IPAP_SETID_BID_OBJECT_TEMPLATE]
+        templ_bid_data = auction.bidding_object_templates[ObjectType.IPAP_BID][
+            TemplateType.IPAP_SETID_BID_OBJECT_TEMPLATE]
         ipap_template = self.template_container.get_template(templ_bid_data)
 
         found = False
-        field_list =  ipap_template.get_fields()
+        field_list = ipap_template.get_fields()
         for field in field_list:
             if field.get_field_name().decode('ascii') == "auctionUnitValue":
                 found = True
@@ -282,19 +283,50 @@ class AuctionXmlFileParserTest(unittest.TestCase):
         self.assertEqual(found, True)
         self.assertEqual(auction.resource_key, "1.router1")
         self.assertEqual(auction.get_key(), "1.10")
-        self.assertEqual(len(auction.misc_dict),2)
+        self.assertEqual(len(auction.misc_dict), 2)
 
         # Verifies the action that was created.
-        self.assertEqual(auction.action.name,"libbas")
+        self.assertEqual(auction.action.name, "libbas")
         self.assertEqual(auction.action.default_action, True)
         self.assertEqual(len(auction.action.config_dict), 0)
 
     def test_parse_maby_auctions(self):
         lst_auctions = self.auction_xml_file_parser.parse(
-                "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions4.xml")
-
+            "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions4.xml")
 
         self.assertEqual(len(lst_auctions), 3)
+
+
+class BiddingObjectXmlFileParserTest(unittest.TestCase):
+
+    def setUp(self):
+        self.bidding_xml_file_parser = BiddingObjectXmlFileParser(10)
+
+    def test_parse(self):
+        lst_bids = self.bidding_xml_file_parser.parse(
+            "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_bids1.xml")
+
+        self.assertEqual(len(lst_bids), 1)
+        bidding_object = lst_bids[0]
+
+        self.assertEqual(bidding_object.get_auction_key(), "1.1")
+        self.assertEqual(bidding_object.get_key(), "Bid1")
+        self.assertEqual(len(bidding_object.elements), 2)
+        self.assertEqual(len(bidding_object.options), 2)
+
+        # Verifies the first element
+        element = bidding_object.element['element1']
+        self.assertEqual(element['quantity'].value, "1")
+
+        # Verifies the first option
+        option = bidding_object.element['option1']
+        self.assertEqual(option['BiddingDuration'].value, "600")
+
+    def test_parse_many_auctions(self):
+        lst_bids = self.bidding_xml_file_parser.parse(
+            "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_bids2.xml")
+
+        self.assertEqual(len(lst_bids), 3)
 
 
 class ModuleLoaderTest(unittest.TestCase):
@@ -305,21 +337,20 @@ class ModuleLoaderTest(unittest.TestCase):
 
     def test_load_module(self):
         module_name = 'basic_server_module'
-        module = self.module_loader.load_module(module_name,False)
+        module = self.module_loader.load_module(module_name, False)
         self.assertEqual(module is not None, True)
 
         with self.assertRaises(ModuleNotFoundError):
             module_name = 'basic_asda_module'
-            module2 = self.module_loader.load_module(module_name,False)
+            module2 = self.module_loader.load_module(module_name, False)
 
         with self.assertRaises(ValueError):
             module_name = ''
-            module2 = self.module_loader.load_module(module_name,False)
-
+            module2 = self.module_loader.load_module(module_name, False)
 
     def test_get_module(self):
         module_name = 'basic_server_module'
-        self.module_loader.load_module(module_name,False)
+        self.module_loader.load_module(module_name, False)
         module = self.module_loader.get_module(module_name)
         self.assertEqual(module is not None, True)
 
@@ -329,7 +360,6 @@ class ModuleLoaderTest(unittest.TestCase):
 
     def test_release_module(self):
         module_name = 'basic_server_module'
-        self.module_loader.load_module(module_name,False)
+        self.module_loader.load_module(module_name, False)
         self.module_loader.release_module(module_name)
-        self.assertEqual(len(self.module_loader.modules),0)
-
+        self.assertEqual(len(self.module_loader.modules), 0)

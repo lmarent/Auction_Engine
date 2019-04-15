@@ -1,0 +1,29 @@
+<?xml version ="1.0" encoding="UTF-8"?>
+<!DOCTYPE BIDDING_OBJECT_SET SYSTEM "bidfile.dtd">
+<BIDDING_OBJECT_SET ID = "1">
+
+  <BIDDING_OBJECT AUCTION_ID="1.1" ID="Bid1" TYPE="BID">
+
+	<ELEMENT ID="element1">
+		<FIELD NAME="quantity">1</FIELD>
+		<FIELD NAME="unitbudget">0.14</FIELD>
+		<FIELD NAME="unitprice">0.15</FIELD>
+	</ELEMENT>
+
+	<ELEMENT ID="element2">
+		<FIELD NAME="quantity">2</FIELD>
+		<FIELD NAME="unitbudget">0.13</FIELD>
+		<FIELD NAME="unitprice">0.16</FIELD>
+	</ELEMENT>
+
+    <OPTION ID="option1">
+		<PREF NAME="BiddingDuration">600</PREF>
+    </OPTION>
+
+    <OPTION ID="option2">
+		<PREF NAME="BiddingDuration">60</PREF>
+    </OPTION>
+
+
+  </BIDDING_OBJECT>
+</BIDDING_OBJECT_SET>

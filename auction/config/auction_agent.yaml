@@ -27,8 +27,7 @@ Main:
   TimeOut: 5
   TimeFormat: "%Y%m%d %H%M%S"
   AuctionfileDtd: auctionfile.dtd
-  DtdRootNode: AUCTIONSET
-  BidfileDtd: bidfile.dtd
+  BiddingObjectfileDtd: bidfile.dtd
 
 Control:
   ControlPort: 12248

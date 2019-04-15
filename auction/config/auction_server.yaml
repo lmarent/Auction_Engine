@@ -22,8 +22,7 @@ Main:
   ResourceFile: resources.yaml
   AuctionFileDtd: auctionfile.dtd
   AuctionFile: example_auctions3.xml
-  AuctionRootNode: AUCTIONSET
-  BidfileDtd: bidfile.dtd
+  BiddingObjectfileDtd: bidfile.dtd
 
 
 Control:

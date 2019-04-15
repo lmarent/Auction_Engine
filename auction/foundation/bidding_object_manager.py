@@ -61,6 +61,15 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         """
         return super(BiddingObjectManager, self).get_auctioning_object_keys()
 
+    def parse_bidding_objects(self, filename: str):
+        """
+        Parses bidding objects within the xml file
+
+        :param filename: file name to parse.
+        :return:
+        """
+
+
     def parse_ipap_message(self, ipap_message: IpapMessage, template_container: IpapTemplateContainer)-> List[BiddingObject]:
         """
         parse bidding objects from an ipap_message
