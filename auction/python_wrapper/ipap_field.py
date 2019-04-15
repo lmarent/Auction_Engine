@@ -161,9 +161,7 @@ class IpapField:
         num_characters = int(self.num_characters(value) + 1)
         result = create_string_buffer(num_characters)
 
-        print('here')
         lib.ipap_field_write_value(self.obj, value.obj, result, sizeof(result))
-        print(result.value)
         return result.value.decode('utf-8')
 
     def parse(self, value:str) -> IpapValueField:

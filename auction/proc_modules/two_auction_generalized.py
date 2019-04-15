@@ -361,6 +361,7 @@ class TwoAuctionGeneralized(Module):
         :return:
         """
         self.logger.debug("starting ApplyMechanism Q: {0}".format(q))
+        allocations2 = {}
 
         for bidding_object_key in allocations:
             alloc = allocations[bidding_object_key]
@@ -384,9 +385,14 @@ class TwoAuctionGeneralized(Module):
                     units_to_add = units_to_pass * -1
                     self.proc_module.increment_quantity_allocation(alloc, units_to_add)
 
-                    allocations[self.make_key(alloc2.get_auction_key(), alloc2.get_key())] = alloc2
+                    allocations2[self.make_key(alloc2.get_auction_key(), alloc2.get_key())] = alloc2
                 else:
                     self.proc_module.change_allocation_price(alloc, reserved_price)
+
+        # Inserts new allocations in allocation dictionary.
+        for key in allocations2:
+            alloc = allocations2[key]
+            allocations[key] = alloc
         self.logger.debug("ending ApplyMechanism")
 
     def execute(self, request_params: Dict[str, FieldValue], auction_key: str,
@@ -407,8 +413,12 @@ class TwoAuctionGeneralized(Module):
         bandwidth_to_sell_low = self.proc_module.get_param_value('bandwidth01', request_params)
         bandwidth_to_sell_high = self.proc_module.get_param_value('bandwidth02', request_params)
 
+        print('bandwidth_to_sell_low', bandwidth_to_sell_low, ' bandwidth_to_sell_high', bandwidth_to_sell_high )
+
         reserve_price_low: float = self.proc_module.get_param_value('reserveprice01', request_params)
         reserve_price_high: float = self.proc_module.get_param_value('reserveprice02', request_params)
+
+        print('reserve_price_low', reserve_price_low, ' reserve_price_high', reserve_price_high )
 
         bl = self.proc_module.get_param_value('maxvalue01', request_params)
         bh = self.proc_module.get_param_value('maxvalue02', request_params)
@@ -466,7 +476,20 @@ class TwoAuctionGeneralized(Module):
                                                                      bandwidth_to_sell_low, reserve_price_low)
 
             alloctions_high, reserve_price_high = self.execute_auction(start, stop, high_auction_allocs,
-                                                                       bandwidth_to_sell_low, reserve_price_high)
+                                                                       bandwidth_to_sell_high, reserve_price_high)
+
+            # code to debug.
+            # sell_prices = []
+            # qty_allocates = []
+            # for key in alloctions_high:
+            #     allocation = alloctions_high[key]
+            #     qty = self.proc_module.get_allocation_quantity(allocation)
+            #     sell_price = self.proc_module.get_bid_price(allocation)
+            #     sell_prices.append(sell_price)
+            #     qty_allocates.append(qty)
+            #
+            # print('sell prices:', sell_prices)
+            # print('qty allocates:', qty_allocates)
 
             self.logger.debug("after executeAuction high budget users")
 

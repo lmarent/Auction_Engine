@@ -158,7 +158,25 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
             params["maxvalue02"] = config_param_6
 
             allocations = module.execute(params, auction_key, start, stop, self.bids)
-            self.assertEqual(len(allocations), 10)
+            print('allocations:', len(allocations))
+
+            qty_allocated = 0
+            for allocation in allocations:
+                qty_allocated += module.proc_module.get_allocation_quantity(allocation)
+
+            self.assertEqual(qty_allocated, 50)
+
+            sell_prices = []
+            qty_allocates = []
+            revenue = 0
+            for allocation in allocations:
+                qty = module.proc_module.get_allocation_quantity(allocation)
+                sell_price = module.proc_module.get_bid_price(allocation)
+                revenue = revenue + (qty*sell_price)
+                sell_prices.append(sell_price)
+                qty_allocates.append(qty)
+
+            self.assertGreater(revenue, 17.08)
 
     def test_enough_quantities(self):
 
