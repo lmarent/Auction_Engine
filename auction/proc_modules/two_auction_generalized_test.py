@@ -168,15 +168,22 @@ class TwoAuctionGeneralizedTest(unittest.TestCase):
 
             sell_prices = []
             qty_allocates = []
+            bid_ids = []
             revenue = 0
             for allocation in allocations:
                 qty = module.proc_module.get_allocation_quantity(allocation)
                 sell_price = module.proc_module.get_bid_price(allocation)
+                bid_id = allocation.get_parent_key()
                 revenue = revenue + (qty*sell_price)
                 sell_prices.append(sell_price)
                 qty_allocates.append(qty)
+                bid_ids.append(bid_id)
 
             self.assertGreater(revenue, 17.08)
+
+            print(bid_ids)
+            print(sell_prices)
+            print(qty_allocates)
 
     def test_enough_quantities(self):
 

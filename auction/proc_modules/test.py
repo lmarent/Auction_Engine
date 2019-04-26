@@ -377,6 +377,23 @@ class BasicModuleTest(unittest.TestCase):
 
             self.assertEqual(sell_price, 0.38)
 
+            sell_prices = []
+            qty_allocates = []
+            bid_ids = []
+            revenue = 0
+            for allocation in allocations:
+                qty = module.proc_module.get_allocation_quantity(allocation)
+                sell_price = module.proc_module.get_bid_price(allocation)
+                bid_id = allocation.get_parent_key()
+                revenue = revenue + (qty*sell_price)
+                sell_prices.append(sell_price)
+                qty_allocates.append(qty)
+                bid_ids.append(bid_id)
+
+            print(sell_prices)
+            print(qty_allocates)
+            print(bid_ids)
+
     def test_enough_quantities(self):
         print('in test_enough_quantities')
         auction_key = "1.1"
@@ -592,7 +609,7 @@ class TwoAuctionPerfectInformationTest(unittest.TestCase):
             for allocation in allocations:
                 qty = module.proc_module.get_allocation_quantity(allocation)
                 sell_price = module.proc_module.get_bid_price(allocation)
-                bid_id = allocation.get_key()
+                bid_id = allocation.get_parent_key()
                 revenue = revenue + (qty*sell_price)
                 sell_prices.append(sell_price)
                 qty_allocates.append(qty)
