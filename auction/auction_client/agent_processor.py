@@ -5,6 +5,8 @@ from foundation.auction_process_object import AuctionProcessObject
 from foundation.module_loader import ModuleLoader
 from foundation.id_source import IdSource
 from foundation.singleton import Singleton
+from foundation.config_param import ConfigParam
+from foundation.config_param import DataType
 
 from datetime import datetime
 
@@ -117,7 +119,8 @@ class AgentProcessor(metaclass=Singleton):
 
     def create_config_params(self):
         config_dict = {}
-        config_dict['domainid'] = self.domain
+        config_param = ConfigParam('domainid',DataType.UINT32, str(self.domain))
+        config_dict[config_param.name] = config_param
         return config_dict
 
     def add_request(self, session_id: str, request_params: dict, auction: Auction, server_domain: int,

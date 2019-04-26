@@ -20,9 +20,9 @@ class TwoAuctionGeneralizedUser(Module):
         self.domain = 0
         self.logger = log().get_logger()
 
-    def init_module(self, config_params: dict):
+    def init_module(self, config_params: Dict[str, FieldValue]):
         self.config_param_list = config_params
-        self.domain = config_params['domainid']
+        self.domain = self.proc_module.get_param_value('domainid', config_params)
 
     def destroy_module(self):
         pass

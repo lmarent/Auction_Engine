@@ -23,7 +23,7 @@ class SubsidyAuction(Module):
         self.domain = 0
         self.proc_module = ProcModule()
 
-    def init_module(self, config_params: Dict[str, ConfigParam]):
+    def init_module(self, config_params: Dict[str, FieldValue]):
         """
         Initializes the module
 
@@ -31,7 +31,8 @@ class SubsidyAuction(Module):
         """
         self.logger.debug('in init_module')
         self.config_params = config_params
-        self.domain = config_params['domainid']
+        self.domain = self.proc_module.get_param_value('domainid', config_params)
+
 
     def destroy_module(self):
         """

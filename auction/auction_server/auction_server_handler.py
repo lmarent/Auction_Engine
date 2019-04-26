@@ -174,7 +174,6 @@ class HandleLoadResourcesFromFile(ScheduledTask):
 class HandleLoadAuction(ScheduledTask):
     """
     Handles auction loading from file.
-
     """
 
     def __init__(self, file_name: str, seconds_to_start: float):
@@ -423,6 +422,9 @@ class HandleAddBiddingObjects(ScheduledTask):
 
 
 class HandleAuctionMessage(ScheduledTask):
+    """
+    This class handles the auction message that arrives from an agent.
+    """
     def __init__(self, client_connection: ClientConnection, ipap_message: IpapMessage, seconds_to_start: float):
         super(HandleAuctionMessage, self).__init__(seconds_to_start)
         self.client_connection = client_connection

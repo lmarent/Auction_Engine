@@ -6,6 +6,7 @@ from auction_server.server import AuctionServer
 from auction_server.auction_processor import AuctionProcessor
 from foundation.auction_parser import AuctionXmlFileParser
 from foundation.bidding_object import BiddingObject
+from foundation.bidding_object_manager import BiddingObjectManager
 from foundation.config import Config
 from auction_server.auction_processor import AgentFieldSet
 from datetime import datetime
@@ -40,11 +41,110 @@ class AuctionProcessorTest(unittest.TestCase):
                 "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions3.xml")
         auction = lst_auctions[0]
         self.auction_processor.add_auction_process(auction)
-        bidding_object = BiddingObject(auction,'bidding_obj_1', {},{})
-        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bidding_object)
+
+        domain = 1
+        manager = BiddingObjectManager(domain)
+
+        # Parse the bidding objects in file example_bids1.xml, it allocates the memory.
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids1.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid)
+
+        # Parse the bidding objects in file example_bids2.xml, it allocates the memory.
+        domain = 2
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids2.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid2 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid2)
+
+        # Parse the bidding objects in file example_bids3.xml, it allocates the memory.
+        domain = 3
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids3.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid3 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid3)
+
+        # Parse the bidding objects in file example_bids4.xml, it allocates the memory.
+        domain = 4
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids4.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid4 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid4)
+
+        # Parse the bidding objects in file example_bids5.xml, it allocates the memory.
+        domain = 5
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids5.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid5 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid5)
+
+        # Parse the bidding objects in file example_bids6.xml, it allocates the memory.
+        domain = 6
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids6.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid6 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid6)
+
+        # Parse the bidding objects in file example_bids7.xml, it allocates the memory.
+        domain = 7
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids7.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid7 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid7)
+
+        # Parse the bidding objects in file example_bids8.xml, it allocates the memory.
+        domain = 8
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids8.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid8 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid8)
+
+        # Parse the bidding objects in file example_bids9.xml, it allocates the memory.
+        domain = 9
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids9.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid9 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid9)
+
+        # Parse the bidding objects in file example_bids10.xml, it allocates the memory.
+        domain = 10
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids10.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid10 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid10)
+
         auction_process = self.auction_processor.get_auction_process(auction.get_key())
         bids = auction_process.get_bids()
-        self.assertEqual(len(bids), 1)
+        self.assertEqual(len(bids), 10)
 
         # test wrong bidding object- auction is not as an auction process.
         lst_auctions = self.auction_xml_file_parser.parse(
@@ -52,7 +152,7 @@ class AuctionProcessorTest(unittest.TestCase):
         auction2 = lst_auctions[0]
         bidding_object_2 = BiddingObject(auction2, 'bidding_obj_2', {}, {})
         with self.assertRaises(ValueError):
-            self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bidding_object)
+            self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bidding_object_2)
 
         with self.assertRaises(ValueError):
             self.auction_processor.add_bidding_object_to_auction_process(auction2.get_key(), bidding_object)
@@ -63,7 +163,114 @@ class AuctionProcessorTest(unittest.TestCase):
                 "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_auctions3.xml")
         auction = lst_auctions[0]
         self.auction_processor.add_auction_process(auction)
-        self.auction_processor.execute_auction(auction.get_key(),datetime.now(), datetime.now() + timedelta(seconds=10))
+
+        domain = 1
+        manager = BiddingObjectManager(domain)
+
+        # Parse the bidding objects in file example_bids1.xml, it allocates the memory.
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids1.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid)
+
+        # Parse the bidding objects in file example_bids2.xml, it allocates the memory.
+        domain = 2
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids2.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid2 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid2)
+
+        # Parse the bidding objects in file example_bids3.xml, it allocates the memory.
+        domain = 3
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids3.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid3 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid3)
+
+        # Parse the bidding objects in file example_bids4.xml, it allocates the memory.
+        domain = 4
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids4.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid4 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid4)
+
+        # Parse the bidding objects in file example_bids5.xml, it allocates the memory.
+        domain = 5
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids5.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid5 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid5)
+
+        # Parse the bidding objects in file example_bids6.xml, it allocates the memory.
+        domain = 6
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids6.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid6 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid6)
+
+        # Parse the bidding objects in file example_bids7.xml, it allocates the memory.
+        domain = 7
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids7.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid7 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid7)
+
+        # Parse the bidding objects in file example_bids8.xml, it allocates the memory.
+        domain = 8
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids8.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid8 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid8)
+
+        # Parse the bidding objects in file example_bids9.xml, it allocates the memory.
+        domain = 9
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids9.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid9 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid9)
+
+        # Parse the bidding objects in file example_bids10.xml, it allocates the memory.
+        domain = 10
+        manager = BiddingObjectManager(domain)
+
+        filename = "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_generalized_bids10.xml"
+        new_bids = manager.parse_bidding_objects(filename)
+        self.assertEqual(len(new_bids), 1)
+        bid10 = new_bids[0]
+        self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), bid10)
+
+        auction_process = self.auction_processor.get_auction_process(auction.get_key())
+        bids = auction_process.get_bids()
+        self.assertEqual(len(bids), 10)
+
+        allocations = self.auction_processor.execute_auction(auction.get_key(),datetime.now(),
+                                                             datetime.now() + timedelta(seconds=10))
+        self.assertEqual(len(allocations), 10)
 
     def test_delete_bidding_object_from_auction_process(self):
         lst_auctions = self.auction_xml_file_parser.parse(

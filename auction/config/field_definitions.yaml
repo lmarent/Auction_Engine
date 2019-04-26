@@ -309,6 +309,12 @@ field_def:
     Eno: 0
     Ftype: 74
     Name: AllocationID
+  domainid:
+    Length: 4
+    Type: Uint32
+    Eno: 0
+    Ftype: 75
+    Name: DomainID
 
 
 

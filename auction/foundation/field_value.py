@@ -1,5 +1,6 @@
 from foundation.specific_field_value import SpecificFieldValue
 from foundation.field_def_manager import FieldDefManager
+from foundation.config_param import ConfigParam
 from enum import Enum
 from lxml.etree import Element
 
@@ -181,3 +182,13 @@ class FieldValue:
         self.name = name
         self.type = field_type
         self.parse_field_value(value)
+
+    def parse_field_value_from_config_param(self, config_param: ConfigParam):
+        """
+        Parses a field value from a config param
+        :param config_param: config param to parse
+        :return: Nothing
+        """
+        self.name = config_param.name
+        self.type = config_param.get_type()
+        self.parse_field_value(config_param.value)

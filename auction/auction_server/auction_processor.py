@@ -8,11 +8,14 @@ from foundation.auctioning_object import AuctioningObjectType
 from foundation.field_def_manager import FieldDefManager
 from foundation.module import Module
 from foundation.config_param import ConfigParam
+from foundation.config_param import DataType
 from foundation.singleton import Singleton
+from foundation.field_value import FieldValue
 
 
 from datetime import datetime
 from enum import Enum
+from typing import List
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_field_key import IpapFieldKey
@@ -32,14 +35,37 @@ class AgentFieldSet(Enum):
 
 
 class AuctionProcess(AuctionProcessObject):
+    """
+    This object represents an auction which is going to be executed. It Contains the auction definition,
+    its parameters and participating bidding objects.
+    """
 
     def __init__(self, key: str, module: Module, auction: Auction, config_dict: dict):
+        """
+        Creates the auction process.
+        :param key: unique key to identify the auction process
+        :param module: module used to execute the auction
+        :param auction: auction that is going to be executed
+        :param config_dict: parameters
+        """
         super(AuctionProcess, self).__init__(key, module)
-        self.config_dict = config_dict
         self.auction = auction
         self.bids = {}
+        self.config_params = {}
+
+        for config_param_name in config_dict:
+            config_param = config_dict[config_param_name]
+            field_value = FieldValue()
+            field_value.parse_field_value_from_config_param(config_param)
+            self.config_params[config_param_name] = field_value
 
     def insert_bid(self, bid: BiddingObject):
+        """
+        Inserts a bidding object of type bid in the auction process.
+
+        :param bid: bid to insert/.
+        :return:
+        """
         if bid.get_key() not in self.bids:
             self.bids[bid.get_key()] = bid
         else:
@@ -58,7 +84,7 @@ class AuctionProcess(AuctionProcessObject):
         Gets config params
         :return:
         """
-        return self.config_dict
+        return self.config_params
 
     def get_bids(self) -> dict:
         """
@@ -176,12 +202,15 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
         action = auction.get_action()
         module_name = action.name
         module = self.module_loader.get_module(module_name)
-        action_process = AuctionProcess(key, module, auction, action.get_config_params())
-        module.init_module(action.get_config_params())
+        config_params = action.get_config_params()
+        if 'domainid' not in config_params:
+            config_params['domainid'] = ConfigParam('domainid', DataType.UINT32, str(self.domain))
+        action_process = AuctionProcess(key, module, auction, config_params)
+        module.init_module(action_process.get_config_params())
         self.auctions[key] = action_process
         return key
 
-    def execute_auction(self, key: str, start: datetime, end: datetime):
+    def execute_auction(self, key: str, start: datetime, end: datetime) -> List[BiddingObject]:
         """
         Executes the allocation algorithm for the auction
         :return:
@@ -191,7 +220,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
 
         action_process = self.auctions[key]
         module = action_process.get_module()
-        allocations = module.execute(key, start, end, action_process.get_bids())
+        allocations = module.execute(action_process.get_config_params(), key, start, end, action_process.get_bids())
         return allocations
 
     def add_bidding_object_to_auction_process(self, key: str, bidding_object: BiddingObject):
