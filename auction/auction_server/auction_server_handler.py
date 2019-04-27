@@ -41,7 +41,7 @@ class HandleAuctionExecution(PeriodicTask):
         """
         super(HandleAuctionExecution, self).__init__(seconds_to_start)
         self.auction = auction
-        self.start = start
+        self.start_datetime = start
         self.server_main_data = ServerMainData()
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
         self.logger = log().get_logger()
@@ -53,16 +53,16 @@ class HandleAuctionExecution(PeriodicTask):
         :return:
         """
         try:
-            next_start = self.start + timedelta(seconds=self.auction.get_interval().interval)
+            next_start = self.start_datetime + timedelta(seconds=self.auction.get_interval().interval)
 
             if next_start > self.auction.get_stop():
                 next_start = self.auction.get_stop()
 
             # Executes the algorithm
-            self.auction_processor.execute_auction(self.auction.get_key(), self.start, next_start)
+            self.auction_processor.execute_auction(self.auction.get_key(), self.start_datetime, next_start)
 
             # The start for the next execution is now setup again.
-            self.start = next_start
+            self.start_datetime = next_start
         except Exception as e:
             self.logger.error(str(e))
 
@@ -93,14 +93,20 @@ class HandleActivateAuction(ScheduledTask):
         :param when: seconds when the auction should be activate
         """
         try:
+            self.logger.debug("in _run_specific HandleActivateAuction")
             # creates the auction processor
             self.auction_processor.add_auction_process(self.auction)
             start = self.auction.get_start()
+
+            self.logger.debug("in _run_specific HandleActivateAuction after create auction processor")
 
             # Activates its execution
             when = (self.auction.get_start() - datetime.now()).total_seconds()
             execution_task = HandleAuctionExecution(self.auction, start, when)
             self.auction.add_task(execution_task)
+            execution_task.start()
+
+            self.logger.debug("in _run_specific HandleActivateAuction after creating the auction execution task")
 
             # Change the state of all auctions to active
             self.auction.set_state(AuctioningObjectState.ACTIVE)

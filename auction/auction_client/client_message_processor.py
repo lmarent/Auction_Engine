@@ -42,7 +42,6 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         :return:
         """
         self.logger.info('starting server connection shutdown - key {0}'.format(server_connection.key))
-        # TODO: To Implement handshake shutdown.
 
         # Close open sockets
         if server_connection.session:
@@ -81,7 +80,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         """
         Connects a server, occurs per every resource request interval activation.
         """
-
+        self.logger.debug('in client message processor connect')
         if self.client_data.use_ipv6:
             session = self.auction_session_manager.create_agent_session(self.client_data.ip_address6,
                                                                         self.client_data.destination_address6,
@@ -105,6 +104,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                                          self.client_data.destination_address6,
                                          self.client_data.destination_port,
                                          server_connection)
+
             task = asyncio.ensure_future(self.websocket_read(server_connection))
             server_connection.set_task(task)
             server_connection.set_auction_session(session)
@@ -350,8 +350,13 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         http_address = 'http://{ip}:{port}/{resource}'.format(ip=destin_ip_address,
                                                               port=str(destination_port),
                                                               resource='websockets')
-        ws= await session.ws_connect(http_address)
-        server_connection.set_web_socket(session, ws)
+        try:
+            ws = await session.ws_connect(http_address)
+            server_connection.set_web_socket(session, ws)
+
+        except Exception as e:
+            # TODO: IMPLEMENT CODE FOR HANDLING THE ERROR.
+            print('error connecting the server', str(e))
 
     async def websocket_read(self, server_connection: ServerConnection):
         print('starting websocket read')

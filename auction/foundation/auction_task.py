@@ -15,10 +15,10 @@ class ImmediateTask(ABC):
 
     async def start(self):
         self.logger.debug("Starting {0}".format(type(self).__name__))
-        await asyncio.run(self._run())
+        await asyncio.run(self._run_specific())
 
     @abstractmethod
-    async def _run(self):
+    async def _run_specific(self):
         """
         Method for executing the tasks, first wait the scheduled time and then
         executes the task.

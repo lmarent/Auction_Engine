@@ -81,9 +81,13 @@ class AuctioningObjectManager:
         """
         return len(self.auctioning_objects)
 
-    def get_auctioning_object_keys(self):
+    def get_auctioning_object_keys(self)-> list:
         """
         Returns the keys of the auction objects
         :return: set of keys
         """
-        return self.auctioning_objects.keys()
+        lst_return = []
+        for key in self.auctioning_objects.keys():
+            lst_return.append(key)
+
+        return lst_return
