@@ -188,7 +188,9 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             await self.send_message(client_connection, message.get_message())
             client_connection.set_state(ClientConnectionState.CLOSE_WAIT)
 
-            # TODO: CALL THE APP TO SHUTDOWN
+            from auction_server.auction_server_handler import HandleClientTearDown
+            handle_tear_down = HandleClientTearDown(client_connection, 0)
+            handle_tear_down.start()
 
             message = self.build_fin_message(client_connection.session.get_next_message_id(), 0)
             client_connection.session.add_pending_message(message)

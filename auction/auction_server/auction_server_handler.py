@@ -1,6 +1,7 @@
 import yaml
 from foundation.auction_task import ScheduledTask
 from foundation.auction_task import PeriodicTask
+from foundation.auction_task import ImmediateTask
 from foundation.resource_manager import ResourceManager
 from foundation.resource import Resource
 from foundation.auction_parser import AuctionXmlFileParser
@@ -462,3 +463,42 @@ class HandleAuctionMessage(ScheduledTask):
                 self.logger.error("invalid message type")
         except Exception as e:
             self.logger.error(str(e))
+
+
+class HandleClientTearDown(ImmediateTask):
+    """
+    This class handles the message to teardown the client's session that arrives from an agent.
+    """
+    def __init__(self, client_connection: ClientConnection, seconds_to_start: float):
+        super(HandleClientTearDown, self).__init__(seconds_to_start)
+        self.client_connection = client_connection
+        self.template_container = IpapTemplateContainerSingleton()
+        self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.auction_processor = AuctionProcessor(self.server_main_data.domain)
+
+    def remove_bidding_object_from_processes(self, bidding_object: BiddingObject):
+        """
+        # remove a bidding object from all auction_processes
+
+        :param bidding_object: bidding object to disassociate
+        :return:
+        """
+        keys = bidding_object.get_participating_auction_processes().copy()
+        for key in keys:
+            self.auction_processor.delete_bidding_object_from_auction_process(key,bidding_object)
+
+    async def _run_specific(self, **kwargs):
+        try:
+
+            bidding_object_keys = self.bidding_manager.get_bidding_objects_by_session(
+                self.client_connection.get_auction_session().get_key())
+
+            for bidding_object_key in bidding_object_keys:
+                bidding_object = self.bidding_manager.get_bidding_object(bidding_object_key)
+                self.remove_bidding_object_from_processes(bidding_object)
+                self.bidding_manager.delete_bidding_object(bidding_object_key)
+
+        except ValueError as e:
+            # This means that the session does not have bidding objects associated
+            pass
+

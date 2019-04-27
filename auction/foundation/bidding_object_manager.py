@@ -10,12 +10,15 @@ from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 
 from typing import List
+from typing import DefaultDict
+from collections import defaultdict
 
 class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
     def __init__(self, domain: int):
 
         super(BiddingObjectManager, self).__init__(domain)
+        self.index_by_session : DefaultDict[str, list] = defaultdict(list)
         pass
 
     def add_bidding_object(self, bidding_object: BiddingObject):
@@ -24,16 +27,25 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
         :param bidding_object: bidding object to add
         """
+        assert not bidding_object.get_session(), "Error, you are triying to store a bidding \
+                                                    object which is not attached to a session"
+
         super(BiddingObjectManager, self).add_auctioning_object(bidding_object)
+
+        if bidding_object.get_session() not in self.index_by_session:
+            self.index_by_session[bidding_object.get_session()] = []
+        (self.index_by_session[bidding_object.get_session()]).append(bidding_object.get_key())
 
     def delete_bidding_object(self, bidding_object_key: str):
         """
-        Deletes a bidding object from the container
+        Deletes a bidding object from the container, it also removes it from the session index.
 
         :param bidding_object_key: bidding object key to delete
         :return:
         """
+        bidding_object = self.get_bidding_object(bidding_object_key)
         super(BiddingObjectManager, self).del_actioning_object(bidding_object_key)
+        self.index_by_session[bidding_object.get_session()].remove(bidding_object_key)
 
     def get_bidding_object(self, bidding_object_key: str) -> BiddingObject:
         """
@@ -98,3 +110,15 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
             ipap_bidding_object_parser.get_ipap_message(bidding_object, auction, template_container, message)
 
         return message
+
+    def get_bidding_objects_by_session(self, session_key: str):
+        """
+        gets the bidding objects attached to a particular session
+
+        :param session_key: session key to return the bidding objects
+        :return: list of bidding object keys
+        """
+        if session_key in self.index_by_session:
+            return self.index_by_session[session_key]
+        else:
+            raise ValueError('Session key {0} does not exist in the bidding object container'.format(session_key))

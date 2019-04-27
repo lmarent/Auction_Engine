@@ -4,6 +4,28 @@ from abc import ABC
 from abc import abstractmethod
 from utils.auction_utils import log
 
+
+class ImmediateTask(ABC):
+    """
+    Represents a task to be execute immediately
+    """
+    def __init__(self):
+        self._task = None
+        self.logger = log().get_logger()
+
+    async def start(self):
+        self.logger.debug("Starting {0}".format(type(self).__name__))
+        await asyncio.run(self._run())
+
+    @abstractmethod
+    async def _run(self):
+        """
+        Method for executing the tasks, first wait the scheduled time and then
+        executes the task.
+        """
+        pass
+
+
 class AuctionTask(ABC):
     """
     Represents a task to be executed for an auction bidding object.
@@ -33,10 +55,9 @@ class AuctionTask(ABC):
                 await self._task
 
     @abstractmethod
-    async def _run(self):
+    async def _run_specific(self):
         """
-        Method for executing the tasks, first wait the scheduled time and then
-        executes the task.
+        Method for executing the task,
         """
         pass
 

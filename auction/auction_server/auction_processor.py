@@ -241,6 +241,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
 
         if bidding_object.get_type() == AuctioningObjectType.BID:
             action_process.insert_bid(bidding_object)
+            bidding_object.associate_auction_process(key)
         else:
             raise ValueError("bidding object is not BID type")
 
@@ -257,6 +258,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
 
         action_process = self.auctions[key]
         action_process.bids.pop(bidding_object.get_key(), None)
+        bidding_object.disassociate_auction_process(key)
 
     def delete_auction_process(self, key: str):
         """
@@ -392,3 +394,4 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
 
         except ValueError as e:
             self.logger.error("Error during processing of applicable auctions - error:{0} ".format(str(e)))
+

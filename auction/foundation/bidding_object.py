@@ -30,6 +30,7 @@ class BiddingObject(AuctioningObject):
         self.options = options
         self.parent_key = parent_key
         self.session_key = None
+        self.participating_auction_processes = []
 
     def get_parent_key(self):
         """
@@ -113,6 +114,31 @@ class BiddingObject(AuctioningObject):
         :return:
         """
         self.session_key = session_key
+
+    def associate_auction_process(self, auction_process_key: str):
+        """
+        Attaches the bidding object to an auction process
+
+        :param auction_process_key: auction process key for which the bidding object will be attached.
+        :return:
+        """
+        self.participating_auction_processes.append(auction_process_key)
+
+    def disassociate_auction_process(self, auction_process_key: str):
+        """
+        Detaches the bidding object from an auction process
+
+        :param auction_process_key: auction process key for which the bidding object will be detached.
+        :return:
+        """
+        self.participating_auction_processes.remove(auction_process_key)
+
+    def get_participating_auction_processes(self) -> list:
+        """
+        gets the auction processes in which the bidding object is attached
+        :return:
+        """
+        return self.participating_auction_processes
 
     def get_session(self) -> str:
         """
