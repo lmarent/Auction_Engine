@@ -15,7 +15,7 @@ class ImmediateTask(ABC):
 
     async def start(self):
         self.logger.debug("Starting {0}".format(type(self).__name__))
-        await asyncio.run(self._run_specific())
+        await asyncio.ensure_future(self._run_specific())
 
     @abstractmethod
     async def _run_specific(self):

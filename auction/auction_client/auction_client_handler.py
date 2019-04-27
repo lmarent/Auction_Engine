@@ -104,27 +104,31 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
             # Create a new session for sending the request
             session = await self.client_message_processor.connect()
 
-            # Gets the new message id
-            message_id = session.get_next_message_id()
-            message.set_seqno(message_id)
-            message.set_ack_seq_no(0)
+            if session is not None:
+                # Gets the new message id
+                message_id = session.get_next_message_id()
+                message.set_seqno(message_id)
+                message.set_ack_seq_no(0)
 
-            session.set_resource_request_interval(interval)
-            session.set_start(interval.start)
-            session.set_stop(interval.stop)
+                session.set_resource_request_interval(interval)
+                session.set_start(interval.start)
+                session.set_stop(interval.stop)
 
-            # Add the session in the session container
-            self.auction_session_manager.add_session(session)
+                # Add the session in the session container
+                self.auction_session_manager.add_session(session)
 
-            # Add the pending message.
-            session.add_pending_message(message)
+                # Add the pending message.
+                session.add_pending_message(message)
 
-            # Sends the message to destination
-            await self.client_message_processor.send_message(session.get_server_connnection(),
-                                                             message.get_message())
+                # Sends the message to destination
+                await self.client_message_processor.send_message(session.get_server_connnection(),
+                                                                 message.get_message())
 
-            # Assign the new session to the interval.
-            interval.session = session.get_key()
+                # Assign the new session to the interval.
+                interval.session = session.get_key()
+
+            else:
+                self.logger.error("the session could not be established")
 
         except Exception as e:
             self.logger.error('Error during handle activate resource request - Error: {0}'.format(str(e)))

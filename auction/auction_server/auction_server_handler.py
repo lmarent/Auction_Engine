@@ -475,10 +475,11 @@ class HandleClientTearDown(ImmediateTask):
     """
     This class handles the message to teardown the client's session that arrives from an agent.
     """
-    def __init__(self, client_connection: ClientConnection, seconds_to_start: float):
-        super(HandleClientTearDown, self).__init__(seconds_to_start)
+    def __init__(self, client_connection: ClientConnection):
+        super(HandleClientTearDown, self).__init__()
         self.client_connection = client_connection
         self.template_container = IpapTemplateContainerSingleton()
+        self.server_main_data = ServerMainData()
         self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
 

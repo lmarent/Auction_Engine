@@ -97,17 +97,23 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         key = session.get_key()
         if key not in self.app['server_connections']:
             server_connection = ServerConnection(key)
-            self.app['server_connections'][key] = server_connection
 
-            await self.websocket_connect(self.client_data.use_ipv6,
-                                         self.client_data.destination_address4,
-                                         self.client_data.destination_address6,
-                                         self.client_data.destination_port,
-                                         server_connection)
+            try:
+                await self.websocket_connect(self.client_data.use_ipv6,
+                                             self.client_data.destination_address4,
+                                             self.client_data.destination_address6,
+                                             self.client_data.destination_port,
+                                             server_connection)
 
-            task = asyncio.ensure_future(self.websocket_read(server_connection))
-            server_connection.set_task(task)
-            server_connection.set_auction_session(session)
+                self.app['server_connections'][key] = server_connection
+                task = asyncio.ensure_future(self.websocket_read(server_connection))
+                server_connection.set_task(task)
+                server_connection.set_auction_session(session)
+
+            except ClientConnectorError as e:
+                self.logger.errors('error connecting the server {0}'.format(str(e)))
+                return None
+
         else:
             server_connection = self.app['server_connections'][key]
 
@@ -255,7 +261,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
     async def process_message(self, server_connection: ServerConnection, msg: str):
         """
-        Process a message arriving from an agent.
+        Processes a message arriving from an agent.
 
         :param server_connection: websocket and aiohttp session created for the connection
         :param msg: message received
@@ -290,7 +296,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
     async def process_disconnect(self, session: AuctionSession):
         """
-        Teardown the connection established for a particular session.
+        Teardowns the connection established for a particular session.
 
         :param session: session to teardown
         :return:
@@ -351,15 +357,22 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                                                               port=str(destination_port),
                                                               resource='websockets')
         try:
+
             ws = await session.ws_connect(http_address)
             server_connection.set_web_socket(session, ws)
 
-        except Exception as e:
-            # TODO: IMPLEMENT CODE FOR HANDLING THE ERROR.
-            print('error connecting the server', str(e))
+        except ClientConnectorError as e:
+            # Close the session to clean up connections.
+            await session.close()
+            raise e
 
     async def websocket_read(self, server_connection: ServerConnection):
-        print('starting websocket read')
+        """
+        Reads the websocket that is related with the server connection
+
+        :param server_connection:  server connection to read the websocket.
+        :return:
+        """
         try:
             async for msg in server_connection.web_socket:
                 if msg.type == WSMsgType.TEXT:
