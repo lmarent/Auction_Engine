@@ -140,10 +140,11 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                             str(server_connection.get_reference() )))
 
         server_connection.delete_reference()
-        if server_connection.get_reference() == 0:
+        if server_connection.get_reference() <= 0:
             # the shutdown of the websocket also finishes the task.
             await self.websocket_shutdown(server_connection)
             self.app['server_connections'].pop(server_connection.key)
+            self.logger.debug("sent socket shutdown to the server")
 
         self.logger.debug("Ending _disconnect_socket")
 

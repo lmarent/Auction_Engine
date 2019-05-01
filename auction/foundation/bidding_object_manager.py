@@ -27,7 +27,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
         :param bidding_object: bidding object to add
         """
-        assert not bidding_object.get_session(), "Error, you are triying to store a bidding \
+        assert bidding_object.get_session(), "Error, you are triying to store a bidding \
                                                     object which is not attached to a session"
 
         super(BiddingObjectManager, self).add_auctioning_object(bidding_object)

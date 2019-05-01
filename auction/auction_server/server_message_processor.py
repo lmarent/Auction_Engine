@@ -248,7 +248,6 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         :return:
         """
         self.logger.debug('starting handle_web_socket')
-        print('starting handle_web_socket')
         ws = WebSocketResponse()
         await ws.prepare(request)
 
@@ -267,6 +266,7 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         client_connection.set_web_socket(ws)
         client_connection.set_session(session)
         self.session_manager.add_session(session)
+
         # Put in the list the new connection from the client.
         if 'client_connections' not in request.app:
             request.app['client_connections'] = []
@@ -282,7 +282,12 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                 elif msg.type == WSMsgType.close:
                     self.logger.debug('ws connection closed')
         finally:
+            self.session_manager.del_session(session_id)
             request.app['client_connections'].remove(client_connection)
+
+            self.logger.debug('# active sessions: {0}'.format(str(len(self.session_manager.session_objects))))
+            self.logger.info('# client connection still active: {0}'.format(
+                str(len(request.app['client_connections']))))
 
         self.logger.debug('websocket connection closed')
         return ws
@@ -296,16 +301,4 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         """
         self.logger.debug('Start send message')
         await client_connection.web_socket.send_str(message)
-        print('message sent- len:', len(message))
-
         self.logger.debug('End send message')
-
-    async def send_message_to_session(self, session_key: str, message: str):
-        """
-        Sends the message for an agent given the session.
-
-        :param session_key: session key used to find the websocket
-        :param message: message to be send
-        """
-        # TODO: implement the method.
-        pass

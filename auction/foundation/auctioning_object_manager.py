@@ -40,7 +40,6 @@ class AuctioningObjectManager:
         """
         lookup the database of auction objects for a specific auction object
         """
-        print(key, self.auctioning_objects.keys())
         if key in self.auctioning_objects.keys():
             return self.auctioning_objects[key]
         else:

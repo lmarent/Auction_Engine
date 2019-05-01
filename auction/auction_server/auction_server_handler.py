@@ -24,7 +24,7 @@ from auction_server.server_main_data import ServerMainData
 from datetime import datetime
 from datetime import timedelta
 from utils.auction_utils import log
-
+import copy
 
 class HandleAuctionExecution(PeriodicTask):
     """
@@ -406,15 +406,18 @@ class HandleAddBiddingObjects(ScheduledTask):
                     when = (interval.start - datetime.now()).total_seconds()
                     handle_activate = HandleActivateBiddingObject(self.client_connection, bidding_object, when)
                     handle_activate.start()
+                    bidding_object.add_task(handle_activate)
 
                     if i < num_options - 1:
                         when = (interval.stop - datetime.now()).total_seconds()
                         handle_inactivate = HandleInactivateBiddingObject(self.client_connection, bidding_object, when)
                         handle_inactivate.start()
+                        bidding_object.add_task(handle_inactivate)
                     else:
                         when = (interval.stop - datetime.now()).total_seconds()
                         handle_inactivate = HandleRemoveBiddingObject(self.client_connection, bidding_object, when)
                         handle_inactivate.start()
+                        bidding_object.add_task(handle_inactivate)
 
                     last_stop = interval.stop
                     i= i + 1
@@ -497,12 +500,13 @@ class HandleClientTearDown(ImmediateTask):
     async def _run_specific(self, **kwargs):
         try:
 
-            bidding_object_keys = self.bidding_manager.get_bidding_objects_by_session(
-                self.client_connection.get_auction_session().get_key())
+            bidding_object_keys = copy.deepcopy(self.bidding_manager.get_bidding_objects_by_session(
+                self.client_connection.get_auction_session().get_key()))
 
             for bidding_object_key in bidding_object_keys:
                 bidding_object = self.bidding_manager.get_bidding_object(bidding_object_key)
                 self.remove_bidding_object_from_processes(bidding_object)
+                await bidding_object.stop_tasks()
                 self.bidding_manager.delete_bidding_object(bidding_object_key)
 
         except ValueError as e:

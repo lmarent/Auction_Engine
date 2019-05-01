@@ -395,3 +395,10 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
         except ValueError as e:
             self.logger.error("Error during processing of applicable auctions - error:{0} ".format(str(e)))
 
+    def get_number_auction_processes(self):
+        """
+        Gets the number of auction processes registered in the container
+
+        :return:
+        """
+        return len(self.auctions)
