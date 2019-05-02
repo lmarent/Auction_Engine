@@ -68,6 +68,7 @@ class AuctionSession(Session):
         Sets the server connection established for the session.
         """
         self.server_connection = server_connection
+        server_connection.add_reference()
 
     def get_server_connnection(self) -> ServerConnection:
         """

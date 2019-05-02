@@ -162,9 +162,6 @@ class RemoveResourceRequestInterval:
         # removes the request interval
         auctions = self.session.get_auctions()
 
-        # teardowns the session created.
-        await self.client_message_processor.process_disconnect(self.session)
-
         # deletes active request process associated with this request interval.
         resource_request_process_ids = resource_request_interval.get_resource_request_process()
         for resurce_request_process_id in resource_request_process_ids:
@@ -175,9 +172,6 @@ class RemoveResourceRequestInterval:
         for auction in auctions_to_remove:
             handle_auction_remove = HandleAuctionRemove(auction, 0)
             handle_auction_remove.start()
-
-        # remove the session from the session manager
-        self.session_manager.del_session(self.session.get_key())
 
 
 class HandleRemoveResourceRequestInterval(ScheduledTask):

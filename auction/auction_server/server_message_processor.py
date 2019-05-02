@@ -1,11 +1,12 @@
 from aiohttp.web import WebSocketResponse
 from aiohttp import WSMsgType
+from aiohttp import WSCloseCode
 import uuid
 
 from enum import Enum
 
 from auction_server.server_main_data import ServerMainData
-from auction_server.auction_session import AuctionSession
+from foundation.session import Session
 
 from foundation.auction_message_processor import AuctionMessageProcessor
 from foundation.session_manager import SessionManager
@@ -27,7 +28,7 @@ class ClientConnectionState(Enum):
     TIME_WAIT = 5
     CLOSE_WAIT = 6
     LAST_ACK = 7
-    CLOSE = 8
+    CLOSED = 8
 
 
 class ClientConnection:
@@ -46,7 +47,7 @@ class ClientConnection:
         """
         self.web_socket = ws
 
-    def set_session(self, session: AuctionSession):
+    def set_session(self, session: Session):
         """
         Sets the session created for the connection
         :param session: session used
@@ -69,24 +70,77 @@ class ClientConnection:
         """
         return self.state
 
-    def get_auction_session(self) -> AuctionSession:
+    def get_auction_session(self) -> Session:
         """
         Gets the auction session
         :return:
         """
         return self.session
 
+    def add_reference(self):
+        """
+        increases the number of objects referencing this connection
+        """
+        self.references = self.references + 1
+
+    def delete_reference(self):
+        """
+        increases the number of objects referencing this connection
+        """
+        self.references = self.references - 1
+
+    def get_reference(self):
+        """
+        Returns the number of references.
+        :return:
+        """
+        return self.references
+
 
 class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
     """
     This class takes care of agents' communications.
     """
+    from auction_server.auction_session import AuctionSession
 
     def __init__(self):
         self.server_data = ServerMainData()
         super(ServerMessageProcessor, self).__init__(self.server_data.domain)
         self.session_manager = SessionManager()
         self.logger = log().get_logger()
+
+    async def websocket_shutdown(self, client_connection: ClientConnection):
+        """
+        Disconnects the websocket from the server
+
+        :param client_connection: client to disconnect
+        :return:
+        """
+        self.logger.info('starting websocket shutdown - key {0}'.format(client_connection.key))
+
+        # Close open sockets
+        if not client_connection.web_socket.closed:
+            await client_connection.web_socket.close(code=WSCloseCode.GOING_AWAY, message='Client shutdown')
+
+        self.logger.info('websocket shutdown ended - key {0}'.format(client_connection.key))
+
+    async def _disconnect_socket(self, client_connection: ClientConnection):
+        """
+        disconnects a session from the server.
+
+        :param client_connection:  connection being used.
+        :return:
+        """
+        self.logger.debug("Starting _disconnect_socket - nbr references:{0}".format(
+            str(client_connection.get_reference())))
+
+        client_connection.delete_reference()
+        if client_connection.get_reference() <= 0:
+            # the shutdown of the websocket also finishes the task.
+            await self.websocket_shutdown(client_connection)
+            self.logger.debug("sent socket shutdown to the server")
+
+        self.logger.debug("Ending _disconnect_socket")
 
     async def handle_syn(self, session: AuctionSession, ipap_message: IpapMessage):
         """
@@ -98,16 +152,16 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         """
         self.logger.debug("starting handle_syn")
         # verifies the connection state
-        if session.get_connnection().state == ClientConnectionState.LISTEN:
+        if session.get_connection().state == ClientConnectionState.LISTEN:
             # send the ack message establishing the session.
 
             message = self.build_syn_ack_message(session.get_next_message_id(),
                                                  ipap_message.get_seqno())
 
             session.add_pending_message(message)
-            await self.send_message(session.get_connnection(), message.get_message())
+            await self.send_message(session.get_connection(), message.get_message())
 
-            session.get_connnection().set_state(ClientConnectionState.SYN_RCVD)
+            session.get_connection().set_state(ClientConnectionState.SYN_RCVD)
 
         else:
             # The server is not in syn sent state, so ignore the message
@@ -131,20 +185,29 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         ack_seqno = ipap_message.get_ackseqno()
 
         # verifies the connection state
-        if session.get_connnection().state == ClientConnectionState.SYN_RCVD:
+        if session.get_connection().state == ClientConnectionState.SYN_RCVD:
             try:
                 session.confirm_message(ack_seqno)
-                session.get_connnection().set_state(ClientConnectionState.ESTABLISHED)
+                session.get_connection().set_state(ClientConnectionState.ESTABLISHED)
 
                 self.logger.info('New established connection')
 
             except ValueError:
                 self.logger.info("The message ack is not the expected, so ignore the message")
 
-        elif session.get_connnection().state == ClientConnectionState.LAST_ACK:
+        # verifies the connection state is in fin wait 1
+        elif session.get_connection().state == ClientConnectionState.FIN_WAIT_1:
             try:
                 session.confirm_message(ack_seqno)
-                session.get_connnection().set_state(ClientConnectionState.CLOSE)
+                session.get_connection().set_state(ClientConnectionState.FIN_WAIT_2)
+
+            except ValueError:
+                self.logger.info("A msg with ack nbr not expected was received, ignoring it")
+
+        elif session.get_connection().state == ClientConnectionState.LAST_ACK:
+            try:
+                session.confirm_message(ack_seqno)
+                session.get_connection().set_state(ClientConnectionState.CLOSE)
 
                 self.logger.info("The connection has been closed")
             except ValueError:
@@ -177,12 +240,12 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             pass
 
         # verifies the connection state
-        if session.get_connnection().state == ClientConnectionState.ESTABLISHED:
+        if session.get_connection().state == ClientConnectionState.ESTABLISHED:
             message = self.build_ack_message(session.get_next_message_id(),
                                              ipap_message.get_seqno())
 
-            await self.send_message(session.get_connnection(), message.get_message())
-            session.get_connnection().set_state(ClientConnectionState.CLOSE_WAIT)
+            await self.send_message(session.get_connection(), message.get_message())
+            session.get_connection().set_state(ClientConnectionState.CLOSE_WAIT)
 
             from auction_server.auction_server_handler import HandleClientTearDown
             handle_tear_down = HandleClientTearDown(session)
@@ -190,8 +253,20 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
             message = self.build_fin_message(session.get_next_message_id(), 0)
             session.add_pending_message(message)
-            await self.send_message(session.get_connnection(), message.get_message())
-            session.get_connnection().set_state(ClientConnectionState.LAST_ACK)
+            await self.send_message(session.get_connection(), message.get_message())
+            session.get_connection().set_state(ClientConnectionState.LAST_ACK)
+
+        elif session.get_connection().state == ClientConnectionState.FIN_WAIT_2:
+
+            self.logger.debug("receive the fin message when in fin_wait")
+            # send the ack message establishing the session.
+            message = self.build_ack_message(session.get_next_message_id(), ipap_message.get_seqno())
+
+            await self.send_message(session.get_connection(), message.get_message())
+
+            session.get_connection().set_state(ClientConnectionState.CLOSED)
+            await self._disconnect_socket(session.get_connection())
+            self.session_manager.del_session(session.get_key())
 
         else:
             # The server is not in established state, so ignore the message
@@ -254,6 +329,7 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         peername = request.transport.get_extra_info('peername')
         host, port = peername
 
+        from auction_server.auction_session import AuctionSession
         session = AuctionSession(session_id, ip_address, self.server_data.local_port,
                                  host, port, self.server_data.protocol)
 
@@ -274,7 +350,9 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                 elif msg.type == WSMsgType.close:
                     self.logger.debug('ws connection closed')
         finally:
-            self.session_manager.del_session(session_id)
+            if session_id in self.session_manager.get_session_keys():
+                self.session_manager.del_session(session_id)
+
             self.logger.debug('# active sessions: {0}'.format(str(len(self.session_manager.session_objects))))
 
         self.logger.debug('websocket connection closed')

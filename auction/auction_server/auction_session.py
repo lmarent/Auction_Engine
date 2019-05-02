@@ -18,8 +18,9 @@ class AuctionSession(Session):
         Sets the client connection established for the session.
         """
         self.connection = client_connection
+        client_connection.add_reference()
 
-    def get_connnection(self) -> ClientConnection:
+    def get_connection(self) -> ClientConnection:
         """
         Gets the client connection established for the session.
         :return: client connection

@@ -34,9 +34,16 @@ class AuctionClient(Agent):
         # terminate pending interval request tasks
         session_keys = deepcopy(self.auction_session_manager.get_session_keys())
         for session_key in session_keys:
-
+            session = self.auction_session_manager.get_session(session_key)
             handle_resource_request_teardown = HandleResourceRequestTeardown(session_key)
             await handle_resource_request_teardown.start()
+
+            # teardowns the session created.
+            await self.message_processor.process_disconnect(session)
+
+            # remove the session from the session manager
+            self.auction_session_manager.del_session(session_key)
+
 
         while True:
             await asyncio.sleep(1)

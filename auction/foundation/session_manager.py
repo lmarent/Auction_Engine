@@ -1,11 +1,12 @@
 # session_manager.py
 from foundation.session import SessionState
 from foundation.session import Session
+from foundation.singleton import Singleton
 
 from typing import List
 
 
-class SessionManager:
+class SessionManager(metaclass=Singleton):
     """
     The SessionManager class allows to add and remove sessions in the core system.
     """

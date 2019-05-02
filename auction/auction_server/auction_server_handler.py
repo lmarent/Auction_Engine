@@ -511,8 +511,10 @@ class HandleClientTearDown(ImmediateTask):
                 await bidding_object.stop_tasks()
                 self.bidding_manager.delete_bidding_object(bidding_object_key)
 
-            await self.server_message_processor.process_disconnect(self.session)
-
         except ValueError:
             # This means that the session does not have bidding objects associated
             pass
+
+        # disconnects the client
+        await self.server_message_processor.process_disconnect(self.session)
+

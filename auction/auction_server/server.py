@@ -65,25 +65,32 @@ class AuctionServer(Agent):
         :param app:
         :return:
         """
-
+        self.logger.debug("starting shutdown")
         session_keys = deepcopy(self.session_manager.get_session_keys())
 
         for session_key in session_keys:
             session: AuctionSession = self.session_manager.get_session(session_key)
-            handle_client_teardown = HandleClientTearDown(session.get_connection())
+            handle_client_teardown = HandleClientTearDown(session)
             await handle_client_teardown.start()
+
+        self.logger.debug("After sending auction sessions teardown")
 
         # Wait while there are still open connections
         while True:
             await asyncio.sleep(1)
 
             num_open = 0
-            for session in self.auction_session_manager.session_objects.values():
+            for session in self.session_manager.session_objects.values():
                 if session.connection.get_state() != ClientConnectionState.CLOSED:
                     num_open = num_open + 1
 
+            if num_open == 0:
+                break
+
         # remove auctions and their processes
         await self.remove_auctions()
+
+        self.logger.debug("shutdown ends")
 
     async def remove_auctions(self):
         """

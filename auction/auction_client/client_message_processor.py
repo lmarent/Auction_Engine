@@ -204,7 +204,36 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             pass
 
         # verifies the connection state
-        if server_connection.get_state() == ServerConnectionState.FIN_WAIT_2:
+        if server_connection.state == ServerConnectionState.ESTABLISHED:
+
+            self.logger.debug("starting to disconnect from server connection state established")
+            message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
+                                             ipap_message.get_seqno())
+
+            await self.send_message(server_connection, message.get_message())
+
+            self.logger.debug("disconnecting - before putting close_wait ")
+            # server_connection.set_state(ServerConnectionState.CLOSE_WAIT)
+            self.logger.debug("disconnecting - after putting close_wait ")
+
+            from auction_client.auction_client_handler import HandleResourceRequestTeardown
+            handle_tear_down = HandleResourceRequestTeardown(server_connection.get_auction_session().get_key())
+            await handle_tear_down.start()
+
+            self.logger.debug("disconnecting - after removing resource request ")
+
+            message = self.build_fin_message(server_connection.get_auction_session().get_next_message_id(), 0)
+            server_connection.get_auction_session().add_pending_message(message)
+            await self.send_message(server_connection, message.get_message())
+
+            self.logger.debug("disconnecting - after sending fin message ")
+
+            server_connection.set_state(ServerConnectionState.LAST_ACK)
+
+            self.logger.debug("ending to disconnect from server connection state established")
+
+        # verifies the connection state
+        elif server_connection.get_state() == ServerConnectionState.FIN_WAIT_2:
 
             # send the ack message establishing the session.
             message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
