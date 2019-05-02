@@ -205,6 +205,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
         config_params = action.get_config_params()
         if 'domainid' not in config_params:
             config_params['domainid'] = ConfigParam('domainid', DataType.UINT32, str(self.domain))
+
         action_process = AuctionProcess(key, module, auction, config_params)
         module.init_module(action_process.get_config_params())
         self.auctions[key] = action_process
@@ -245,7 +246,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
         else:
             raise ValueError("bidding object is not BID type")
 
-    def delete_bidding_object_from_auction_process(self, key: int, bidding_object: BiddingObject):
+    def delete_bidding_object_from_auction_process(self, key: str, bidding_object: BiddingObject):
         """
         deletes a bidding Object from auction process
 

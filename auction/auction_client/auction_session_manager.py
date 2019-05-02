@@ -50,3 +50,4 @@ class AuctionSessionManager(SessionManager, metaclass=Singleton):
         session_id = str(uuid.uuid1())
         return self._create_agent_session(session_id, s_sender_address, s_destin_address,
                                           sender_port, destin_port, protocol)
+

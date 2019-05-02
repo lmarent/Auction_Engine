@@ -2,6 +2,8 @@
 from foundation.session import SessionState
 from foundation.session import Session
 
+from typing import List
+
 
 class SessionManager:
     """
@@ -62,3 +64,15 @@ class SessionManager:
         session.set_state(SessionState.SS_DONE)
         key = session.get_key()
         self.session_objects_done[key] = session
+
+    def get_session_keys(self):
+        """
+        Returns the session keys registered in the container
+        :return:
+        """
+        list_return = []
+
+        for key in self.session_objects.keys():
+            list_return.append(key)
+
+        return list_return

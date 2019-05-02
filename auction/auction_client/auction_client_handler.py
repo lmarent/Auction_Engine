@@ -4,8 +4,6 @@ from math import floor
 from math import fmod
 from typing import List
 from copy import deepcopy
-from abc import ABC
-from abc import abstractmethod
 
 from auction_client.resource_request import ResourceRequest
 from auction_client.resource_request_manager import ResourceRequestManager
@@ -55,7 +53,6 @@ class HandleAddResourceRequest(ScheduledTask):
                     resource_request_interval = resource_request.get_interval_by_start_time(start)
                     when = DateUtils().calculate_when(start)
                     activate_resource_request_int = HandleActivateResourceRequestInterval(start, ret_start[start], when)
-                    resource_request.add_task(activate_resource_request_int)
                     activate_resource_request_int.start()
                     resource_request_interval.add_task(activate_resource_request_int)
 
@@ -63,12 +60,12 @@ class HandleAddResourceRequest(ScheduledTask):
                     resource_request_interval = resource_request.get_interval_by_end_time(stop)
                     when = DateUtils().calculate_when(stop)
                     stop_resource_request_int = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
-                    resource_request.add_task(stop_resource_request_int)
                     stop_resource_request_int.start()
-                    resource_request_interval.add_task(resource_request_interval)
+                    resource_request_interval.add_task(stop_resource_request_int)
 
         except Exception as e:
             self.logger.error(str(e))
+
 
 class HandleActivateResourceRequestInterval(ScheduledTask):
 
@@ -147,11 +144,15 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                     pass
 
 
-class RemoveResourceRequest:
+class RemoveResourceRequestInterval:
 
     def __init__(self, session: AuctionSession):
         self.session_manager = AuctionSessionManager()
         self.session = session
+        self.client_data = ClientMainData()
+        self.client_message_processor = ClientMessageProcessor()
+        self.agent_processor = AgentProcessor(self.client_data.domain, "")
+        self.auction_manager = AuctionManager(self.client_data.domain)
 
     async def process_remove(self):
 
@@ -179,7 +180,7 @@ class RemoveResourceRequest:
         self.session_manager.del_session(self.session.get_key())
 
 
-class HandleRemoveResourceRequestInterval(ScheduledTask, RemoveResourceRequest):
+class HandleRemoveResourceRequestInterval(ScheduledTask):
 
     def __init__(self, stop_datetime: datetime, resource_request: ResourceRequest, seconds_to_start: float):
         """
@@ -208,11 +209,10 @@ class HandleRemoveResourceRequestInterval(ScheduledTask, RemoveResourceRequest):
             # Gets the  auctions corresponding with this resource request interval
             session_id = interval.session
 
-            session = self.auction_session_manager.get_session(session_id)
+            session: AuctionSession = self.auction_session_manager.get_session(session_id)
 
-            remove_resource_request = RemoveResourceRequest(session)
+            remove_resource_request = RemoveResourceRequestInterval(session)
             await remove_resource_request.process_remove()
-
 
         except Exception as e:
             self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
@@ -677,7 +677,7 @@ class HandleResourceRequestTeardown(ImmediateTask):
         try:
 
             session = self.session_manager.get_session(self.session_key)
-            remove_resource_request = RemoveResourceRequest(session)
+            remove_resource_request = RemoveResourceRequestInterval(session)
             await remove_resource_request.process_remove()
 
         except ValueError as e:

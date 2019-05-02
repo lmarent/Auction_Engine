@@ -25,12 +25,12 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
     """
     This class takes care of agents' communications.
     """
+
     def __init__(self, app=None):
 
         self.client_data = ClientMainData()
         super(ClientMessageProcessor, self).__init__(self.client_data.domain)
         self.app = app
-        self.app['server_connections'] = {}
         self.auction_session_manager = AuctionSessionManager()
         self.logger = log().get_logger()
 
@@ -94,28 +94,21 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                                                                         self.client_data.destination_port,
                                                                         self.client_data.protocol)
 
-        key = session.get_key()
-        if key not in self.app['server_connections']:
-            server_connection = ServerConnection(key)
+        server_connection = ServerConnection(session.get_key())
+        try:
+            await self.websocket_connect(self.client_data.use_ipv6,
+                                         self.client_data.destination_address4,
+                                         self.client_data.destination_address6,
+                                         self.client_data.destination_port,
+                                         server_connection)
 
-            try:
-                await self.websocket_connect(self.client_data.use_ipv6,
-                                             self.client_data.destination_address4,
-                                             self.client_data.destination_address6,
-                                             self.client_data.destination_port,
-                                             server_connection)
+            server_connection.set_auction_session(session)
+            task = asyncio.ensure_future(self.websocket_read(server_connection))
+            server_connection.set_task(task)
 
-                self.app['server_connections'][key] = server_connection
-                task = asyncio.ensure_future(self.websocket_read(server_connection))
-                server_connection.set_task(task)
-                server_connection.set_auction_session(session)
-
-            except ClientConnectorError as e:
-                self.logger.errors('error connecting the server {0}'.format(str(e)))
-                return None
-
-        else:
-            server_connection = self.app['server_connections'][key]
+        except ClientConnectorError as e:
+            self.logger.error('error connecting the server {0}'.format(str(e)))
+            raise e
 
         # we need to wait until the connection is ready
         message = self.build_syn_message(session.get_next_message_id())
@@ -133,17 +126,16 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         """
         disconnects a session from the server.
 
-        :param session_key: key for the session to use.
+        :param server_connection: server connection being used.
         :return:
         """
         self.logger.debug("Starting _disconnect_socket - nbr references:{0}".format(
-                            str(server_connection.get_reference() )))
+            str(server_connection.get_reference())))
 
         server_connection.delete_reference()
         if server_connection.get_reference() <= 0:
             # the shutdown of the websocket also finishes the task.
             await self.websocket_shutdown(server_connection)
-            self.app['server_connections'].pop(server_connection.key)
             self.logger.debug("sent socket shutdown to the server")
 
         self.logger.debug("Ending _disconnect_socket")
@@ -169,7 +161,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
                 # send the ack message establishing the session.
                 syn_ack_message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
-                                                             ipap_message.get_seqno())
+                                                         ipap_message.get_seqno())
                 msg = syn_ack_message.get_message()
                 await self.send_message(server_connection, msg)
 
@@ -216,7 +208,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
             # send the ack message establishing the session.
             message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
-                                                 ipap_message.get_seqno())
+                                             ipap_message.get_seqno())
 
             await self.send_message(server_connection, message.get_message())
 
@@ -258,7 +250,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             handle_auction_message = HandleAuctionMessage(server_connection, ipap_message, when)
             handle_auction_message.start()
 
-        self.logger.debug('End method handle_ack -new state: {0}'.format(str(server_connection.get_state())) )
+        self.logger.debug('End method handle_ack -new state: {0}'.format(str(server_connection.get_state())))
 
     async def process_message(self, server_connection: ServerConnection, msg: str):
         """
@@ -273,7 +265,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         except ValueError as e:
             # invalid message, we do not send anything for the moment
-            self.logger.error("Invalid message from agent - Received msg: {0}".format(msg))
+            self.logger.error("Invalid message from agent - Received msg: {0} - Error: {1}".format(msg, str(e)))
             return
 
         syn = ipap_message.get_syn()
@@ -335,8 +327,9 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         self.logger.debug("end method send message")
 
-    async def websocket_connect(self, use_ipv6: bool, destination_address4: ip_address, destination_address6: ip_address,
-                        destination_port: int, server_connection: ServerConnection):
+    async def websocket_connect(self, use_ipv6: bool, destination_address4: ip_address,
+                                destination_address6: ip_address,
+                                destination_port: int, server_connection: ServerConnection):
         """
         Creates a web socket for a server connection
 
@@ -377,7 +370,6 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         try:
             async for msg in server_connection.web_socket:
                 if msg.type == WSMsgType.TEXT:
-                    print('arriving data:', msg.data)
                     await self.process_message(server_connection, msg.data)
 
                 elif msg.type == WSMsgType.CLOSED:
@@ -393,4 +385,3 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         except ClientConnectorError as e:
             self.logger.error("Error during server connection - error:{0}".format(str(e)))
             os.kill(os.getpid(), signal.SIGINT)
-

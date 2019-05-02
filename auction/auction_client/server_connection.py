@@ -86,10 +86,8 @@ class ServerConnection:
         """
         self.auction_session = session
 
-    def get_auction_session(self,) -> Session:
+    def get_auction_session(self) -> Session:
         """
         Gets the auction session for which we create the server connection.
-
-        :param session: session to set
         """
         return self.auction_session

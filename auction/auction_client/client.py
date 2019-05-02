@@ -23,6 +23,7 @@ from auction_client.auction_client_handler import HandleResourceRequestTeardown
 from auction_client.server_connection import ServerConnectionState
 
 from utils.auction_utils import DateUtils
+from copy import deepcopy
 
 
 class AuctionClient(Agent):
@@ -31,7 +32,7 @@ class AuctionClient(Agent):
         self.logger.info('shutdown started')
 
         # terminate pending interval request tasks
-        session_keys = self.auction_session_manager.session_objects.keys()
+        session_keys = deepcopy(self.auction_session_manager.get_session_keys())
         for session_key in session_keys:
 
             handle_resource_request_teardown = HandleResourceRequestTeardown(session_key)

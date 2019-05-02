@@ -1,17 +1,22 @@
 from aiohttp.web import run_app
 from aiohttp.web import get
-from aiohttp import WSCloseCode
 from aiohttp import web
 
 import pathlib
 import os
 import signal
+from copy import deepcopy
+import asyncio
 
 from auction_server.auction_processor import AuctionProcessor
 from auction_server.server_message_processor import ServerMessageProcessor
 from auction_server.server_main_data import ServerMainData
 from auction_server.auction_server_handler import HandleLoadAuction
 from auction_server.auction_server_handler import HandleLoadResourcesFromFile
+from auction_server.auction_server_handler import HandleClientTearDown
+from auction_server.auction_session import AuctionSession
+from auction_server.server_message_processor import ClientConnectionState
+
 
 from foundation.agent import Agent
 from foundation.auction_manager import AuctionManager
@@ -35,9 +40,6 @@ class AuctionServer(Agent):
             self._load_resources()
             self._load_auctions()
 
-            # Start list of web sockets connected
-            self.app['web_sockets'] = []
-
             # add routers.
             self.app.add_routes([get('/websockets', self.message_processor.handle_web_socket)])
 
@@ -58,14 +60,27 @@ class AuctionServer(Agent):
         return web.Response(text="Terminate started")
 
     async def on_shutdown(self, app):
-        self.logger.debug('on_shutdown - active sockets: {0}'.format( len(app['web_sockets'])))
-        # Close all open sockets
-        for ws in app['web_sockets']:
-            print('closing websocket')
+        """
+        Close all open connections
+        :param app:
+        :return:
+        """
 
-            await ws.close(code=WSCloseCode.GOING_AWAY,
-                           message='Server shutdown')
-            print('websocket closed')
+        session_keys = deepcopy(self.session_manager.get_session_keys())
+
+        for session_key in session_keys:
+            session: AuctionSession = self.session_manager.get_session(session_key)
+            handle_client_teardown = HandleClientTearDown(session.get_connection())
+            await handle_client_teardown.start()
+
+        # Wait while there are still open connections
+        while True:
+            await asyncio.sleep(1)
+
+            num_open = 0
+            for session in self.auction_session_manager.session_objects.values():
+                if session.connection.get_state() != ClientConnectionState.CLOSED:
+                    num_open = num_open + 1
 
         # remove auctions and their processes
         await self.remove_auctions()
