@@ -30,62 +30,12 @@ class AuctioningObjectType(Enum):
     ALLOCATION = 4
 
 
-class AuctioningObject:
+class TaskGenerator:
     """
-    Defines common attributes and methods used for auctioning object. An auctioning object
-    represents an abtract class of all objects  being exchanged in the auction.
+    Defines common methods for classes that can create tasks.
     """
-
-    def __init__(self, key: str, auctioning_object_type: AuctioningObjectType, state=AuctioningObjectState.NEW):
-        self.key = key
-        self.auctioning_object_type = auctioning_object_type
-        self.state = state
+    def __init__(self):
         self.active_tasks = []
-
-    def set_state(self, state: AuctioningObjectState):
-        """
-        Change the object's state.
-        """
-        self.state = state
-
-    def get_state(self):
-        """
-        Return object's state.
-        """
-        return self.state
-
-    def get_key(self)-> str:
-        """
-        Return object's key.
-        """
-        return self.key
-
-    def get_type(self) -> AuctioningObjectType:
-        """
-        Returns the auction object type
-        :return: AuctioningObjectType
-        """
-        return self.auctioning_object_type
-
-    def get_template_object_type(self) -> ObjectType:
-        """
-        Returns the object type assciate with the auction object type
-        :return: ObjectType
-        """
-        if self.auctioning_object_type == AuctioningObjectType.AUCTION:
-            return ObjectType.IPAP_AUCTION
-
-        elif self.auctioning_object_type == AuctioningObjectType.BID:
-            return ObjectType.IPAP_BID
-
-        elif self.auctioning_object_type == AuctioningObjectType.ALLOCATION:
-            return ObjectType.IPAP_ALLOCATION
-
-        elif self.auctioning_object_type == AuctioningObjectType.RESOURCE_REQUEST:
-            return ObjectType.IPAP_ASK
-
-        else:
-            return ObjectType.IPAP_INVALID
 
     def add_task(self, auction_task: AuctionTask):
         """
@@ -133,3 +83,62 @@ class AuctioningObject:
                 await task.stop()
             except IndexError:
                 break
+
+
+class AuctioningObject(TaskGenerator):
+    """
+    Defines common attributes and methods used for auctioning object. An auctioning object
+    represents an abtract class of all objects  being exchanged in the auction.
+    """
+
+    def __init__(self, key: str, auctioning_object_type: AuctioningObjectType, state=AuctioningObjectState.NEW):
+        self.key = key
+        self.auctioning_object_type = auctioning_object_type
+        self.state = state
+        super(AuctioningObject, self).__init__()
+
+    def set_state(self, state: AuctioningObjectState):
+        """
+        Change the object's state.
+        """
+        self.state = state
+
+    def get_state(self):
+        """
+        Return object's state.
+        """
+        return self.state
+
+    def get_key(self)-> str:
+        """
+        Return object's key.
+        """
+        return self.key
+
+    def get_type(self) -> AuctioningObjectType:
+        """
+        Returns the auction object type
+        :return: AuctioningObjectType
+        """
+        return self.auctioning_object_type
+
+    def get_template_object_type(self) -> ObjectType:
+        """
+        Returns the object type assciate with the auction object type
+        :return: ObjectType
+        """
+        if self.auctioning_object_type == AuctioningObjectType.AUCTION:
+            return ObjectType.IPAP_AUCTION
+
+        elif self.auctioning_object_type == AuctioningObjectType.BID:
+            return ObjectType.IPAP_BID
+
+        elif self.auctioning_object_type == AuctioningObjectType.ALLOCATION:
+            return ObjectType.IPAP_ALLOCATION
+
+        elif self.auctioning_object_type == AuctioningObjectType.RESOURCE_REQUEST:
+            return ObjectType.IPAP_ASK
+
+        else:
+            return ObjectType.IPAP_INVALID
+

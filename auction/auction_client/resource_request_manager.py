@@ -4,9 +4,10 @@ from foundation.auctioning_object_manager import AuctioningObjectManager
 from auction_client.resource_request import ResourceRequest
 from auction_client.resource_request_file_parser import ResourceRequestFileParser
 from auction_client.ipap_resource_request_parser import IpapResourceRequestParser
-from datetime import datetime
 from foundation.singleton import Singleton
 
+from datetime import datetime
+from typing import List
 
 class ResourceRequestManager(AuctioningObjectManager, metaclass=Singleton):
 
@@ -61,7 +62,7 @@ class ResourceRequestManager(AuctioningObjectManager, metaclass=Singleton):
         """
         super(ResourceRequestManager, self).del_actioning_object(resource_request_key)
 
-    def parse_resource_request_from_file(self, file_name: str) -> list:
+    def parse_resource_request_from_file(self, file_name: str) -> List[ResourceRequest]:
         """
         parse a XML resource request from file
         :param file_name: file to parse.

@@ -1,11 +1,13 @@
 from foundation.interval import Interval
 from foundation.auctioning_object import AuctioningObjectState
+from foundation.auctioning_object import TaskGenerator
 
 
-class ResourceRequestInterval(Interval):
+class ResourceRequestInterval(Interval, TaskGenerator):
 
     def __init__(self):
-        super(ResourceRequestInterval, self).__init__()
+        Interval.__init__(self)
+        TaskGenerator.__init__(self)
         self.field_values = {}
         self.state: AuctioningObjectState = AuctioningObjectState.NEW
         self.resource_request_process = set()

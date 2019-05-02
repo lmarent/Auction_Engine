@@ -19,6 +19,7 @@ from auction_client.client_main_data import ClientMainData
 from auction_client.client_message_processor import ClientMessageProcessor
 from auction_client.auction_client_handler import HandleActivateResourceRequestInterval
 from auction_client.auction_client_handler import HandleRemoveResourceRequestInterval
+from auction_client.auction_client_handler import HandleResourceRequestTeardown
 from auction_client.server_connection import ServerConnectionState
 
 from utils.auction_utils import DateUtils
@@ -30,14 +31,11 @@ class AuctionClient(Agent):
         self.logger.info('shutdown started')
 
         # terminate pending interval request tasks
-        for session in self.auction_session_manager.session_objects.values():
+        session_keys = self.auction_session_manager.session_objects.keys()
+        for session_key in session_keys:
 
-            # TODO: terminate intervals.
-            # resource_request: ResourceRequest = session.resource_request
-            # interval: ResourceRequestInterval = resource_request.get_interval_by_start_time(session.start_time)
-            # interval.stop()
-
-            await self.message_processor.process_disconnect(session)
+            handle_resource_request_teardown = HandleResourceRequestTeardown(session_key)
+            await handle_resource_request_teardown.start()
 
         while True:
             await asyncio.sleep(1)

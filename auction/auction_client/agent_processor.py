@@ -232,6 +232,19 @@ class AgentProcessor(metaclass=Singleton):
         else:
             request_process.auctions.pop(auction.get_key())
 
+    def delete_auction(self, auction: Auction):
+        """
+        Deletes an auction from all requests, normally this code is executed as part of the auction removal.
+
+        :param auction: auction to be delete
+        :return:
+        """
+        for request_key in self.requests:
+            try:
+                self.delete_auction_request(request_key, auction)
+            except ValueError as e:
+                pass
+
     def get_session_for_request(self, key: str) -> str:
         """
         Gets the sessionId generating a request process
