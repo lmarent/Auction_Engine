@@ -367,6 +367,9 @@ class ProcModule(metaclass=Singleton):
         """
         sort bids by price in descending order
 
+        :param bids: bids included for sorting
+        :param discriminatory_price  price to applies subsidies
+        :param subsidy: value by which we multiply prices in order to give subsidies
         :return:
         """
         ordered_bids: DefaultDict[float, list] = defaultdict(list)

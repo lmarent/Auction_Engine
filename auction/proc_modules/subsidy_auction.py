@@ -1,8 +1,5 @@
 from foundation.module import Module
 from foundation.field_value import FieldValue
-from foundation.config_param import ConfigParam
-from foundation.bidding_object import BiddingObject
-from foundation.auction import AuctioningObjectType
 from foundation.module import ModuleInformation
 
 from proc_modules.proc_module import ProcModule
@@ -32,7 +29,6 @@ class SubsidyAuction(Module):
         self.logger.debug('in init_module')
         self.config_params = config_params
         self.domain = self.proc_module.get_param_value('domainid', config_params)
-
 
     def destroy_module(self):
         """
