@@ -43,6 +43,13 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
             self.index_by_session[bidding_object.get_session()] = []
         (self.index_by_session[bidding_object.get_session()]).append(bidding_object.get_key())
 
+        # stores the bidding object in the database.
+        if self.store_objects:
+            database_manager = DataBaseManager()
+            connection = database_manager.acquire()
+            bidding_object.store(connection)
+            database_manager.release(connection)
+
     def delete_bidding_object(self, bidding_object_key: str):
         """
         Deletes a bidding object from the container, it also removes it from the session index.
@@ -51,14 +58,6 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         :return:
         """
         bidding_object = self.get_bidding_object(bidding_object_key)
-
-        # stores the bidding object in the database.
-        if self.store_objects:
-            database_manager = DataBaseManager()
-            connection = database_manager.acquire()
-            bidding_object.store(connection)
-            database_manager.release(connection)
-
         super(BiddingObjectManager, self).del_actioning_object(bidding_object_key)
         self.index_by_session[bidding_object.get_session()].remove(bidding_object_key)
 

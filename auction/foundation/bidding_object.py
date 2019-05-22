@@ -168,6 +168,8 @@ class BiddingObject(AuctioningObject):
         async with connection.transaction():
             connection.execute(BiddingObject.sql_hdr_insert, self.get_parent_key(), self.get_key(),
                         self.get_session(), self.get_type().value, self.get_state().value)
+
+            # Insert the elements within the bidding object
             for element_name in self.elements:
                 connection.execute(BiddingObject.sql_element_insert,
                                    self.get_parent_key(), self.get_key(), element_name)
@@ -176,6 +178,10 @@ class BiddingObject(AuctioningObject):
                     connection.execute(BiddingObject.sql_element_field_insert, self.get_parent_key(), self.get_key(),
                                        element_name, field_name, config_param.get_type().value, config_param.get_value())
 
-
-            for option in self.options:
-                connection.execute(BiddingObject.sql_option_insert, self.get_parent_key(), self.get_key(), option)
+            # Inserts the option within the bidding object
+            for option_name in self.options:
+                connection.execute(BiddingObject.sql_option_insert, self.get_parent_key(), self.get_key(), option_name)
+                for field_name in self.options[option_name]:
+                    config_param: ConfigParam = self.options[option_name][field_name]
+                    connection.execute(BiddingObject.sql_element_field_insert, self.get_parent_key(), self.get_key(),
+                                       option_name, field_name, config_param.get_type().value, config_param.get_value())

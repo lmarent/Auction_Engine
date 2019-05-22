@@ -45,7 +45,7 @@ class HandleAuctionExecution(PeriodicTask):
         self.start_datetime = start
         self.server_main_data = ServerMainData()
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
-        self.logger = log().get_logger()
+        self.bidding_object_manager = BiddingObjectManager(self.server_main_data.domain)
 
     async def _run_specific(self, **kwargs):
         """
@@ -60,7 +60,13 @@ class HandleAuctionExecution(PeriodicTask):
                 next_start = self.auction.get_stop()
 
             # Executes the algorithm
-            self.auction_processor.execute_auction(self.auction.get_key(), self.start_datetime, next_start)
+            biddding_objects = self.auction_processor.execute_auction(self.auction.get_key(),
+                                                                      self.start_datetime, next_start)
+
+            for bidding_object in biddding_objects:
+                self.bidding_object_manager.add_bidding_object(bidding_object)
+
+            # TODO: send the allocations to auction clients.
 
             # The start for the next execution is now setup again.
             self.start_datetime = next_start
