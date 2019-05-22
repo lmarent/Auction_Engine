@@ -32,7 +32,7 @@ class ConfigParam:
         """
         return self.type
 
-    def get_value(self):
+    def get_value(self) -> str:
         """
         Returns the value of the configuration param
         :return: str: value

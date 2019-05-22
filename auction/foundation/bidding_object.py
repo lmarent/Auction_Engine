@@ -25,6 +25,11 @@ class BiddingObject(AuctioningObject):
 
     sql_option_insert =  """INSERT INTO biddingObjectOption(parent_key, key, optionName) VALUES ($1, $2, $3 )"""
 
+    sql_element_field_insert = """INSERT INTO biddingObjectElementField(parent_key, key, elementName, fieldName, 
+                                   fieldType, value) VALUES ($1, $2, $3, $4, $5, $6)"""
+
+    sql_option_field_insert = """INSERT INTO biddingObjectOptionField(parent_key, key, optionName, fieldName, 
+                                   fieldType, value) VALUES ($1, $2, $3, $4, $5, $6)"""
 
     def __init__(self, parent_key: str, bidding_object_key: str, object_type: AuctioningObjectType,
                  elements: dict, options: dict):
@@ -163,6 +168,14 @@ class BiddingObject(AuctioningObject):
         async with connection.transaction():
             connection.execute(BiddingObject.sql_hdr_insert, self.get_parent_key(), self.get_key(),
                         self.get_session(), self.get_type().value, self.get_state().value)
-            for element in self.elements:
-                connection.execute(BiddingObject.sql_element_insert, self.get_parent_key(), self.get_key(),
-                                   self.get_session(), self.get_type().value, self.get_state().value)
+            for element_name in self.elements:
+                connection.execute(BiddingObject.sql_element_insert,
+                                   self.get_parent_key(), self.get_key(), element_name)
+                for field_name in self.elements[element_name]:
+                    config_param: ConfigParam = self.elements[element_name][field_name]
+                    connection.execute(BiddingObject.sql_element_field_insert, self.get_parent_key(), self.get_key(),
+                                       element_name, field_name, config_param.get_type().value, config_param.get_value())
+
+
+            for option in self.options:
+                connection.execute(BiddingObject.sql_option_insert, self.get_parent_key(), self.get_key(), option)
