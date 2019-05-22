@@ -8,7 +8,7 @@ from foundation.parse_format import ParseFormats
 from utils.auction_utils import log
 
 from datetime import datetime
-
+from asyncpg import Connection
 
 class BiddingObject(AuctioningObject):
     """
@@ -18,6 +18,13 @@ class BiddingObject(AuctioningObject):
       1. A set of elements which establish a route description
       2. A set of options which establish the duration of the bidding object. 
     """
+    sql_hdr_insert = """INSERT INTO biddingObjectHdr( parent_key, key, sessionId, biddingObjectType, 
+                        biddingobjectstatus) VALUES ($1, $2, $3, $4, $5 )"""
+
+    sql_element_insert = """INSERT INTO biddingObjectElement( parent_key, key, elementName) VALUES ($1, $2, $3 )"""
+
+    sql_option_insert =  """INSERT INTO biddingObjectOption(parent_key, key, optionName) VALUES ($1, $2, $3 )"""
+
 
     def __init__(self, parent_key: str, bidding_object_key: str, object_type: AuctioningObjectType,
                  elements: dict, options: dict):
@@ -146,3 +153,16 @@ class BiddingObject(AuctioningObject):
         :return:
         """
         return self.session_key
+
+    async def store(self, connection: Connection):
+        """
+        stores the bidding object in the database
+        :param connection: connection to the database
+        :return:
+        """
+        async with connection.transaction():
+            connection.execute(BiddingObject.sql_hdr_insert, self.get_parent_key(), self.get_key(),
+                        self.get_session(), self.get_type().value, self.get_state().value)
+            for element in self.elements:
+                connection.execute(BiddingObject.sql_element_insert, self.get_parent_key(), self.get_key(),
+                                   self.get_session(), self.get_type().value, self.get_state().value)

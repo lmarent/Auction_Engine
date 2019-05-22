@@ -1,10 +1,11 @@
 # auction_server.yaml
-Postgres:
-  Database: auctiondb
+DataBase:
+  Type: postgres
+  Host: localhost
   User: auction_user
   Password: auction_pass
-  Host: localhost
   Port: 5432
+  DbName: auctiondb
   MinSize: 1
   MaxSize: 5
 
@@ -23,7 +24,7 @@ Main:
   AuctionFileDtd: auctionfile.dtd
   AuctionFile: example_auctions3.xml
   BiddingObjectfileDtd: bidfile.dtd
-
+  StoreObjects: True
 
 Control:
   ControlPort: 12248

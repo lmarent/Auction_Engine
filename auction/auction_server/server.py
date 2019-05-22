@@ -22,6 +22,8 @@ from foundation.agent import Agent
 from foundation.auction_manager import AuctionManager
 from foundation.session_manager import SessionManager
 from foundation.resource_manager import ResourceManager
+from foundation.database_manager import DataBaseManager
+from foundation.bidding_object_manager import BiddingObjectManager
 from foundation.config import Config
 
 from utils.auction_utils import log
@@ -123,7 +125,15 @@ class AuctionServer(Agent):
         """
         self.logger.debug("Starting _initialize_managers")
         self.auction_manager = AuctionManager(self.domain)
-        #       self.bidding_object_manager = BiddingObjectManager()
+        self.database_manager = DataBaseManager(Config().get_config_param('DataBase', 'Type'),
+                                                Config().get_config_param('DataBase', 'Host'),
+                                                Config().get_config_param('DataBase', 'User'),
+                                                Config().get_config_param('DataBase', 'Password'),
+                                                Config().get_config_param('DataBase', 'Port'),
+                                                Config().get_config_param('DataBase', 'DbName'),
+                                                Config().get_config_param('DataBase', 'MinSize'),
+                                                Config().get_config_param('DataBase', 'MaxSize'))
+        self.bidding_object_manager = BiddingObjectManager(self.domain)
         self.session_manager = SessionManager()
         self.resource_manager = ResourceManager(self.domain)
         self.logger.debug("Ending _initialize_managers")

@@ -1,10 +1,11 @@
 # auction_agent.yaml
-Postgres:
-  Database: auctiondb
+DataBase:
+  Type: postgres
+  Host: localhost
   User: auction_user
   Password: auction_pass
-  Host: localhost
   Port: 5432
+  DbName: auctiondb
   Minsize: 1
   Maxsize: 5
 
@@ -28,6 +29,7 @@ Main:
   TimeFormat: "%Y%m%d %H%M%S"
   AuctionfileDtd: auctionfile.dtd
   BiddingObjectfileDtd: bidfile.dtd
+  StoreObjects: False
 
 Control:
   ControlPort: 12248

@@ -5,6 +5,8 @@ from foundation.bidding_object import BiddingObject
 from foundation.ipap_bidding_object_parser import IpapBiddingObjectParser
 from foundation.auction_manager import AuctionManager
 from foundation.bidding_object_file_parser import BiddingObjectXmlFileParser
+from foundation.config import Config
+from foundation.database_manager import DataBaseManager
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
@@ -19,6 +21,11 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
         super(BiddingObjectManager, self).__init__(domain)
         self.index_by_session : DefaultDict[str, list] = defaultdict(list)
+        try:
+            self.store_objects = Config().get_config_param('Main', 'StoreObjects')
+        except ValueError:
+            self.store_objects = False # by default does not store objects.
+
         pass
 
     def add_bidding_object(self, bidding_object: BiddingObject):
@@ -44,6 +51,14 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         :return:
         """
         bidding_object = self.get_bidding_object(bidding_object_key)
+
+        # stores the bidding object in the database.
+        if self.store_objects:
+            database_manager = DataBaseManager()
+            connection = database_manager.acquire()
+            bidding_object.store(connection)
+            database_manager.release(connection)
+
         super(BiddingObjectManager, self).del_actioning_object(bidding_object_key)
         self.index_by_session[bidding_object.get_session()].remove(bidding_object_key)
 
