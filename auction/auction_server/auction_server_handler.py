@@ -54,6 +54,7 @@ class HandleAuctionExecution(PeriodicTask):
         :return:
         """
         try:
+            print('interval:', self.auction.get_interval().interval)
             next_start = self.start_datetime + timedelta(seconds=self.auction.get_interval().interval)
 
             if next_start > self.auction.get_stop():
@@ -109,8 +110,8 @@ class HandleActivateAuction(ScheduledTask):
             self.logger.debug("in _run_specific HandleActivateAuction after create auction processor")
 
             # Activates its execution
-            when = (self.auction.get_start() - datetime.now()).total_seconds()
-            execution_task = HandleAuctionExecution(self.auction, start, when)
+            time_interval = self.auction.get_interval().interval
+            execution_task = HandleAuctionExecution(self.auction, start, time_interval)
             self.auction.add_task(execution_task)
             execution_task.start()
 
@@ -225,6 +226,7 @@ class HandleLoadAuction(ScheduledTask):
                     else:
                         seconds_to_start = (auction.get_start() - datetime.now()).total_seconds()
 
+                    print('seconds_to_start', seconds_to_start)
                     activate_task = HandleActivateAuction(auction=auction, seconds_to_start=seconds_to_start)
                     activate_task.start()
                     auction.add_task(activate_task)
@@ -277,7 +279,7 @@ class HandleAskRequest(ScheduledTask):
         """
         try:
             auctions = self.auction_processor.get_applicable_auctions(self.message)
-            self.logger.debug("nuber of applicable auctions: {0}".format(len(auctions)))
+            self.logger.debug("number of applicable auctions: {0}".format(len(auctions)))
             session_info = self.auction_processor.get_session_information(self.message)
 
             if self.server_main_data.use_ipv6:
@@ -288,10 +290,11 @@ class HandleAskRequest(ScheduledTask):
             if self.is_complete(session_info):
                 message_to_send = self.auction_manager.get_ipap_message(auctions, self.server_main_data.use_ipv6,
                                                                         s_address, self.server_main_data.local_port)
+
                 message_to_send.set_ack_seq_no(self.message.get_seqno())
                 message_to_send.set_seqno(self.session.get_next_message_id())
 
-                await self.message_processor.send_message(self.session.get_connnection(),
+                await self.message_processor.send_message(self.session.get_connection(),
                                                           message_to_send.get_message())
             else:
                 ack_message = self.message_processor.build_ack_message(self.session.get_next_message_id(),
@@ -463,15 +466,15 @@ class HandleAuctionMessage(ScheduledTask):
                 handle_ask_request = HandleAskRequest(self.session, self.message, 0)
                 handle_ask_request.start()
 
-            if ipap_message_type.is_auction_message():
+            elif ipap_message_type.is_auction_message():
                 # TODO: It must implement new auctions.
                 pass
 
-            if ipap_message_type.is_bidding_message():
+            elif ipap_message_type.is_bidding_message():
                 handle_bidding_object_interaction = HandleAddBiddingObjects(self.session, self.message, 0)
                 handle_bidding_object_interaction.start()
 
-            if ipap_message_type.is_allocation_message():
+            elif ipap_message_type.is_allocation_message():
                 # TODO: implement the code
                 pass
 

@@ -7,8 +7,10 @@ from foundation.id_source import IdSource
 from foundation.singleton import Singleton
 from foundation.config_param import ConfigParam
 from foundation.config_param import DataType
+from foundation.field_value import FieldValue
 
 from datetime import datetime
+from copy import deepcopy
 
 
 class RequestProcess(AuctionProcessObject):
@@ -118,10 +120,18 @@ class AgentProcessor(metaclass=Singleton):
             ValueError('Configuration file does not have {0} entry,please include it'.format('AGNTProcessor'))
 
     def create_config_params(self):
+        config_params = {}
         config_dict = {}
         config_param = ConfigParam('domainid',DataType.UINT32, str(self.domain))
         config_dict[config_param.name] = config_param
-        return config_dict
+
+        for config_param_name in config_dict:
+            config_param = config_dict[config_param_name]
+            field_value = FieldValue()
+            field_value.parse_field_value_from_config_param(config_param)
+            config_params[config_param_name] = field_value
+
+        return config_params
 
     def add_request(self, session_id: str, request_params: dict, auction: Auction, server_domain: int,
                     start: datetime, stop: datetime) -> str:
@@ -138,9 +148,13 @@ class AgentProcessor(metaclass=Singleton):
         """
         module_name = auction.get_action().get_name() + "_user"
         module = self.module_loader.get_module(module_name)
-        module.init_module(self.create_config_params())
         key = str(IdSource().new_id())
+        request_params = deepcopy(request_params)
+        other_params = self.create_config_params()
+        request_params.update(other_params)
+
         request_process = RequestProcess(key, session_id, module, auction, server_domain, request_params, start, stop)
+        module.init_module(request_process.get_request_params())
         self.requests[key] = request_process
         return key
 

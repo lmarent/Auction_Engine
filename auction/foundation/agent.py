@@ -30,7 +30,6 @@ class Agent(ABC):
 
         self._load_main_data()
         self._load_control_data()
-        self._load_database_params()
 
     @abstractmethod
     def _load_main_data(self):
@@ -84,17 +83,3 @@ class Agent(ABC):
 
             raise ValueError("The value for control port{0} is not a valid number".format(
                 Config().get_config_param('Control', 'ControlPort')))
-
-    def _load_database_params(self):
-        """
-        Loads the database parameters from configuration file
-        """
-        self.logger.debug("starting _load_database_params")
-
-        self.db_name = Config().get_config_param('Postgres', 'Database')
-        self.db_user = Config().get_config_param('Postgres', 'User')
-        self.db_passwd = Config().get_config_param('Postgres', 'Password')
-        self.db_ip_address = Config().get_config_param('Postgres', 'Host')
-        self.db_port = ParseFormats.parse_uint16(Config().get_config_param('Postgres', 'Port'))
-
-        self.logger.debug("ending _load_database_params")

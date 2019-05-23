@@ -131,6 +131,8 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                 # Assign the new session to the interval.
                 interval.session = session.get_key()
 
+                self.logger.debug("ending ok HandleActivateResourceRequestInterval")
+
             else:
                 self.logger.error("the session could not be established")
 
@@ -326,6 +328,7 @@ class HandleAskResponseMessage(ScheduledTask):
             if max_interval < interval.interval:
                 max_interval = interval.interval
 
+        self.logger.debug("ending create_auctions")
         return max_interval
 
     def create_process_request(self, auctions: list, max_interval: int, server_domain: int):
@@ -347,12 +350,14 @@ class HandleAskResponseMessage(ScheduledTask):
         req_start = self.resource_request_interval.start
         req_stop = self.resource_request_interval.stop
 
+        self.logger.debug("process request 1")
+
         first_time = True
         resource_request_key = None
         for module_name in auctions_by_module:
-            aucs = auctions_by_module[module_name]
+            auctions = auctions_by_module[module_name]
             resource_request_key = None
-            for auction in aucs:
+            for auction in auctions:
                 if first_time:
                     if max_interval > 0:
                         bid_intervals = floor((req_stop - req_start).total_seconds() / max_interval)
@@ -368,6 +373,7 @@ class HandleAskResponseMessage(ScheduledTask):
                     first_time = False
                 else:
                     self.agent_processor.add_auction_request(resource_request_key, auction)
+        self.logger.debug("process request 2")
 
         when = DateUtils.calculate_when(req_start)
         handle_request_process_execution = HandleRequestProcessExecution(resource_request_key, when)
@@ -378,6 +384,7 @@ class HandleAskResponseMessage(ScheduledTask):
         handle_request_process_remove = HandleRequestProcessRemove(resource_request_key, when)
         handle_request_process_remove.start()
         self.resource_request_interval.add_task(handle_request_process_remove)
+        self.logger.debug("ending process request")
 
     async def _run_specific(self):
         try:

@@ -6,13 +6,13 @@ DataBase:
   Password: postgres
   Port: 5432
   DbName: auction_client_db
-  Minsize: 1
-  Maxsize: 5
+  MinSize: 1
+  MaxSize: 5
 
 Main:
   Domain: 10
   ResourceRequestFileDtd: resourcerequestfile.dtd
-  ResourceRequestFile: example_resource_request1.xml
+  ResourceRequestFile: aggregate01.xml
   UseIPv6: No
   LocalAddr-V4: 127.0.0.1
   LocalAddr-V6: 0:0:0:0:0:0:0:0

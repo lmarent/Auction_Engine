@@ -16,6 +16,7 @@ from foundation.field_value import FieldValue
 from datetime import datetime
 from enum import Enum
 from typing import List
+from copy import deepcopy
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_field_key import IpapFieldKey
@@ -202,7 +203,7 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
         action = auction.get_action()
         module_name = action.name
         module = self.module_loader.get_module(module_name)
-        config_params = action.get_config_params()
+        config_params = deepcopy(action.get_config_params())
         if 'domainid' not in config_params:
             config_params['domainid'] = ConfigParam('domainid', DataType.UINT32, str(self.domain))
 

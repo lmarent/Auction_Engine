@@ -144,19 +144,22 @@ class AuctionClient(Agent):
 
         # schedule the new events.
         for request in resource_requests:
-            ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
-            for start in ret_start:
-                when = DateUtils().calculate_when(start)
-                handle_activate = HandleActivateResourceRequestInterval(start, ret_start[start], when)
-                request.add_task(handle_activate)
-                handle_activate.start()
+            try:
+                print(request.get_key())
+                ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
+                for start in ret_start:
+                    when = DateUtils().calculate_when(start)
+                    handle_activate = HandleActivateResourceRequestInterval(start, ret_start[start], when)
+                    request.add_task(handle_activate)
+                    handle_activate.start()
 
-            for stop in ret_stop:
-                when = DateUtils().calculate_when(stop)
-                handle_remove = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
-                request.add_task(handle_remove)
-                handle_remove.start()
-
+                for stop in ret_stop:
+                    when = DateUtils().calculate_when(stop)
+                    handle_remove = HandleRemoveResourceRequestInterval(stop, ret_stop[stop], when)
+                    request.add_task(handle_remove)
+                    handle_remove.start()
+            except ValueError as e:
+                print(str(e))
         self.logger.debug("Ending _load_resources_request")
 
     def run(self):

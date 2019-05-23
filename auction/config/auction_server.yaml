@@ -22,7 +22,7 @@ Main:
   ImmediateStart: True
   ResourceFile: resources.yaml
   AuctionFileDtd: auctionfile.dtd
-  AuctionFile: example_auctions3.xml
+  AuctionFile: auctions.xml
   BiddingObjectfileDtd: bidfile.dtd
   StoreObjects: True
 

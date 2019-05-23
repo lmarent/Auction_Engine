@@ -62,7 +62,6 @@ class ModuleLoader:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             module_class_name = ''.join(x for x in module_name.title() if x.isalnum())
-            print(module_class_name)
             module_class =  getattr(module, module_class_name)
             klass = module_class(module_name,file_name, module_class_name, module)
             self.modules[module_name] = klass
