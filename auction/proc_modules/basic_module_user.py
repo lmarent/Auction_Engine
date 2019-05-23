@@ -26,14 +26,14 @@ class BasicModuleUser(Module):
 
     def check_parameters(self, request_params):
         required_fields = set()
-        required_fields.add(self.proc_module.field_def_manager.get_field("quantity"))
-        required_fields.add(self.proc_module.field_def_manager.get_field("totalbudget"))
-        required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("quantity")['key'])
+        required_fields.add(self.proc_module.field_def_manager.get_field("totalbudget")['key'])
+        required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue")['key'])
 
         for field in required_fields:
-            if field['key'] not in request_params:
-                raise ValueError("basic module: ending check - it does not pass the check, \
-                                 field not included {0}".format(field['key']))
+            if field not in request_params:
+                raise ValueError(
+                    "basic module: ending check - it does not pass the check, field not included {0}".format(field))
 
     def create_bidding_object(self, auction_key: str, quantity: float, unit_budget: float,
                               unit_price: float, start: datetime, stop: datetime) -> BiddingObject:
@@ -86,6 +86,7 @@ class BasicModuleUser(Module):
         """
         self.logger.debug("starting execute user")
         try:
+            self.check_parameters(request_params)
             total_budget = self.proc_module.get_param_value("totalbudget", request_params)
             max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
             quantity = self.proc_module.get_param_value("quantity", request_params)

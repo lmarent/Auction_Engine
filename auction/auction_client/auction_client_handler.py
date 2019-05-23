@@ -350,8 +350,6 @@ class HandleAskResponseMessage(ScheduledTask):
         req_start = self.resource_request_interval.start
         req_stop = self.resource_request_interval.stop
 
-        self.logger.debug("process request 1")
-
         first_time = True
         resource_request_key = None
         for module_name in auctions_by_module:
@@ -373,7 +371,6 @@ class HandleAskResponseMessage(ScheduledTask):
                     first_time = False
                 else:
                     self.agent_processor.add_auction_request(resource_request_key, auction)
-        self.logger.debug("process request 2")
 
         when = DateUtils.calculate_when(req_start)
         handle_request_process_execution = HandleRequestProcessExecution(resource_request_key, when)

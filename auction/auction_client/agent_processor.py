@@ -199,6 +199,11 @@ class AgentProcessor(metaclass=Singleton):
         module = request_process.get_module()
         bids = module.execute_user(request_process.get_request_params(), request_process.get_auctions(),
                                    request_process.get_start(), request_process.get_stop())
+
+        # Sets the session for the bid.
+        for bid in bids:
+            bid.set_session(request_process.get_session_id())
+
         return bids
 
     def add_auction_request(self, key: str, auction: Auction):
