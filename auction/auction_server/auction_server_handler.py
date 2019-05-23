@@ -65,7 +65,7 @@ class HandleAuctionExecution(PeriodicTask):
                                                                       self.start_datetime, next_start)
 
             for bidding_object in biddding_objects:
-                self.bidding_object_manager.add_bidding_object(bidding_object)
+                await self.bidding_object_manager.add_bidding_object(bidding_object)
 
             # TODO: send the allocations to auction clients.
 
@@ -406,14 +406,13 @@ class HandleAddBiddingObjects(ScheduledTask):
             bidding_objects = self.bididing_manager.parse_ipap_message(self.ipap_message, self.template_container)
 
             # insert bidding objects to bidding object manager
-            last_stop = datetime.now()
             for bidding_object in bidding_objects:
                 bidding_object.set_session(self.session.get_key())
                 self.bididing_manager.add_auctioning_object(bidding_object)
                 i = 0
                 num_options = len(bidding_object.options)
                 for option_name in sorted(bidding_object.options.keys()):
-                    interval = bidding_object.calculate_interval(option_name, last_stop)
+                    interval = bidding_object.calculate_interval(option_name)
                     when = (interval.start - datetime.now()).total_seconds()
                     handle_activate = HandleActivateBiddingObject(self.session, bidding_object, when)
                     handle_activate.start()
@@ -430,13 +429,12 @@ class HandleAddBiddingObjects(ScheduledTask):
                         handle_inactivate.start()
                         bidding_object.add_task(handle_inactivate)
 
-                    last_stop = interval.stop
                     i = i + 1
 
             # confirm the message
             confim_message = self.server_message_processor.build_ack_message(self.session.get_next_message_id(),
                                                                              self.ipap_message.get_seqno() + 1)
-            await self.server_message_processor.send_message(self.session.get_connnection(),
+            await self.server_message_processor.send_message(self.session.get_connection(),
                                                              confim_message.get_message())
             self.logger.debug("ending HandleAddBiddingObjects")
         except Exception as e:

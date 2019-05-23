@@ -114,16 +114,9 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         :return: list of auctions to be removed from handlers.
         """
         auctions_to_remove = []
-        for auction_key in auctions:
-            auction = None
-            try:
-                auction = self.get_auction(auction_key)
-            except ValueError as e:
-                auction = self.get_done_auction(auction_key)
-
-            if auction:
-                auction.delete_session_reference(session_id)
-                if auction.get_session_references() == 0:
-                    auctions_to_remove.append(auction)
+        for auction in auctions:
+            auction.delete_session_reference(session_id)
+            if auction.get_session_references() == 0:
+                auctions_to_remove.append(auction)
 
         return auctions_to_remove

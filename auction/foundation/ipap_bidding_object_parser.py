@@ -211,10 +211,8 @@ class IpapBiddingObjectParser(IpapMessageParser):
             self.include_data_record(data_template, bidding_object, element_name, config_params, message)
 
         # Include option records.
-        last_stop = datetime.now()
         for option_name in bidding_object.options:
-            interval = bidding_object.calculate_interval(option_name, last_stop)
+            interval = bidding_object.calculate_interval(option_name)
             config_params = bidding_object.options[option_name]
             self.include_options_record(option_template, bidding_object,
                                         option_name, interval.start, interval.stop, config_params, message)
-            last_stop = interval.stop

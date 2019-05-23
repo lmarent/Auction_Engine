@@ -1,6 +1,7 @@
 from foundation.singleton import Singleton
 
 import asyncpg
+from utils.auction_utils import log
 
 
 class DataBaseManager(metaclass=Singleton):
@@ -8,8 +9,8 @@ class DataBaseManager(metaclass=Singleton):
     Singleton class for maintaining a pool to the database.
     """
 
-    def __init__(self, db_type: str='postgres', db_server: str = None, user: str = None, password: str = None,
-                 port: int = None, database_name: str = None, min_size: int=1, max_size: int=1 ):
+    def __init__(self, db_type: str = 'postgres', db_server: str = None, user: str = None, password: str = None,
+                 port: int = None, database_name: str = None, min_size: int = 1, max_size: int = 1):
         self.db_type = db_type
         self.db_server = db_server
         self.user = user
@@ -19,6 +20,7 @@ class DataBaseManager(metaclass=Singleton):
         self.min_size = min_size
         self.max_size = max_size
         self.pool = None
+        self.logger = log().get_logger()
 
     async def connect(self):
         """
@@ -27,12 +29,13 @@ class DataBaseManager(metaclass=Singleton):
         """
         if self.pool is None:
             if self.db_type == 'postgres':
-                dsn = 'postgres://{user}:{password}@{host}:{port}/{database}'.format(user=self.user,
-                                                                                 password=self.password,
-                                                                                 host=self.db_server,
-                                                                                 port=self.port,
-                                                                                 database=self.database_name)
+                dsn = "postgres://{user}:{password}@{host}:{port}/{database}".format(user=self.user,
+                                                                                     password=self.password,
+                                                                                     host=self.db_server,
+                                                                                     port=self.port,
+                                                                                     database=self.database_name)
 
+                self.logger.debug("dsn: {0}".format(dsn))
                 self.pool = await asyncpg.create_pool(dsn=dsn, command_timeout=60)
             else:
                 raise ValueError('Invalid database type provided')

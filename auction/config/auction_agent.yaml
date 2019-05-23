@@ -29,7 +29,7 @@ Main:
   TimeFormat: "%Y%m%d %H%M%S"
   AuctionfileDtd: auctionfile.dtd
   BiddingObjectfileDtd: bidfile.dtd
-  StoreObjects: False
+  StoreObjects: True
 
 Control:
   ControlPort: 12248

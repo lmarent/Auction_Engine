@@ -57,6 +57,11 @@ class AuctionClient(Agent):
             if num_open == 0:
                 break
 
+        try:
+            self.database_manager.close()
+        except ValueError:
+            pass
+
         self.logger.info('shutdown ended')
 
     def __init__(self):

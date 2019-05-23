@@ -14,6 +14,8 @@ from python_wrapper.ipap_template_container import IpapTemplateContainer
 from typing import List
 from typing import DefaultDict
 from collections import defaultdict
+from utils.auction_utils import log
+
 
 class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
@@ -21,6 +23,8 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
         super(BiddingObjectManager, self).__init__(domain)
         self.index_by_session : DefaultDict[str, list] = defaultdict(list)
+        self.index_by_parent :DefaultDict[str, list] = defaultdict(list)
+        self.logger = log().get_logger()
         try:
             self.store_objects = Config().get_config_param('Main', 'StoreObjects')
         except ValueError:
@@ -28,7 +32,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
         pass
 
-    def add_bidding_object(self, bidding_object: BiddingObject):
+    async def add_bidding_object(self, bidding_object: BiddingObject):
         """
         Adds a bidding object to the container
 
@@ -43,12 +47,17 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
             self.index_by_session[bidding_object.get_session()] = []
         (self.index_by_session[bidding_object.get_session()]).append(bidding_object.get_key())
 
+        if bidding_object.get_parent_key() not in self.index_by_parent:
+            self.index_by_parent[bidding_object.get_parent_key()] = []
+        (self.index_by_parent[bidding_object.get_parent_key()]).append(bidding_object.get_parent_key())
+
         # stores the bidding object in the database.
+        self.logger.debug("store objects: {0}".format( self.store_objects))
         if self.store_objects:
             database_manager = DataBaseManager()
-            connection = database_manager.acquire()
-            bidding_object.store(connection)
-            database_manager.release(connection)
+            connection = await database_manager.acquire()
+            await bidding_object.store(connection)
+            await database_manager.release(connection)
 
     def delete_bidding_object(self, bidding_object_key: str):
         """
@@ -60,6 +69,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         bidding_object = self.get_bidding_object(bidding_object_key)
         super(BiddingObjectManager, self).del_actioning_object(bidding_object_key)
         self.index_by_session[bidding_object.get_session()].remove(bidding_object_key)
+        self.index_by_parent[bidding_object.get_parent_key()].remove(bidding_object_key)
 
     def get_bidding_object(self, bidding_object_key: str) -> BiddingObject:
         """
@@ -136,3 +146,15 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
             return self.index_by_session[session_key]
         else:
             raise ValueError('Session key {0} does not exist in the bidding object container'.format(session_key))
+
+    def get_bidding_objects_by_parent(self, parent_key: str):
+        """
+        Gets the bidding objects attached to a particular parent
+
+        :param parent_key: parent key to return the bidding objects
+        :return: list of bidding object keys
+        """
+        if parent_key in self.index_by_parent:
+            return self.index_by_parent[parent_key]
+        else:
+            raise ValueError('Parent key {0} does not exist in the bidding object container'.format(parent_key))

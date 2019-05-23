@@ -83,7 +83,7 @@ class BiddingObject(AuctioningObject):
         else:
             raise ValueError("record was not found in config params")
 
-    def calculate_interval(self, option_name: str, last_stop: datetime) -> Interval:
+    def calculate_interval(self, option_name: str) -> Interval:
         """
          Calculates the interval for a options record
         :param option_name for which we want to create the interval.

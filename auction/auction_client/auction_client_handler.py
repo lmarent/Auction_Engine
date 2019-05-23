@@ -160,7 +160,6 @@ class RemoveResourceRequestInterval:
 
         # searches the request interval
         resource_request_interval = self.session.get_resource_request_interval()
-
         # removes the request interval
         auctions = self.session.get_auctions()
 
@@ -171,6 +170,7 @@ class RemoveResourceRequestInterval:
 
         # deletes the reference to the auction (a session is not referencing it anymore)
         auctions_to_remove = self.auction_manager.decrement_references(auctions, self.session.get_key())
+
         for auction in auctions_to_remove:
             handle_auction_remove = HandleAuctionRemove(auction, 0)
             handle_auction_remove.start()
@@ -211,7 +211,7 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
             await remove_resource_request.process_remove()
 
         except Exception as e:
-            self.logger.error('Error during activate resource request interval - Error:{0}'.format(str(e)))
+            self.logger.error('Error during remove resource request interval - Error:{0}'.format(str(e)))
 
 
 class HandleAuctionMessage(ScheduledTask):
@@ -482,7 +482,7 @@ class HandleAuctionRemove(ScheduledTask):
             self.agent_processor.delete_auction(self.auction)
 
             handle_remove_bidding_objects = HandleRemoveBiddingObjectByAuction(self.auction)
-            handle_remove_bidding_objects.start()
+            await handle_remove_bidding_objects.start()
             self.auction_manager.delete_auction(self.auction.get_key())
 
         except Exception as e:
@@ -495,6 +495,8 @@ class HandleRemoveBiddingObjectByAuction(ImmediateTask):
     """
 
     def __init__(self, auction: Auction):
+        super(HandleRemoveBiddingObjectByAuction, self).__init__()
+        self.client_data = ClientMainData()
         self.bidding_object_manager = BiddingObjectManager(self.client_data.domain)
         self.auction = auction
 
@@ -504,13 +506,15 @@ class HandleRemoveBiddingObjectByAuction(ImmediateTask):
 
         :return:
         """
-        bidding_object_keys = deepcopy(self.bidding_object_manager.get_bidding_objects_by_auction())
+        print ('1')
+        bidding_object_keys = deepcopy(self.bidding_object_manager.get_bidding_objects_by_parent(self.auction.get_key()))
         for bidding_object_key in bidding_object_keys:
-            bidding_object = self.bidding_manager.get_bidding_object(bidding_object_key)
+            bidding_object = self.bidding_object_manager.get_bidding_object(bidding_object_key)
+            print('2')
             self.remove_bidding_object_from_processes(bidding_object)
             await bidding_object.stop_tasks()
-            self.bidding_manager.delete_bidding_object(bidding_object_key)
-
+            self.bidding_object_manager.delete_bidding_object(bidding_object_key)
+        print('3')
 
 class HandledAddGenerateBiddingObject(ScheduledTask):
 
@@ -535,38 +539,37 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
 
     async def _run_specific(self, **kwargs):
         try:
+            # Gets the session
+            session_key = self.agent_processor.get_session_for_request(self.request_process_key)
+            session: AuctionSession = self.auction_session_manager.get_session(session_key)
+
             # Inserts the objects in the bidding object container
             for bidding_object in self.bidding_objects:
-                self.bidding_manager.add_bidding_object(bidding_object)
+                await self.bidding_manager.add_bidding_object(bidding_object)
                 i = 0
                 num_options = len(bidding_object.options)
                 for option_name in sorted(bidding_object.options.keys()):
-                    interval = bidding_object.calculate_interval(option_name, last_stop)
+                    interval = bidding_object.calculate_interval(option_name)
                     when = (interval.start - datetime.now()).total_seconds()
-                    handle_activate = HandleActivateBiddingObject(self.client_connection, bidding_object, when)
+                    handle_activate = HandleActivateBiddingObject(bidding_object, when)
                     handle_activate.start()
                     bidding_object.add_task(handle_activate)
 
                     if i < num_options - 1:
                         when = (interval.stop - datetime.now()).total_seconds()
-                        handle_inactivate = HandleInactivateBiddingObject(self.client_connection, bidding_object, when)
+                        handle_inactivate = HandleInactivateBiddingObject(bidding_object, when)
                         handle_inactivate.start()
                         bidding_object.add_task(handle_inactivate)
                     else:
                         when = (interval.stop - datetime.now()).total_seconds()
-                        handle_inactivate = HandleRemoveBiddingObject(self.client_connection, bidding_object, when)
+                        handle_inactivate = HandleRemoveBiddingObject(bidding_object, when)
                         handle_inactivate.start()
                         bidding_object.add_task(handle_inactivate)
 
-                    last_stop = interval.stop
                     i = i + 1
 
             # Gets the server domain from the request process
             server_domain = self.agent_processor.get_server_domain(self.request_process_key)
-
-            # Gets the session
-            session_key = self.agent_processor.get_session_for_request(self.request_process_key)
-            session: AuctionSession = self.auction_session_manager.get_session(session_key)
 
             # Builds and sends the message
             template_container = self.agent_template_container.get_template_container(server_domain)
@@ -642,23 +645,13 @@ class HandleRemoveBiddingObject(ScheduledTask):
 
             auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
-                self.bidding_object.stop_tasks()
+                await self.bidding_object.stop_tasks()
                 self.bidding_manager.del_actioning_object(self.bidding_object.get_key())
             else:
                 raise ValueError("Auction {0} is not active".format(auction.get_key()))
 
         except Exception as e:
             self.logger.error(str(e))
-
-
-# class HandleActivateAuction(ScheduledTask):
-#
-#     def __init__(self):
-#         pass
-#
-#     async def _run_specific(self, **kwargs):
-#         for auction in auctions:
-#             auction.activate(loop)
 
 
 class HandleResourceRequestTeardown(ImmediateTask):

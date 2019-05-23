@@ -20,7 +20,6 @@ class AuctioningObjectManager:
         self.domain = domain
         self.auctioning_objects = {}
         self.auctioning_objects_done = {}
-        print("estoy en init de auctioning object manager")
 
     def add_auctioning_object(self, auctioning_object):
         """

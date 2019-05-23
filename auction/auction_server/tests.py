@@ -363,7 +363,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         handle_remove_bid_1.start()
         bid.add_task(handle_remove_bid_1)
 
-        self.bidding_manager.add_bidding_object(bid)
+        await self.bidding_manager.add_bidding_object(bid)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid)
 
         # Parse the bidding objects in file example_bids2.xml, it allocates the memory.
@@ -379,7 +379,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         handle_remove_bid_2.start()
         bid2.add_task(handle_remove_bid_2)
 
-        self.bidding_manager.add_bidding_object(bid2)
+        await self.bidding_manager.add_bidding_object(bid2)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid2)
 
         # Parse the bidding objects in file example_bids3.xml, it allocates the memory.
@@ -395,7 +395,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         handle_remove_bid_3.start()
         bid3.add_task(handle_remove_bid_3)
 
-        self.bidding_manager.add_bidding_object(bid3)
+        await self.bidding_manager.add_bidding_object(bid3)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid3)
 
         # Parse the bidding objects in file example_bids4.xml, it allocates the memory.
@@ -411,7 +411,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         handle_remove_bid_4.start()
         bid4.add_task(handle_remove_bid_4)
 
-        self.bidding_manager.add_bidding_object(bid4)
+        await self.bidding_manager.add_bidding_object(bid4)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid4)
 
         # Parse the bidding objects in file example_bids5.xml, it allocates the memory.
@@ -427,7 +427,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         handle_remove_bid_5.start()
         bid5.add_task(handle_remove_bid_5)
 
-        self.bidding_manager.add_bidding_object(bid5)
+        await self.bidding_manager.add_bidding_object(bid5)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid5)
 
         # Parse the bidding objects in file example_bids6.xml, it allocates the memory.
@@ -438,7 +438,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         self.assertEqual(len(new_bids), 1)
         bid6 = new_bids[0]
         bid6.set_session("1012")
-        self.bidding_manager.add_bidding_object(bid6)
+        await self.bidding_manager.add_bidding_object(bid6)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid6)
 
         # Parse the bidding objects in file example_bids7.xml, it allocates the memory.
@@ -449,7 +449,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         self.assertEqual(len(new_bids), 1)
         bid7 = new_bids[0]
         bid7.set_session("1012")
-        self.bidding_manager.add_bidding_object(bid7)
+        await self.bidding_manager.add_bidding_object(bid7)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid7)
 
         # Parse the bidding objects in file example_bids8.xml, it allocates the memory.
@@ -460,7 +460,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         self.assertEqual(len(new_bids), 1)
         bid8 = new_bids[0]
         bid8.set_session("1012")
-        self.bidding_manager.add_bidding_object(bid8)
+        await self.bidding_manager.add_bidding_object(bid8)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid8)
 
         # Parse the bidding objects in file example_bids9.xml, it allocates the memory.
@@ -471,7 +471,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         self.assertEqual(len(new_bids), 1)
         bid9 = new_bids[0]
         bid9.set_session("1012")
-        self.bidding_manager.add_bidding_object(bid9)
+        await self.bidding_manager.add_bidding_object(bid9)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid9)
 
         # Parse the bidding objects in file example_bids10.xml, it allocates the memory.
@@ -482,7 +482,7 @@ class AuctionServerHandlerTest(aiounittest.AsyncTestCase):
         self.assertEqual(len(new_bids), 1)
         bid10 = new_bids[0]
         bid10.set_session("1012")
-        self.bidding_manager.add_bidding_object(bid10)
+        await self.bidding_manager.add_bidding_object(bid10)
         self.auction_processor.add_bidding_object_to_auction_process(self.auction.get_key(), bid10)
 
         auction_process = self.auction_processor.get_auction_process(self.auction.get_key())

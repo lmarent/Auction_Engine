@@ -92,6 +92,11 @@ class AuctionServer(Agent):
         # remove auctions and their processes
         await self.remove_auctions()
 
+        try:
+            self.database_manager.close()
+        except ValueError:
+            pass
+
         self.logger.debug("shutdown ends")
 
     async def remove_auctions(self):
