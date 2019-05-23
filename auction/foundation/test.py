@@ -5,6 +5,8 @@ from foundation.ipap_message_parser import IpapMessageParser
 from foundation.auction_parser import AuctionXmlFileParser
 from foundation.bidding_object_file_parser import BiddingObjectXmlFileParser
 from foundation.module_loader import ModuleLoader
+from foundation.database_manager import DataBaseManager
+from foundation.config import Config
 
 from foundation.field_value import FieldValue
 from foundation.specific_field_value import SpecificFieldValue
@@ -14,6 +16,8 @@ from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_data_record import IpapDataRecord
 from python_wrapper.ipap_value_field import IpapValueField
 from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
+
+import aiounittest
 
 
 class DefFileManagerTest(unittest.TestCase):
@@ -327,6 +331,45 @@ class BiddingObjectXmlFileParserTest(unittest.TestCase):
             "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_bids2.xml")
 
         self.assertEqual(len(lst_bids), 2)
+
+
+class BiddingObjectTest(aiounittest.AsyncTestCase):
+
+    async def test_parse(self):
+        self.bidding_xml_file_parser = BiddingObjectXmlFileParser(10)
+        self.config = Config('auction_agent.yaml')
+        self.data_base = DataBaseManager(self.config.get_config_param('DataBase', 'Type'),
+                                         self.config.get_config_param('DataBase', 'Host'),
+                                         self.config.get_config_param('DataBase', 'User'),
+                                         self.config.get_config_param('DataBase', 'Password'),
+                                         self.config.get_config_param('DataBase', 'Port'),
+                                         self.config.get_config_param('DataBase', 'DbName'),
+                                         self.config.get_config_param('DataBase', 'Minsize'),
+                                         self.config.get_config_param('DataBase', 'Maxsize'))
+
+        lst_bids = self.bidding_xml_file_parser.parse(
+            "/home/ns3/py_charm_workspace/paper_subastas/auction/xmls/example_bids1.xml")
+
+        self.assertEqual(len(lst_bids), 1)
+        bidding_object = lst_bids[0]
+        bidding_object.set_session("session_1")
+        self.assertEqual(bidding_object.get_parent_key(), "1.1")
+        self.assertEqual(bidding_object.get_key(), "1.bid1")
+        self.assertEqual(len(bidding_object.elements), 2)
+        self.assertEqual(len(bidding_object.options), 2)
+
+        # Verifies the first element
+        element = bidding_object.elements['element1']
+        self.assertEqual(element['quantity'].value, "1")
+
+        # Verifies the first option
+        option = bidding_object.options['option1']
+        self.assertEqual(option['biddingduration'].value, "600")
+
+        connect = await self.data_base.acquire()
+
+        await bidding_object.store(connect)
+
 
 
 class ModuleLoaderTest(unittest.TestCase):

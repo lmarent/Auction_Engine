@@ -18,18 +18,18 @@ class BiddingObject(AuctioningObject):
       1. A set of elements which establish a route description
       2. A set of options which establish the duration of the bidding object. 
     """
-    sql_hdr_insert = """INSERT INTO biddingObjectHdr( parent_key, key, sessionId, biddingObjectType, 
-                        biddingobjectstatus) VALUES ($1, $2, $3, $4, $5 )"""
+    sql_hdr_insert = """INSERT INTO bidding_object_hdr( parent_key, key, session_id, bidding_object_type, 
+                        bidding_object_status) VALUES ($1, $2, $3, $4, $5 )"""
 
-    sql_element_insert = """INSERT INTO biddingObjectElement( parent_key, key, elementName) VALUES ($1, $2, $3 )"""
+    sql_element_insert = """INSERT INTO bidding_object_element( parent_key, key, element_name) VALUES ($1, $2, $3 )"""
 
-    sql_option_insert =  """INSERT INTO biddingObjectOption(parent_key, key, optionName) VALUES ($1, $2, $3 )"""
+    sql_option_insert =  """INSERT INTO bidding_object_option(parent_key, key, option_name) VALUES ($1, $2, $3 )"""
 
-    sql_element_field_insert = """INSERT INTO biddingObjectElementField(parent_key, key, elementName, fieldName, 
-                                   fieldType, value) VALUES ($1, $2, $3, $4, $5, $6)"""
+    sql_element_field_insert = """INSERT INTO bidding_object_element_field(parent_key, key, element_name, field_name, 
+                                   field_type, value) VALUES ($1, $2, $3, $4, $5, $6)"""
 
-    sql_option_field_insert = """INSERT INTO biddingObjectOptionField(parent_key, key, optionName, fieldName, 
-                                   fieldType, value) VALUES ($1, $2, $3, $4, $5, $6)"""
+    sql_option_field_insert = """INSERT INTO bidding_object_option_field(parent_key, key, option_name, field_name, 
+                                   field_type, value) VALUES ($1, $2, $3, $4, $5, $6)"""
 
     def __init__(self, parent_key: str, bidding_object_key: str, object_type: AuctioningObjectType,
                  elements: dict, options: dict):
@@ -166,22 +166,27 @@ class BiddingObject(AuctioningObject):
         :return:
         """
         async with connection.transaction():
-            connection.execute(BiddingObject.sql_hdr_insert, self.get_parent_key(), self.get_key(),
+            await connection.execute(BiddingObject.sql_hdr_insert, self.get_parent_key(), self.get_key(),
                         self.get_session(), self.get_type().value, self.get_state().value)
 
             # Insert the elements within the bidding object
             for element_name in self.elements:
-                connection.execute(BiddingObject.sql_element_insert,
+                await connection.execute(BiddingObject.sql_element_insert,
                                    self.get_parent_key(), self.get_key(), element_name)
                 for field_name in self.elements[element_name]:
                     config_param: ConfigParam = self.elements[element_name][field_name]
-                    connection.execute(BiddingObject.sql_element_field_insert, self.get_parent_key(), self.get_key(),
-                                       element_name, field_name, config_param.get_type().value, config_param.get_value())
+                    await connection.execute(BiddingObject.sql_element_field_insert,
+                                             self.get_parent_key(), self.get_key(),
+                                             element_name, field_name, config_param.get_type().value,
+                                             config_param.get_value())
 
             # Inserts the option within the bidding object
             for option_name in self.options:
-                connection.execute(BiddingObject.sql_option_insert, self.get_parent_key(), self.get_key(), option_name)
+                await connection.execute(BiddingObject.sql_option_insert, self.get_parent_key(),
+                                         self.get_key(), option_name)
+
                 for field_name in self.options[option_name]:
                     config_param: ConfigParam = self.options[option_name][field_name]
-                    connection.execute(BiddingObject.sql_element_field_insert, self.get_parent_key(), self.get_key(),
-                                       option_name, field_name, config_param.get_type().value, config_param.get_value())
+                    await connection.execute(BiddingObject.sql_option_field_insert,
+                                             self.get_parent_key(), self.get_key(), option_name,
+                                             field_name, config_param.get_type().value, config_param.get_value())

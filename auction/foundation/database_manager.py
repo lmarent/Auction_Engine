@@ -45,7 +45,7 @@ class DataBaseManager(metaclass=Singleton):
         :return:
         """
         if self.pool is None:
-            self.pool = await asyncpg.create_pool(user='postgres', command_timeout=60)
+            await self.connect()
 
         return await self.pool.acquire()
 

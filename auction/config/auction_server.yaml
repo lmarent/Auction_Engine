@@ -2,10 +2,10 @@
 DataBase:
   Type: postgres
   Host: localhost
-  User: auction_user
-  Password: auction_pass
+  User: postgres
+  Password: postgres
   Port: 5432
-  DbName: auctiondb
+  DbName: auction_server_db
   MinSize: 1
   MaxSize: 5
 
