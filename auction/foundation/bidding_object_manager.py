@@ -49,7 +49,7 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
 
         if bidding_object.get_parent_key() not in self.index_by_parent:
             self.index_by_parent[bidding_object.get_parent_key()] = []
-        (self.index_by_parent[bidding_object.get_parent_key()]).append(bidding_object.get_parent_key())
+        (self.index_by_parent[bidding_object.get_parent_key()]).append(bidding_object.get_key())
 
         # stores the bidding object in the database.
         self.logger.debug("store objects: {0}".format( self.store_objects))

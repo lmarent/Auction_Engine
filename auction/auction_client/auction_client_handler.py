@@ -160,13 +160,14 @@ class RemoveResourceRequestInterval:
 
         # searches the request interval
         resource_request_interval = self.session.get_resource_request_interval()
+
         # removes the request interval
         auctions = self.session.get_auctions()
 
         # deletes active request process associated with this request interval.
         resource_request_process_ids = resource_request_interval.get_resource_request_process()
-        for resurce_request_process_id in resource_request_process_ids:
-            self.agent_processor.delete_request(resurce_request_process_id)
+        for resource_request_process_id in resource_request_process_ids:
+            self.agent_processor.delete_request(resource_request_process_id)
 
         # deletes the reference to the auction (a session is not referencing it anymore)
         auctions_to_remove = self.auction_manager.decrement_references(auctions, self.session.get_key())
@@ -174,6 +175,8 @@ class RemoveResourceRequestInterval:
         for auction in auctions_to_remove:
             handle_auction_remove = HandleAuctionRemove(auction, 0)
             handle_auction_remove.start()
+
+        await resource_request_interval.stop_tasks()
 
 
 class HandleRemoveResourceRequestInterval(ScheduledTask):
@@ -209,6 +212,12 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
 
             remove_resource_request = RemoveResourceRequestInterval(session)
             await remove_resource_request.process_remove()
+
+            # teardowns the session created.
+            await self.client_message_processor.process_disconnect(session)
+
+            # remove the session from the session manager
+            self.auction_session_manager.del_session(session.get_key())
 
         except Exception as e:
             self.logger.error('Error during remove resource request interval - Error:{0}'.format(str(e)))
@@ -506,15 +515,12 @@ class HandleRemoveBiddingObjectByAuction(ImmediateTask):
 
         :return:
         """
-        print ('1')
         bidding_object_keys = deepcopy(self.bidding_object_manager.get_bidding_objects_by_parent(self.auction.get_key()))
         for bidding_object_key in bidding_object_keys:
             bidding_object = self.bidding_object_manager.get_bidding_object(bidding_object_key)
-            print('2')
-            self.remove_bidding_object_from_processes(bidding_object)
             await bidding_object.stop_tasks()
             self.bidding_object_manager.delete_bidding_object(bidding_object_key)
-        print('3')
+
 
 class HandledAddGenerateBiddingObject(ScheduledTask):
 

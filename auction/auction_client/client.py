@@ -58,7 +58,7 @@ class AuctionClient(Agent):
                 break
 
         try:
-            self.database_manager.close()
+            await self.database_manager.close()
         except ValueError:
             pass
 

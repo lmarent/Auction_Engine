@@ -58,7 +58,7 @@ class Session:
         if uid in self.pending_messages:
             del self.pending_messages[uid]
         else:
-            raise ValueError('Message with key: {0} is not pending in tne session'.format(str(uid)))
+            raise ValueError('Message with key: {0} is not pending in the session'.format(str(uid)))
 
     def add_pending_message(self, message : IpapMessage):
         """

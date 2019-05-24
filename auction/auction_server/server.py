@@ -75,6 +75,11 @@ class AuctionServer(Agent):
             handle_client_teardown = HandleClientTearDown(session)
             await handle_client_teardown.start()
 
+            self.logger.debug("before client process disconnect")
+            # disconnects the client
+            await self.server_message_processor.process_disconnect(self.session)
+            self.logger.debug("end client process disconnect")
+
         self.logger.debug("After sending auction sessions teardown")
 
         # Wait while there are still open connections
@@ -93,7 +98,7 @@ class AuctionServer(Agent):
         await self.remove_auctions()
 
         try:
-            self.database_manager.close()
+            await self.database_manager.close()
         except ValueError:
             pass
 

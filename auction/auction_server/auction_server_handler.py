@@ -54,7 +54,6 @@ class HandleAuctionExecution(PeriodicTask):
         :return:
         """
         try:
-            print('interval:', self.auction.get_interval().interval)
             next_start = self.start_datetime + timedelta(seconds=self.auction.get_interval().interval)
 
             if next_start > self.auction.get_stop():
@@ -226,7 +225,6 @@ class HandleLoadAuction(ScheduledTask):
                     else:
                         seconds_to_start = (auction.get_start() - datetime.now()).total_seconds()
 
-                    print('seconds_to_start', seconds_to_start)
                     activate_task = HandleActivateAuction(auction=auction, seconds_to_start=seconds_to_start)
                     activate_task.start()
                     auction.add_task(activate_task)
@@ -396,6 +394,8 @@ class HandleAddBiddingObjects(ScheduledTask):
         self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
+        print('receive message:', self.ipap_message.get_seqno())
+
     async def _run_specific(self):
         """
         Adds bidding objects sent from an agent.
@@ -433,7 +433,7 @@ class HandleAddBiddingObjects(ScheduledTask):
 
             # confirm the message
             confim_message = self.server_message_processor.build_ack_message(self.session.get_next_message_id(),
-                                                                             self.ipap_message.get_seqno() + 1)
+                                                                             self.ipap_message.get_seqno())
             await self.server_message_processor.send_message(self.session.get_connection(),
                                                              confim_message.get_message())
             self.logger.debug("ending HandleAddBiddingObjects")
@@ -521,7 +521,3 @@ class HandleClientTearDown(ImmediateTask):
         except ValueError:
             # This means that the session does not have bidding objects associated
             pass
-
-        # disconnects the client
-        await self.server_message_processor.process_disconnect(self.session)
-
