@@ -45,8 +45,6 @@ class IpapResourceRequestParser(IpapMessageParser):
         # Add the Resource Id
         self.insert_string_field('resourceid', resource_id, data_option)
 
-        print(data_option.get_num_fields())
-
         # Add the start datetime
         self.insert_datetime_field('start', interval.start, data_option)
 

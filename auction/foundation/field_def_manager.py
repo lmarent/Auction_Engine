@@ -73,8 +73,6 @@ class FieldDefManager(metaclass=Singleton):
         :param field_type: field type to parse
         :return: Corresponding data type
         """
-        # print('parse field type:', field_type)
-
         if field_type is None:
             raise ValueError("Parse_field_type: the parameter field type is not defined")
 

@@ -172,7 +172,6 @@ class IpapAuctionParser(IpapMessageParser):
         items = action.get_config_params()
         for item in items.values():
             field = self.field_def_manager.get_field(item.name)
-            print(field['name'],field['eno'], field['ftype'])
 
             # Checks it is not a mandatory field.
             is_mandatory: bool = False
@@ -233,7 +232,6 @@ class IpapAuctionParser(IpapMessageParser):
         self.insert_integer_field('dstauctionport', port, ipap_data_record)
 
         # Add the resource Id.
-        print('resource key:', auction.get_resource_key())
         self.insert_string_field('resourceid', auction.get_resource_key(), ipap_data_record)
 
         # Add the start time - Unix time is seconds from 1970-1-1 .
@@ -247,7 +245,6 @@ class IpapAuctionParser(IpapMessageParser):
         self.insert_integer_field('interval', u_interval, ipap_data_record)
 
         # Add the template list.
-        print('template_list:', auction.get_template_list())
         self.insert_string_field('templatelist', auction.get_template_list(), ipap_data_record)
 
         message.include_data(template.get_template_id(), ipap_data_record)
@@ -305,32 +302,27 @@ class IpapAuctionParser(IpapMessageParser):
         :param port: source port
         :param message: ipap message to modify an include the information.
         """
-        print('in 1')
         auction_template_id = auction.get_auction_data_template()
         auction_template = self.ipap_template_container.get_template(auction_template_id)
         message.make_template(auction_template)
 
         option_template_id = auction.get_option_auction_template()
         option_template = self.ipap_template_container.get_template(option_template_id)
-        print('in 2')
 
         # Following lines are used for inserting only non mandatory fields
         mandatory_fields = option_template.get_template_type_mandatory_field(option_template.get_type())
         optional_fields = self.get_non_mandatory_fields(auction.action, mandatory_fields)
-        print('in 3')
 
         option_template.set_max_fields(option_template.get_num_fields() + len(optional_fields))
         for field in optional_fields:
             ipap_field = self.field_container.get_field(field.get_eno(), field.get_ftype())
             option_template.add_field(ipap_field.get_length(), UnknownField.KNOWN, True, ipap_field)
 
-        print('in 4')
         message.make_template(option_template)
         self.include_auction_templates(auction_template, auction, message)
         self.include_auction_data_record(auction_template, auction, message,
                                          use_ipv6, s_address, port)
         self.include_option_data_record(option_template, auction, message)
-        print('in 5')
 
     def get_ipap_message(self, auctions: list, use_ipv6: bool, s_address: str, port: int) -> IpapMessage:
         """

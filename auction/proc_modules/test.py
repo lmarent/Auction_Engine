@@ -12,7 +12,6 @@ class SubsidyAuctionTest(unittest.TestCase):
 
     def setUp(self):
         try:
-            print('starting setup')
             self.bids = {}
 
             # Load the module

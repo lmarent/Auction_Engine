@@ -394,7 +394,7 @@ class HandleAddBiddingObjects(ScheduledTask):
         self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
-        print('receive message:', self.ipap_message.get_seqno())
+        print('receive HandleAddBiddingObjects message:', self.ipap_message.get_seqno())
 
     async def _run_specific(self):
         """
@@ -469,6 +469,7 @@ class HandleAuctionMessage(ScheduledTask):
                 pass
 
             elif ipap_message_type.is_bidding_message():
+                print("receiving bidding_object message with id:", self.message.get_seqno())
                 handle_bidding_object_interaction = HandleAddBiddingObjects(self.session, self.message, 0)
                 handle_bidding_object_interaction.start()
 

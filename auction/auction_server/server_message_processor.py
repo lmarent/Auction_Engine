@@ -206,7 +206,6 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
         elif session.get_connection().state == ClientConnectionState.LAST_ACK:
             try:
-                session.confirm_message(ack_seqno)
                 session.get_connection().set_state(ClientConnectionState.CLOSED)
 
                 self.logger.info("The connection has been closed")
@@ -286,6 +285,7 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         try:
 
             ipap_message = self.is_auction_message(msg)
+            print('message id',ipap_message.get_seqno())
 
         except ValueError as e:
             # invalid message, we do not send anything for the moment
@@ -305,7 +305,6 @@ class ServerMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             await self.handle_fin(session, ipap_message)
 
         else:
-            print('message id',ipap_message.get_seqno())
             from auction_server.auction_server_handler import HandleAuctionMessage
             handle_auction_message = HandleAuctionMessage(session, ipap_message, 0)
             handle_auction_message.start()

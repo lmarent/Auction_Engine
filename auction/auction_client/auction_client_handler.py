@@ -125,6 +125,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                 session.add_pending_message(message)
 
                 # Sends the message to destination
+                print('send activate resource request message', message.get_seqno())
                 await self.client_message_processor.send_message(session.get_server_connnection(),
                                                                  message.get_message())
 
@@ -234,10 +235,13 @@ class HandleAuctionMessage(ScheduledTask):
         try:
             # if the message has a ack nbr, then confirm the message
             ack_seq_no = self.message.get_ackseqno()
+            print('message received with ack:', ack_seq_no)
             if ack_seq_no > 0:
                 self.server_connection.get_auction_session().confirm_message(ack_seq_no)
 
             ipap_message_type = self.message.get_types()
+            print('message received with ack:', ack_seq_no, ' is action message:', ipap_message_type.is_auction_message())
+
             if ipap_message_type.is_auction_message():
                 ask_response_message = HandleAskResponseMessage(self.server_connection, self.message, 0)
                 ask_response_message.start()
@@ -252,7 +256,9 @@ class HandleAuctionMessage(ScheduledTask):
                 pass
 
             else:
-                self.logger.error("invalid message type - types:{0}".format(ipap_message_type.__str__()))
+                # it corresponds to an acknowledge message only.
+                pass
+
         except Exception as e:
             self.logger.error(str(e))
 
@@ -583,6 +589,7 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
             ipap_message.set_seqno(session.get_next_message_id())
             ipap_message.set_ack_seq_no(0)
             session.add_pending_message(ipap_message)
+            print('send bidding object message', ipap_message.get_seqno())
             await self.message_processor.send_message(session.get_server_connnection(), ipap_message.get_message())
 
         except Exception as e:

@@ -153,7 +153,6 @@ class PeriodicTask(AuctionTask):
         until it is stopped.
         """
         while True:
-            print('time', self.time)
             await asyncio.sleep(self.time)
             self.logger.debug("starting {0}".format(type(self).__name__))
             await self._run_specific()

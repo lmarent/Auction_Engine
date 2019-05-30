@@ -150,7 +150,6 @@ class AuctionClient(Agent):
         # schedule the new events.
         for request in resource_requests:
             try:
-                print(request.get_key())
                 ret_start, ret_stop = self.resource_request_manager.add_resource_request(request)
                 for start in ret_start:
                     when = DateUtils().calculate_when(start)
@@ -164,7 +163,7 @@ class AuctionClient(Agent):
                     request.add_task(handle_remove)
                     handle_remove.start()
             except ValueError as e:
-                print(str(e))
+                self.logger.error(str(e))
         self.logger.debug("Ending _load_resources_request")
 
     def run(self):
@@ -174,8 +173,6 @@ class AuctionClient(Agent):
         """
         self.client_data.source_port = random.randint(1024, 65000)
         if self.client_data.use_ipv6:
-            print(self.client_data.ip_address6, self.client_data.source_port)
             run_app(self.app, host=str(self.client_data.ip_address6), port=self.client_data.source_port)
         else:
-            print(self.client_data.ip_address4, self.client_data.source_port)
             run_app(self.app, host=str(self.client_data.ip_address4), port=self.client_data.source_port)

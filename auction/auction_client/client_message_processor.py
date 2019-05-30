@@ -113,6 +113,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         # we need to wait until the connection is ready
         message = self.build_syn_message(session.get_next_message_id())
         str_msg = message.get_message()
+        print('message connect id:', message.get_seqno())
         await self.send_message(server_connection, str_msg)
         server_connection.set_state(ServerConnectionState.SYN_SENT)
         session.add_pending_message(message)
@@ -163,6 +164,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                 syn_ack_message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                                          ipap_message.get_seqno())
                 msg = syn_ack_message.get_message()
+                print('message syn_ack_message id:', syn_ack_message.get_seqno())
                 await self.send_message(server_connection, msg)
 
                 # puts the connection as established.
@@ -210,6 +212,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                              ipap_message.get_seqno())
 
+            print('message ack disconnect id:', message.get_seqno())
             await self.send_message(server_connection, message.get_message())
 
             self.logger.debug("disconnecting - before putting close_wait ")
@@ -224,6 +227,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
 
             message = self.build_fin_message(server_connection.get_auction_session().get_next_message_id(), 0)
             server_connection.get_auction_session().add_pending_message(message)
+            print('message fin message id:', message.get_seqno())
             await self.send_message(server_connection, message.get_message())
 
             self.logger.debug("disconnecting - after sending fin message ")
@@ -239,6 +243,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                              ipap_message.get_seqno())
 
+            print('message fin wait ack id:', message.get_seqno())
             await self.send_message(server_connection, message.get_message())
 
             await self._disconnect_socket(server_connection)
@@ -302,7 +307,6 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         fin = ipap_message.get_fin()
 
         if syn and ack:
-            print('handle_syn_ack_message')
             await self.handle_syn_ack_message(server_connection, ipap_message)
 
         elif fin:
@@ -332,6 +336,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             message = self.build_fin_message(session.get_next_message_id(), 0)
 
             session.add_pending_message(message)
+            print('message disconnect id:', message.get_seqno())
             await self.send_message(session.server_connection, message.get_message())
 
             session.server_connection.set_state(ServerConnectionState.FIN_WAIT_1)
@@ -351,7 +356,6 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
         """
         self.logger.debug("start method send message")
 
-        print('sending message')
         await server_connection.web_socket.send_str(message)
 
         self.logger.debug("end method send message")
