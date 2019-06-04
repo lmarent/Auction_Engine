@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE RESOURCE_REQUEST_SET PUBLIC "SYSTEM" "resourcerequestfile.dtd">
 <RESOURCE_REQUEST_SET ID="UNIQUE">
-  <RESOURCE_REQUEST ID="SET1_202_116_1">
-    <FIELD NAME="quantity">1</FIELD>
-    <FIELD NAME="totalbudget">0.613</FIELD>
-    <FIELD NAME="maxvalue">0.508</FIELD>
-    <FIELD NAME="DstIPV4">8.8.8.8</FIELD>
-    <FIELD NAME="DstPort">80</FIELD>
-    <INTERVAL NAME="interval1">
-      <PREF NAME="Start">+10</PREF>
-      <PREF NAME="Duration">4</PREF>
-    </INTERVAL>
-  </RESOURCE_REQUEST>
+    <RESOURCE_REQUEST ID="SET1_202_116_1">
+        <FIELD NAME="quantity">1</FIELD>
+        <FIELD NAME="totalbudget">0.613</FIELD>
+        <FIELD NAME="maxvalue">0.508</FIELD>
+        <FIELD NAME="DstIPV4">8.8.8.8</FIELD>
+        <FIELD NAME="DstPort">80</FIELD>
+        <INTERVAL NAME="interval1">
+            <PREF NAME="Start">+10</PREF>
+            <PREF NAME="Duration">4</PREF>
+        </INTERVAL>
+    </RESOURCE_REQUEST>
 </RESOURCE_REQUEST_SET>
