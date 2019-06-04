@@ -30,7 +30,7 @@ class TwoAuctionGeneralizedUser(Module):
     def check_parameters(self, request_params):
         required_fields = set()
         required_fields.add(self.proc_module.field_def_manager.get_field("quantity"))
-        required_fields.add(self.proc_module.field_def_manager.get_field("unitbudget"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("totalbudget"))
         required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue"))
 
         for field in required_fields:
@@ -59,9 +59,6 @@ class TwoAuctionGeneralizedUser(Module):
         config_elements = dict()
         record_id = "record_1"
         self.proc_module.insert_string_field("recordid", record_id, config_elements)
-
-        if unit_price > unit_budget:
-            unit_price = unit_budget
 
         self.proc_module.insert_float_field("quantity", quantity, config_elements)
         self.proc_module.insert_double_field("unitprice", unit_price, config_elements)
@@ -104,13 +101,16 @@ class TwoAuctionGeneralizedUser(Module):
         if len(auctions) > 0:
 
             # Get the total money and budget and divide them by the number of auctions
-            budget = self.proc_module.get_param_value("unitbudget", request_params)
+            total_budget = self.proc_module.get_param_value("totalbudget", request_params)
             max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
             quantity = self.proc_module.get_param_value("quantity", request_params)
 
+            budget_by_auction = total_budget / len(auctions)
+            valuation_by_auction = max_unit_valuation / len(auctions)
+
             for auction_key in auctions:
-                bidding_object = self.create_bidding_object(auction_key, quantity, budget,
-                                                            max_unit_valuation, start, stop)
+                bidding_object = self.create_bidding_object(auction_key, quantity, budget_by_auction,
+                                                            valuation_by_auction, start, stop)
                 list_return.append(bidding_object)
 
         self.logger.debug("two auction generalized module: end execute")
@@ -139,7 +139,7 @@ class TwoAuctionGeneralizedUser(Module):
         elif option == ModuleInformation.I_HTMLDOCS:
             return "http://www.uniandes.edu.co/... "
         elif option == ModuleInformation.I_PARAMS:
-            return "IPAP_FT_QUANTITY, IPAP_FT_UNITBUDGET, IPAP_FT_MAXUNITVALUATION, IPAP_FT_STARTSECONDS, \
+            return "IPAP_FT_QUANTITY, IPAP_FT_TOTALBUDGET, IPAP_FT_MAXUNITVALUATION, IPAP_FT_STARTSECONDS, \
                     IPAP_FT_ENDSECONDS"
         elif option == ModuleInformation.I_RESULTS:
             return "A bidding for the request"

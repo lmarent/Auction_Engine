@@ -99,10 +99,17 @@ class ProgressiveSecondPriceUser(Module):
         if len(auctions) > 0:
 
             # Get the total money and budget and divide them by the number of auctions
+            total_budget = self.proc_module.get_param_value("totalbudget", request_params)
             max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
             quantity = self.proc_module.get_param_value("quantity", request_params)
 
-            unit_price = max_unit_valuation / len(auctions)
+            budget_by_auction = total_budget / len(auctions)
+            unit_price_by_auction = max_unit_valuation / len(auctions)
+
+            unit_price = unit_price_by_auction
+            if budget_by_auction < unit_price_by_auction:
+                unit_price = budget_by_auction
+
 
             self.logger.debug("subsidy auction module - after setting up parameters")
 

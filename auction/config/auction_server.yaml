@@ -11,7 +11,7 @@ DataBase:
 
 Main:
   VerboseLevel: 4
-  Domain: 1
+  Domain: 101
   UseIPv6: No
   LocalAddr-V4: 127.0.0.1
   LocalAddr-V6: 0:0:0:0:0:0:0:0
@@ -22,7 +22,7 @@ Main:
   ImmediateStart: True
   ResourceFile: resources.yaml
   AuctionFileDtd: auctionfile.dtd
-  AuctionFile: auctions.xml
+  AuctionFile: auction_basic.xml
   BiddingObjectfileDtd: bidfile.dtd
   StoreObjects: True
 

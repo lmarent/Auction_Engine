@@ -10,9 +10,9 @@ DataBase:
   MaxSize: 5
 
 Main:
-  Domain: 10
+  Domain: 11
   ResourceRequestFileDtd: resourcerequestfile.dtd
-  ResourceRequestFile: aggregate01.xml
+  ResourceRequestFile: aggregate_basic.xml
   UseIPv6: No
   LocalAddr-V4: 127.0.0.1
   LocalAddr-V6: 0:0:0:0:0:0:0:0

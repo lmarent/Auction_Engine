@@ -28,8 +28,10 @@ class SubsidyAuctionUser(Module):
     def check_parameters(self, request_params):
         required_fields = set()
         required_fields.add(self.proc_module.field_def_manager.get_field("quantity"))
-        required_fields.add(self.proc_module.field_def_manager.get_field("unitbudget"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("totalbudget"))
         required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("subsidy"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue01"))
 
         for field in required_fields:
             if field['key'] not in request_params:
@@ -100,14 +102,14 @@ class SubsidyAuctionUser(Module):
         if len(auctions) > 0:
 
             # Get the total money and budget and divide them by the number of auctions
-            budget = self.proc_module.get_param_value("unitbudget", request_params)
+            total_budget = self.proc_module.get_param_value("totalbudget", request_params)
             max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
             quantity = self.proc_module.get_param_value("quantity", request_params)
 
             subsidy = self.proc_module.get_param_value('subsidy', request_params)
             discriminatory_price = self.proc_module.get_param_value('maxvalue01', request_params)
 
-            budget_by_auction = budget / len(auctions)
+            budget_by_auction = total_budget / len(auctions)
             valuation_by_auction = max_unit_valuation / len(auctions)
 
             unit_price = valuation_by_auction
