@@ -104,7 +104,7 @@ class Interval():
         if sduration:
             self.duration = int(sduration)
 
-        if self.duration > 0:
+        if self.duration >= 0:
             if self.stop:
                 self.start = self.stop - timedelta(seconds=self.duration)
             else:

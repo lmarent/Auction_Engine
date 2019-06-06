@@ -1,50 +1,8 @@
-# auction_server.yaml
-DataBase:
-  Type: postgres
-  Host: localhost
-  User: postgres
-  Password: postgres
-  Port: 5432
-  DbName: auction_server_db
-  MinSize: 1
-  MaxSize: 5
-
-Main:
-  VerboseLevel: 4
-  Domain: 101
-  UseIPv6: No
-  LocalAddr-V4: 127.0.0.1
-  LocalAddr-V6: 0:0:0:0:0:0:0:0
-  LocalPort: 8080
-  DefaultProtocol: 6
-  LifeTime: 60
-  TimeFormat: "%Y%m%d %H%M%S"
-  ImmediateStart: True
-  ResourceFile: resources.yaml
-  AuctionFileDtd: auctionfile.dtd
-  AuctionFile: auction_basic.xml
-  BiddingObjectfileDtd: bidfile.dtd
-  StoreObjects: True
-
-Control:
-  ControlPort: 12248
-  UseSSL: No
-  LogOnConnect: yes
-  LogCommand: yes
-  LocalAddr-V6: 0:0:0:0:0:0:0:0
-  Access:
-    Host: All
-    User: admin:admin
-
 AUMProcessor:
   ModuleDir: /home/ns3/py_charm_workspace/paper_subastas/auction/proc_modules
-  ModuleDynamicLoad: yes
+  ModuleDynamicLoad: true
   Modules: basic_module
   basic_module:
-    Rate:
-      Name: Rate
-      Type: UInt32
-      Value: 102400
     Burts:
       Name: Rate
       Type: UInt32
@@ -53,5 +11,42 @@ AUMProcessor:
       Name: NextId
       Type: UInt32
       Value: 100
-
+    Rate:
+      Name: Rate
+      Type: UInt32
+      Value: 102400
+Control:
+  Access:
+    Host: All
+    User: admin:admin
+  ControlPort: 12248
+  LocalAddr-V6: 0:0:0:0:0:0:0:0
+  LogCommand: true
+  LogOnConnect: true
+  UseSSL: false
+DataBase:
+  DbName: auction_server_db
+  Host: localhost
+  MaxSize: 5
+  MinSize: 1
+  Password: postgres
+  Port: 5432
+  Type: postgres
+  User: postgres
 DefaultLogFile: netaum
+Main:
+  AuctionFile: auction_two_auction_generalized.xml
+  AuctionFileDtd: auctionfile.dtd
+  BiddingObjectfileDtd: bidfile.dtd
+  DefaultProtocol: 6
+  Domain: '105'
+  ImmediateStart: true
+  LifeTime: 60
+  LocalAddr-V4: 127.0.0.1
+  LocalAddr-V6: 0:0:0:0:0:0:0:0
+  LocalPort: 8080
+  ResourceFile: resources.yaml
+  StoreObjects: true
+  TimeFormat: '%Y%m%d %H%M%S'
+  UseIPv6: false
+  VerboseLevel: 4

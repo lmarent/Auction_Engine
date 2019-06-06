@@ -200,6 +200,7 @@ class AgentProcessor(metaclass=Singleton):
         bids = module.execute_user(request_process.get_request_params(), request_process.get_auctions(),
                                    request_process.get_start(), request_process.get_stop())
 
+        print('nbr bids:', len(bids))
         # Sets the session for the bid.
         for bid in bids:
             bid.set_session(request_process.get_session_id())

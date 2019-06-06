@@ -26,7 +26,7 @@ class log(metaclass=Singleton):
         logger.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler(base_dir + '/' + self.file_name + '.log')
         file_handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('[L:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s',
+        formatter = logging.Formatter('[L:%(filename)s - %(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s',
                                       datefmt='%d-%m-%Y %H:%M:%S')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

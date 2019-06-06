@@ -95,6 +95,7 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                                                                         self.client_data.protocol)
 
         server_connection = ServerConnection(session.get_key())
+
         try:
             await self.websocket_connect(self.client_data.use_ipv6,
                                          self.client_data.destination_address4,
@@ -111,9 +112,12 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             raise e
 
         # we need to wait until the connection is ready
-        message = self.build_syn_message(session.get_next_message_id())
+        seq_nbr = session.get_next_message_id()
+
+        message = self.build_syn_message(seq_nbr)
+
         str_msg = message.get_message()
-        print('message connect id:', message.get_seqno())
+
         await self.send_message(server_connection, str_msg)
         server_connection.set_state(ServerConnectionState.SYN_SENT)
         session.add_pending_message(message)
@@ -164,7 +168,6 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
                 syn_ack_message = self.build_ack_message(server_connection.get_auction_session().get_next_message_id(),
                                                          ipap_message.get_seqno())
                 msg = syn_ack_message.get_message()
-                print('message syn_ack_message id:', syn_ack_message.get_seqno())
                 await self.send_message(server_connection, msg)
 
                 # puts the connection as established.
@@ -336,7 +339,6 @@ class ClientMessageProcessor(AuctionMessageProcessor, metaclass=Singleton):
             message = self.build_fin_message(session.get_next_message_id(), 0)
 
             session.add_pending_message(message)
-            print('message disconnect id:', message.get_seqno())
             await self.send_message(session.server_connection, message.get_message())
 
             session.server_connection.set_state(ServerConnectionState.FIN_WAIT_1)

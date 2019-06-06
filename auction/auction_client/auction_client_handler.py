@@ -125,7 +125,6 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                 session.add_pending_message(message)
 
                 # Sends the message to destination
-                print('send activate resource request message', message.get_seqno())
                 await self.client_message_processor.send_message(session.get_server_connnection(),
                                                                  message.get_message())
 

@@ -8,7 +8,7 @@
     <FIELD NAME="DstIPV4">8.8.8.8</FIELD>
     <FIELD NAME="DstPort">80</FIELD>
     <INTERVAL NAME="interval1">
-      <PREF NAME="Start">+467</PREF>
+      <PREF NAME="Start">+10</PREF>
       <PREF NAME="Duration">4</PREF>
     </INTERVAL>
   </RESOURCE_REQUEST>

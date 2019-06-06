@@ -27,7 +27,7 @@ class AuctionMessageProcessor:
         :param sequence_nbr: sequence number for the message
         :return: message with the syn flag set
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
+        message = IpapMessage(domain_id=int(self.domain), ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_syn(True)
         message.set_seqno(sequence_nbr)
         return message
@@ -39,7 +39,7 @@ class AuctionMessageProcessor:
         :param ack_nbr: ack number to send within the message
         :return: message with the fin flag set
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
+        message = IpapMessage(domain_id=int(self.domain), ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_fin(True)
         message.set_seqno(sequence_nbr)
         message.set_ack_seq_no(ack_nbr)
@@ -53,7 +53,7 @@ class AuctionMessageProcessor:
         :return:
         """
         print('build syn ack message {0}.{1}'.format(str(sequence_nbr), str(ack_nbr)))
-        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
+        message = IpapMessage(domain_id=int(self.domain), ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_syn(True)
         message.set_ack(True)
         message.set_seqno(sequence_nbr)
@@ -67,7 +67,7 @@ class AuctionMessageProcessor:
         :param ack_nbr: ack number to send within the message
         :return:
         """
-        message = IpapMessage(domain_id=self.domain, ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
+        message = IpapMessage(domain_id=int(self.domain), ipap_version=IpapMessage.IPAP_VERSION, _encode_network=True)
         message.set_ack(True)
         message.set_seqno(sequence_nbr)
         message.set_ack_seq_no(ack_nbr)

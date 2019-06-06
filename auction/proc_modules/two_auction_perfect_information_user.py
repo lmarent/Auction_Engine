@@ -26,12 +26,12 @@ class TwoAuctionPerfectInformationUser(Module):
 
     def check_parameters(self, request_params):
         required_fields = set()
-        required_fields.add(self.proc_module.field_def_manager.get_field("quantity"))
-        required_fields.add(self.proc_module.field_def_manager.get_field("totalbudget"))
-        required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue"))
+        required_fields.add(self.proc_module.field_def_manager.get_field("quantity")['key'])
+        required_fields.add(self.proc_module.field_def_manager.get_field("totalbudget")['key'])
+        required_fields.add(self.proc_module.field_def_manager.get_field("maxvalue")['key'])
 
         for field in required_fields:
-            if field['key'] not in request_params:
+            if field not in request_params:
                 raise ValueError("two auction perfect information: ending check - it does not pass the check, \
                                  field not included {0}".format(field['key']))
 
@@ -100,6 +100,8 @@ class TwoAuctionPerfectInformationUser(Module):
         self.check_parameters(request_params)
         if len(auctions) > 0:
 
+            self.logger.debug("two auction perfect information - before setting up parameters")
+
             # Get the total money and budget and divide them by the number of auctions
             total_budget = self.proc_module.get_param_value("totalbudget", request_params)
             max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
@@ -112,14 +114,11 @@ class TwoAuctionPerfectInformationUser(Module):
             if budget_by_auction < valuation_by_auction:
                 unit_price = budget_by_auction
 
-            self.logger.debug("two auction perfect information - after setting up parameters")
-
             for auction_key in auctions:
                 bidding_object = self.create_bidding_object(auction_key, quantity, budget_by_auction,
                                                             unit_price, start, stop)
                 list_return.append(bidding_object)
 
-        self.logger.debug("two auction perfect information: end execute")
         return list_return
 
     def reset(self):

@@ -69,7 +69,11 @@ class AuctionClient(Agent):
             super(AuctionClient, self).__init__('auction_agent.yaml')
 
             self._initialize_managers()
+
+            self.logger.debug("ads 1")
             self._initilize_processors()
+
+            self.logger.debug("ads 2")
             self._load_resources_request()
 
             # add routers.
