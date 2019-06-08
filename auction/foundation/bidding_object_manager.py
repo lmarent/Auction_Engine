@@ -1,4 +1,6 @@
 # bidding_object_manager.py
+from builtins import bool
+
 from foundation.auctioning_object_manager import AuctioningObjectManager
 from foundation.singleton import Singleton
 from foundation.bidding_object import BiddingObject
@@ -42,6 +44,8 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
                                                     object which is not attached to a session"
 
         super(BiddingObjectManager, self).add_auctioning_object(bidding_object)
+        self.logger.info("adding bidding objectkey {0} - session {1}".format(bidding_object.get_key(),
+                                                                             bidding_object.get_session()))
 
         if bidding_object.get_session() not in self.index_by_session:
             self.index_by_session[bidding_object.get_session()] = []
@@ -66,6 +70,8 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         :param bidding_object_key: bidding object key to delete
         :return:
         """
+        self.logger.info("delete bidding object key {0}".format(bidding_object_key))
+
         bidding_object = self.get_bidding_object(bidding_object_key)
         super(BiddingObjectManager, self).del_actioning_object(bidding_object_key)
         self.index_by_session[bidding_object.get_session()].remove(bidding_object_key)

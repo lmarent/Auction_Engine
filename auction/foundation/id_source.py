@@ -1,13 +1,15 @@
+from foundation.singleton import Singleton
 
 
-class IdSource:
+class IdSource(metaclass=Singleton):
     """
 
     Attributes
     ----------
-    Unique: bool : if unique is set to true, ids should be unique until we wrap around 2^16
+    unique: bool : if unique is set to true, ids should be unique until we wrap around 2^16
 
     """
+
     def __init__(self):
         self.num = 0
         self.unique = False
@@ -31,7 +33,7 @@ class IdSource:
             id = self.free_ids.pop(0)
             return id
 
-    def free_id(self, id_to_release: int ):
+    def free_id(self, id_to_release: int):
         """
 
         :param id_to_release:
@@ -40,5 +42,3 @@ class IdSource:
         if not self.unique:
             self.free_ids.append(id)
             self.num = self.num - 1
-
-

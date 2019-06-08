@@ -23,9 +23,9 @@ class log(metaclass=Singleton):
         """
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         logger = logging.getLogger(self.file_name)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
         file_handler = logging.FileHandler(base_dir + '/' + self.file_name + '.log')
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging.INFO)
         formatter = logging.Formatter('[L:%(filename)s - %(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s',
                                       datefmt='%d-%m-%Y %H:%M:%S')
         file_handler.setFormatter(formatter)

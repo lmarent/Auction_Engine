@@ -2,6 +2,8 @@ from foundation.session import Session
 from datetime import datetime
 from auction_client.resource_request_interval import ResourceRequestInterval
 from auction_client.server_connection import ServerConnection
+from foundation.auction import Auction
+from typing import List
 
 
 class AuctionSession(Session):
@@ -10,6 +12,8 @@ class AuctionSession(Session):
 
     It has the resource request interval, the auctions being performed,
     and the start and stop time when it should happen the auction session.
+
+    The attribute auction set contains the keys of the auctions.
     """	
 
     def __init__(self, session_id: str, s_sender_address: str, s_destin_address:str,
@@ -54,14 +58,14 @@ class AuctionSession(Session):
         """
         return self.auction_set
 
-    def set_auctions(self, auctions: list):
+    def set_auctions(self, auctions: List[Auction]):
         """
         Copies the auctions identifiers within auctions parameter to the auction_set attribute.
 
-        :param auctions - auctions' identifiers to be copied. 
+        :param auctions - auctions  to be copied.
         """
-        for auction_key in auctions:
-            self.auction_set.add(auction_key)
+        for auction in auctions:
+            self.auction_set.add(auction.get_key())
 
     def set_server_connection(self, server_connection : ServerConnection):
         """

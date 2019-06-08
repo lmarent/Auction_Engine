@@ -6,6 +6,8 @@ from foundation.ipap_auction_parser import IpapAuctionParser
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainer
 from foundation.singleton import Singleton
+from utils.auction_utils import log
+
 
 
 class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
@@ -20,6 +22,7 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         """
         super(AuctionManager, self).__init__(domain)
         self.time_idx = {}
+        self.logger = log().get_logger()
 
     def add_auction(self, auction: Auction):
         """
@@ -36,6 +39,7 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         :param auction_key: auction key to delete
         :return:
         """
+        self.logger.debug("removing auction:{0}".format(auction_key))
         super(AuctionManager, self).del_actioning_object(auction_key)
 
     def get_auction(self, auction_key: str) -> Auction:
@@ -104,7 +108,11 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         :param auctions: list of auctions to create a new reference
         :param session_id: session id to be included
         """
-        pass
+        for auction in auctions:
+            try:
+                self.get_auction(auction.get_key()).add_session_reference(session_id)
+            except ValueError as e:
+                self.logger.error('The auction with key {0} was not found'.format(auction.get_key()))
 
     def decrement_references(self, auctions: set, session_id: str) -> list:
         """
@@ -114,7 +122,8 @@ class AuctionManager(AuctioningObjectManager, metaclass=Singleton):
         :return: list of auctions to be removed from handlers.
         """
         auctions_to_remove = []
-        for auction in auctions:
+        for auction_key in auctions:
+            auction = self.get_auction(auction_key)
             auction.delete_session_reference(session_id)
             if auction.get_session_references() == 0:
                 auctions_to_remove.append(auction)

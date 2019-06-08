@@ -34,8 +34,9 @@ if __name__ == '__main__':
 
     configurations = []
     # aggregate 1
-    configurations.append({'domain_server': 102, 'domain_client': 12, 'auction_file': 'auction_perfect_information.xml',
-                           'request_file': 'aggregate_perfect_information.xml'})
+    # configurations.append({'domain_server': 102, 'domain_client': 12, 'auction_file': 'auction_perfect_information.xml',
+    #                       'request_file': 'aggregate_perfect_information.xml'})
+
     configurations.append({'domain_server': 103, 'domain_client': 13, 'auction_file': 'auction_psp.xml',
                            'request_file': 'aggregate_psp.xml'})
     configurations.append({'domain_server': 104, 'domain_client': 14, 'auction_file': 'auction_subsidy.xml',

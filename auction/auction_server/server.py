@@ -77,7 +77,7 @@ class AuctionServer(Agent):
 
             self.logger.debug("before client process disconnect")
             # disconnects the client
-            await self.server_message_processor.process_disconnect(self.session)
+            await self.message_processor.process_disconnect(session)
             self.logger.debug("end client process disconnect")
 
         self.logger.debug("After sending auction sessions teardown")

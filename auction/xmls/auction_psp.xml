@@ -12,7 +12,7 @@
     <PREF NAME="Interval">30</PREF>
   </GLOBAL>
   <AUCTION ID="3" RESOURCE_SET="ResourceSet_1" RESOURCE_ID="router_1">
-    <ACTION NAME="progressice_second_price" DEFAULT="true">
+      <ACTION NAME="progressive_second_price" DEFAULT="true">
     <PREF NAME="Bandwidth" TYPE="Float32">32</PREF>
     </ACTION>
 

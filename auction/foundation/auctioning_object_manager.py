@@ -1,5 +1,7 @@
 # auctioning_object_manager.py
 from foundation.auctioning_object import AuctioningObjectState
+from utils.auction_utils import log
+
 
 
 class AuctioningObjectManager:
@@ -20,6 +22,7 @@ class AuctioningObjectManager:
         self.domain = domain
         self.auctioning_objects = {}
         self.auctioning_objects_done = {}
+        self.logger = log().get_logger()
 
     def add_auctioning_object(self, auctioning_object):
         """
@@ -34,6 +37,7 @@ class AuctioningObjectManager:
             raise ValueError('Auctioning Object with this name is already installed')
 
         self.auctioning_objects[key] = auctioning_object
+        self.logger.debug("nbr objects after insert {0}:".format(len(self.auctioning_objects)))
 
     def get_auctioning_object(self, key):
         """
@@ -42,7 +46,10 @@ class AuctioningObjectManager:
         if key in self.auctioning_objects.keys():
             return self.auctioning_objects[key]
         else:
-            raise ValueError('Auctioning Object {} does not exist'.format(key))
+            self.logger.debug("nbr objects: {0}".format(len(self.auctioning_objects)))
+            for key_found in self.auctioning_objects.keys():
+                self.logger.debug("key present: {0}".format(key_found))
+            raise ValueError('Auctioning Object {0} does not exist'.format(key))
 
     def get_auctioning_object_done(self, key):
         """

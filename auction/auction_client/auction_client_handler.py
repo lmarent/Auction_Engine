@@ -155,17 +155,27 @@ class RemoveResourceRequestInterval:
         self.client_message_processor = ClientMessageProcessor()
         self.agent_processor = AgentProcessor(self.client_data.domain, "")
         self.auction_manager = AuctionManager(self.client_data.domain)
+        self.logger = log().get_logger()
 
     async def process_remove(self):
+
+        self.logger.info('starting process remove request interval')
 
         # searches the request interval
         resource_request_interval = self.session.get_resource_request_interval()
 
+        self.logger.info(resource_request_interval.start)
+
         # removes the request interval
         auctions = self.session.get_auctions()
 
+        self.logger.info('nbr auctions {0}'.format(str(len(auctions))))
+
         # deletes active request process associated with this request interval.
         resource_request_process_ids = resource_request_interval.get_resource_request_process()
+
+        self.logger.info('starting process request to remove: {0}'.format(str(resource_request_process_ids)))
+
         for resource_request_process_id in resource_request_process_ids:
             self.agent_processor.delete_request(resource_request_process_id)
 
@@ -173,10 +183,11 @@ class RemoveResourceRequestInterval:
         auctions_to_remove = self.auction_manager.decrement_references(auctions, self.session.get_key())
 
         for auction in auctions_to_remove:
-            handle_auction_remove = HandleAuctionRemove(auction, 0)
-            handle_auction_remove.start()
+            handle_auction_remove = HandleAuctionRemove(auction)
+            await handle_auction_remove.start()
 
         await resource_request_interval.stop_tasks()
+        self.logger.info('ending process remove request interval')
 
 
 class HandleRemoveResourceRequestInterval(ScheduledTask):
@@ -203,6 +214,7 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
         Handles the removal of a resource request interval.
         """
         try:
+            self.logger.info("in HandleRemoveResourceRequestInterval 1")
             interval = self.resource_request.get_interval_by_end_time(self.stop_datetime)
 
             # Gets the  auctions corresponding with this resource request interval
@@ -210,14 +222,20 @@ class HandleRemoveResourceRequestInterval(ScheduledTask):
 
             session: AuctionSession = self.auction_session_manager.get_session(session_id)
 
+            self.logger.info("in HandleRemoveResourceRequestInterval 2")
+
             remove_resource_request = RemoveResourceRequestInterval(session)
             await remove_resource_request.process_remove()
 
             # teardowns the session created.
             await self.client_message_processor.process_disconnect(session)
 
+            self.logger.info("in HandleRemoveResourceRequestInterval 3")
+
             # remove the session from the session manager
             self.auction_session_manager.del_session(session.get_key())
+
+            self.logger.info("ending HandleRemoveResourceRequestInterval")
 
         except Exception as e:
             self.logger.error('Error during remove resource request interval - Error:{0}'.format(str(e)))
@@ -234,12 +252,10 @@ class HandleAuctionMessage(ScheduledTask):
         try:
             # if the message has a ack nbr, then confirm the message
             ack_seq_no = self.message.get_ackseqno()
-            print('message received with ack:', ack_seq_no)
             if ack_seq_no > 0:
                 self.server_connection.get_auction_session().confirm_message(ack_seq_no)
 
             ipap_message_type = self.message.get_types()
-            print('message received with ack:', ack_seq_no, ' is action message:', ipap_message_type.is_auction_message())
 
             if ipap_message_type.is_auction_message():
                 ask_response_message = HandleAskResponseMessage(self.server_connection, self.message, 0)
@@ -318,7 +334,6 @@ class HandleAskResponseMessage(ScheduledTask):
                     auction2.set_stop(self.resource_request_interval.stop)
 
                 when = DateUtils().calculate_when(auction2.get_stop())
-                auction2.reschedule_task(HandleAuctionRemove.__name__, when)
 
             except ValueError:
                 # the auction does not exists, so we need to create a new auction process.
@@ -473,31 +488,34 @@ class HandleRequestProcessRemove(ScheduledTask):
             self.logger.error(str(e))
 
 
-class HandleAuctionRemove(ScheduledTask):
+class HandleAuctionRemove(ImmediateTask):
 
-    def __init__(self, auction: Auction, seconds_to_start: float):
+    def __init__(self, auction: Auction):
         """
         Handles the removal of an auction
 
         :param auction: auction to remove.
         :param seconds_to_start: seconds to wait for running the task.
         """
-        super(HandleAuctionRemove, self).__init__(seconds_to_start)
+        super(HandleAuctionRemove, self).__init__()
         self.client_data = ClientMainData()
         self.auction_manager = AuctionManager(self.client_data.domain)
         self.bidding_object_manager = BiddingObjectManager(self.client_data.domain)
         self.agent_processor = AgentProcessor(self.client_data.domain, '')
         self.auction = auction
-        self.logger = log().get_logger()
 
-    async def _run_specific(self, **kwargs):
+    async def _run_specific(self):
         try:
+
+            self.logger.debug("start Handle Auction Remove - auction: {0}".format(str(self.auction.get_key())))
             # remove from processing the auction
             self.agent_processor.delete_auction(self.auction)
 
             handle_remove_bidding_objects = HandleRemoveBiddingObjectByAuction(self.auction)
             await handle_remove_bidding_objects.start()
             self.auction_manager.delete_auction(self.auction.get_key())
+
+            self.logger.debug("end Handle Auction Remove - auction: {0}".format(str(self.auction.get_key())))
 
         except Exception as e:
             self.logger.error(str(e))
@@ -588,7 +606,6 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
             ipap_message.set_seqno(session.get_next_message_id())
             ipap_message.set_ack_seq_no(0)
             session.add_pending_message(ipap_message)
-            print('send bidding object message', ipap_message.get_seqno())
             await self.message_processor.send_message(session.get_server_connnection(), ipap_message.get_message())
 
         except Exception as e:
@@ -654,11 +671,11 @@ class HandleRemoveBiddingObject(ScheduledTask):
 
     async def _run_specific(self):
         try:
-
+            self.logger.debug("starting HandleRemoveBiddingObject key {0}".format(self.bidding_object.get_key()))
             auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 await self.bidding_object.stop_tasks()
-                self.bidding_manager.del_actioning_object(self.bidding_object.get_key())
+                self.bidding_manager.delete_bidding_object(self.bidding_object.get_key())
             else:
                 raise ValueError("Auction {0} is not active".format(auction.get_key()))
 
