@@ -68,10 +68,13 @@ class TaskGenerator:
         :param auction_task: auction task finished.
         :return:
         """
+        try:
+            self.active_tasks.remove(auction_task)
+        except Exception as e:
+            print("task : {0} could not be removed  object: {1} - error:{2}".format(type(auction_task).__name__,
+                                                                                    self.key, str(e)))
 
-        self.active_tasks.remove(auction_task)
-
-    async def stop_tasks(self):
+    async def stop_tasks(self, tasks_to_maintain=[]):
         """
         Stops all tasks scheduled for this auction object.
 
@@ -80,9 +83,13 @@ class TaskGenerator:
         while True:
             try:
                 task = self.active_tasks.pop()
-                await task.stop()
+                if task not in tasks_to_maintain:
+                    await task.stop()
             except IndexError:
                 break
+
+        for task in tasks_to_maintain:
+            self.active_tasks.append(task)
 
 
 class AuctioningObject(TaskGenerator):

@@ -114,6 +114,7 @@ class HandleActivateResourceRequestInterval(ScheduledTask):
                 message.set_seqno(message_id)
                 message.set_ack_seq_no(0)
 
+                self.logger.info("new session with interval {0}".format(interval.start.strftime("%d/%m/%Y %H:%M:%S")))
                 session.set_resource_request_interval(interval)
                 session.set_start(interval.start)
                 session.set_stop(interval.stop)
@@ -159,7 +160,7 @@ class RemoveResourceRequestInterval:
 
     async def process_remove(self):
 
-        self.logger.info('starting process remove request interval')
+        self.logger.info('starting process remove request interval - session {0}'.format(self.session.get_key()))
 
         # searches the request interval
         resource_request_interval = self.session.get_resource_request_interval()
@@ -540,6 +541,7 @@ class HandleRemoveBiddingObjectByAuction(ImmediateTask):
         """
         bidding_object_keys = deepcopy(self.bidding_object_manager.get_bidding_objects_by_parent(self.auction.get_key()))
         for bidding_object_key in bidding_object_keys:
+            self.logger.info("removing bidding object: {0}".format(bidding_object_key))
             bidding_object = self.bidding_object_manager.get_bidding_object(bidding_object_key)
             await bidding_object.stop_tasks()
             self.bidding_object_manager.delete_bidding_object(bidding_object_key)
@@ -587,13 +589,13 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
                     if i < num_options - 1:
                         when = (interval.stop - datetime.now()).total_seconds()
                         handle_inactivate = HandleInactivateBiddingObject(bidding_object, when)
-                        handle_inactivate.start()
                         bidding_object.add_task(handle_inactivate)
+                        handle_inactivate.start()
                     else:
                         when = (interval.stop - datetime.now()).total_seconds()
-                        handle_inactivate = HandleRemoveBiddingObject(bidding_object, when)
-                        handle_inactivate.start()
-                        bidding_object.add_task(handle_inactivate)
+                        handle_remove = HandleRemoveBiddingObject(bidding_object, when)
+                        bidding_object.add_task(handle_remove)
+                        handle_remove.start()
 
                     i = i + 1
 
@@ -671,10 +673,10 @@ class HandleRemoveBiddingObject(ScheduledTask):
 
     async def _run_specific(self):
         try:
-            self.logger.debug("starting HandleRemoveBiddingObject key {0}".format(self.bidding_object.get_key()))
+            self.logger.info("starting HandleRemoveBiddingObject key {0}".format(self.bidding_object.get_key()))
             auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
-                await self.bidding_object.stop_tasks()
+                await self.bidding_object.stop_tasks([self])
                 self.bidding_manager.delete_bidding_object(self.bidding_object.get_key())
             else:
                 raise ValueError("Auction {0} is not active".format(auction.get_key()))

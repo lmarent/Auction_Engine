@@ -30,8 +30,8 @@ class IdSource(metaclass=Singleton):
                 else:
                     return self.num
         else:
-            id = self.free_ids.pop(0)
-            return id
+            id_source = self.free_ids.pop(0)
+            return id_source
 
     def free_id(self, id_to_release: int):
         """
@@ -40,5 +40,5 @@ class IdSource(metaclass=Singleton):
         :return:
         """
         if not self.unique:
-            self.free_ids.append(id)
+            self.free_ids.append(id_to_release)
             self.num = self.num - 1

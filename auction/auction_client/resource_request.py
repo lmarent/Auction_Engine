@@ -38,7 +38,7 @@ class ResourceRequest(AuctioningObject):
         for interval in self.intervals:
             if interval.start == start:
                 return interval
-        return None
+        raise ValueError("Interval not found for start time: {0}".format(start.strftime("%d/%m/%Y %H:%M:%S")))
 
     def get_interval_by_end_time(self, end: datetime) -> ResourceRequestInterval:
         """
@@ -49,7 +49,7 @@ class ResourceRequest(AuctioningObject):
         for interval in self.intervals:
             if interval.stop == end:
                 return interval
-        return None
+        raise ValueError("Interval not found for start time: {0}".format(end.strftime("%d/%m/%Y %H:%M:%S")))
 
     def get_intervals(self) -> list:
         """
