@@ -71,8 +71,7 @@ class TaskGenerator:
         try:
             self.active_tasks.remove(auction_task)
         except Exception as e:
-            print("task : {0} could not be removed  object: {1} - error:{2}".format(type(auction_task).__name__,
-                                                                                    self.key, str(e)))
+            print("task : {0} could not be removed - error:{2}".format(type(auction_task).__name__, str(e)))
 
     async def stop_tasks(self, tasks_to_maintain=[]):
         """
