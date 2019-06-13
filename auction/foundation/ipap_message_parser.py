@@ -319,7 +319,7 @@ class IpapMessageParser:
             ipap_field_value = record.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
             f_item = self.field_def_manager.get_field_by_code(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
 
-            ipap_field_value.print_value()
+            # ipap_field_value.print_value()
 
             ipap_field = template.get_field(ipap_field_key.get_eno(), ipap_field_key.get_ftype())
             config_param = ConfigParam(name=f_item['key'],

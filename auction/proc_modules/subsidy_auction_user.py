@@ -102,12 +102,12 @@ class SubsidyAuctionUser(Module):
         if len(auctions) > 0:
 
             # Get the total money and budget and divide them by the number of auctions
-            total_budget = self.proc_module.get_param_value("totalbudget", request_params)
-            max_unit_valuation = self.proc_module.get_param_value("maxvalue", request_params)
-            quantity = self.proc_module.get_param_value("quantity", request_params)
+            total_budget = float(self.proc_module.get_param_value("totalbudget", request_params))
+            max_unit_valuation = float(self.proc_module.get_param_value("maxvalue", request_params))
+            quantity = float(self.proc_module.get_param_value("quantity", request_params))
 
-            subsidy = self.proc_module.get_param_value('subsidy', request_params)
-            discriminatory_price = self.proc_module.get_param_value('maxvalue01', request_params)
+            subsidy = float(self.proc_module.get_param_value('subsidy', request_params))
+            discriminatory_price = float(self.proc_module.get_param_value('maxvalue01', request_params))
 
             budget_by_auction = total_budget / len(auctions)
             valuation_by_auction = max_unit_valuation / len(auctions)

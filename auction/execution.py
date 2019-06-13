@@ -34,16 +34,21 @@ if __name__ == '__main__':
 
     configurations = []
     # aggregate 1
-    # configurations.append({'domain_server': 102, 'domain_client': 12, 'auction_file': 'auction_perfect_information.xml',
-    #                       'request_file': 'aggregate_perfect_information.xml'})
+    configurations.append({'domain_server': 106, 'domain_client': 16,
+                           'auction_file': 'auction_basic.xml', 'request_file': 'aggregate_basic.xml'})
 
-    configurations.append({'domain_server': 103, 'domain_client': 13, 'auction_file': 'auction_psp.xml',
-                           'request_file': 'aggregate_psp.xml'})
-    configurations.append({'domain_server': 104, 'domain_client': 14, 'auction_file': 'auction_subsidy.xml',
-                           'request_file': 'aggregate_subsidy.xml'})
-    configurations.append(
-        {'domain_server': 105, 'domain_client': 15, 'auction_file': 'auction_two_auction_generalized.xml',
-         'request_file': 'aggregate_two_auction_generalized.xml'})
+    # configurations.append({'domain_server': 102, 'domain_client': 12, 'auction_file': 'auction_perfect_information.xml',
+    #                        'request_file': 'aggregate_perfect_information.xml'})
+
+    # configurations.append({'domain_server': 103, 'domain_client': 13, 'auction_file': 'auction_psp.xml',
+    #                       'request_file': 'aggregate_psp.xml'})
+
+    # configurations.append({'domain_server': 104, 'domain_client': 14, 'auction_file': 'auction_subsidy.xml',
+    #                       'request_file': 'aggregate_subsidy.xml'})
+
+    # configurations.append(
+    #    {'domain_server': 105, 'domain_client': 15, 'auction_file': 'auction_two_auction_generalized.xml',
+    #     'request_file': 'aggregate_two_auction_generalized.xml'})
 
     # aggregate 2
     # configurations.append({'domain_server': 106, 'domain_client': 16, 'auction_file': 'auction_basic.xml', 'request_file': 'aggregate_basic.xml'})

@@ -28,12 +28,12 @@ Main:
   DefaultDestinationPort: 8080
   DefaultProtocol: 6
   DefaultSourcePort: 8020
-  Domain: '13'
+  Domain: '16'
   ImmediateStart: true
   LifeTime: 60
   LocalAddr-V4: 127.0.0.1
   LocalAddr-V6: 0:0:0:0:0:0:0:0
-  ResourceRequestFile: aggregate_psp.xml
+  ResourceRequestFile: aggregate_basic.xml
   ResourceRequestFileDtd: resourcerequestfile.dtd
   StoreObjects: true
   TimeFormat: '%Y%m%d %H%M%S'

@@ -539,7 +539,8 @@ class HandleRemoveBiddingObjectByAuction(ImmediateTask):
 
         :return:
         """
-        bidding_object_keys = deepcopy(self.bidding_object_manager.get_bidding_objects_by_parent(self.auction.get_key()))
+        bidding_object_keys = deepcopy(
+            self.bidding_object_manager.get_bidding_objects_by_parent(self.auction.get_key()))
         for bidding_object_key in bidding_object_keys:
             self.logger.info("removing bidding object: {0}".format(bidding_object_key))
             bidding_object = self.bidding_object_manager.get_bidding_object(bidding_object_key)
@@ -576,6 +577,10 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
 
             # Inserts the objects in the bidding object container
             for bidding_object in self.bidding_objects:
+                bidding_object.set_process_request_key(self.request_process_key)
+                bidding_object.set_resource_request_key(
+                    session.get_resource_request_interval().get_resource_request_key())
+
                 await self.bidding_manager.add_bidding_object(bidding_object)
                 i = 0
                 num_options = len(bidding_object.options)

@@ -8,6 +8,7 @@ from foundation.singleton import Singleton
 from foundation.config_param import ConfigParam
 from foundation.config_param import DataType
 from foundation.field_value import FieldValue
+from utils.auction_utils import log
 
 from datetime import datetime
 from copy import deepcopy
@@ -98,6 +99,7 @@ class AgentProcessor(metaclass=Singleton):
         self.requests = {}
         self.config = Config().get_config()
         self.field_sets = {}
+        self.logger = log().get_logger()
 
         if not module_directory:
             if 'AGNTProcessor' in self.config:
@@ -148,7 +150,8 @@ class AgentProcessor(metaclass=Singleton):
         """
         module_name = auction.get_action().get_name() + "_user"
         module = self.module_loader.get_module(module_name)
-        key = str(IdSource().new_id())
+        key = str(IdSource(True).new_id())
+        self.logger.info("new request process key {0}".format(key))
         request_params = deepcopy(request_params)
         other_params = self.create_config_params()
         request_params.update(other_params)
@@ -200,7 +203,6 @@ class AgentProcessor(metaclass=Singleton):
         bids = module.execute_user(request_process.get_request_params(), request_process.get_auctions(),
                                    request_process.get_start(), request_process.get_stop())
 
-        print('nbr bids:', len(bids))
         # Sets the session for the bid.
         for bid in bids:
             bid.set_session(request_process.get_session_id())

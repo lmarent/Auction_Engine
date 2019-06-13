@@ -72,7 +72,6 @@ class IpapFieldTest(unittest.TestCase):
         ipap_field_value.set_value_vchar(value, size)
         self.ipap_field2.set_field_type(0, 30, size, 4, b"campo_1", b"campo_2", b"campo_3")
         result = self.ipap_field2.write_value(ipap_field_value)
-        print('termino write_value')
         self.assertEqual(result,"resource_1.set_1")
 
 

@@ -31,11 +31,13 @@ class ResourceRequestFileParser:
 
         return interval_dict
 
-    def _parse_interval(self, node: Element, start_at_least: datetime) -> (datetime, Interval):
+    def _parse_interval(self, node: Element, start_at_least: datetime, resource_request_key: str) -> (
+    datetime, Interval):
         """
         Parses an interval
         :param node: xml node
         :param start_at_least:start datetime
+        :param resource_request_key: resource requets key
         :return: start date time for the interval and interval parsed.
         """
         misc_config = {}
@@ -48,7 +50,7 @@ class ResourceRequestFileParser:
 
         interval_dict = self._convert_interal_dict(misc_config)
 
-        new_interval = ResourceRequestInterval()
+        new_interval = ResourceRequestInterval(resource_request_key)
         new_interval.parse_interval(interval_dict, start_at_least)
         return new_interval.stop, new_interval
 
@@ -82,7 +84,7 @@ class ResourceRequestFileParser:
                     resource_request.add_field_value(field_value)
 
                 elif subitem.tag.lower() == "interval":
-                    start, interval = self._parse_interval(subitem, start)
+                    start, interval = self._parse_interval(subitem, start, resource_request_key)
                     intervals.append(interval)
 
         # Copies field values.

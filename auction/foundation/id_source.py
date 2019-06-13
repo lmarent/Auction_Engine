@@ -10,9 +10,9 @@ class IdSource(metaclass=Singleton):
 
     """
 
-    def __init__(self):
+    def __init__(self, unique: bool = False):
         self.num = 0
-        self.unique = False
+        self.unique = unique
         self.free_ids = []
         self.ids_reserved = []
 
@@ -21,9 +21,8 @@ class IdSource(metaclass=Singleton):
 
         :return:
         """
+        self.num = self.num + 1
         if len(self.free_ids) == 0:
-            self.num = self.num + 1
-
             while True:
                 if self.num in self.ids_reserved:
                     self.num = self.num + 1

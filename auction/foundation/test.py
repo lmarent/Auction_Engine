@@ -7,9 +7,10 @@ from foundation.bidding_object_file_parser import BiddingObjectXmlFileParser
 from foundation.module_loader import ModuleLoader
 from foundation.database_manager import DataBaseManager
 from foundation.config import Config
-
 from foundation.field_value import FieldValue
 from foundation.specific_field_value import SpecificFieldValue
+from foundation.id_source import IdSource
+
 from python_wrapper.ipap_template import ObjectType
 from python_wrapper.ipap_template import TemplateType
 from python_wrapper.ipap_message import IpapMessage
@@ -406,3 +407,39 @@ class ModuleLoaderTest(unittest.TestCase):
         self.module_loader.load_module(module_name, False)
         self.module_loader.release_module(module_name)
         self.assertEqual(len(self.module_loader.modules), 0)
+
+
+class SourceIdTest(unittest.TestCase):
+
+    def test_get_ids(self):
+        self.id_source = IdSource()
+        id1 = self.id_source.new_id()
+        id2 = self.id_source.new_id()
+        id3 = self.id_source.new_id()
+        self.id_source.free_id(id1)
+        self.id_source.free_id(id2)
+        id4 = self.id_source.new_id()
+        self.id_source.free_id(id3)
+        print(self.id_source.num)
+        self.id_source.free_id(id4)
+
+        self.assertEqual(id4, 1)
+        print(self.id_source.num)
+
+
+class SourceIdUniqueTest(unittest.TestCase):
+
+    def test_get_id_unique(self):
+        self.id_source = IdSource(True)
+        id1 = self.id_source.new_id()
+        id2 = self.id_source.new_id()
+        id3 = self.id_source.new_id()
+        self.id_source.free_id(id1)
+        self.id_source.free_id(id2)
+        id4 = self.id_source.new_id()
+        self.id_source.free_id(id3)
+        print(self.id_source.num)
+        self.id_source.free_id(id4)
+
+        self.assertEqual(id4, 4)
+        print(self.id_source.num)

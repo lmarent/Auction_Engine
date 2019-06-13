@@ -5,10 +5,11 @@ from foundation.auctioning_object import TaskGenerator
 
 class ResourceRequestInterval(Interval, TaskGenerator):
 
-    def __init__(self):
+    def __init__(self, resource_request_key: str):
         Interval.__init__(self)
         TaskGenerator.__init__(self)
         self.field_values = {}
+        self.resource_request_key = resource_request_key
         self.state: AuctioningObjectState = AuctioningObjectState.NEW
         self.resource_request_process = set()
 
@@ -20,7 +21,7 @@ class ResourceRequestInterval(Interval, TaskGenerator):
         """
         self.resource_request_process.add(resource_request_process_key)
 
-    def delete_resource_request_process(self,resource_request_process_key: str):
+    def delete_resource_request_process(self, resource_request_process_key: str):
         """
 
         :param resource_request_process_key:
@@ -35,6 +36,14 @@ class ResourceRequestInterval(Interval, TaskGenerator):
         :return: set of resource request
         """
         return self.resource_request_process
+
+    def get_resource_request_key(self):
+        """
+        Gets the resource request key that this interval belongs to.
+
+        :return: key of the resource request
+        """
+        return self.resource_request_key
 
     def set_fields(self, config_params: dict):
         """

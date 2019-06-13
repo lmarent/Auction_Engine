@@ -2,9 +2,7 @@ import asyncio
 import functools
  
 def event_handler(loop, stop=False):
-    print('Event handler called')
     if stop:
-        print('stopping the loop')
         loop.stop()
 
 

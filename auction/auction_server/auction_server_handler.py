@@ -11,6 +11,7 @@ from foundation.auctioning_object import AuctioningObjectState
 from foundation.field_def_manager import FieldDefManager
 from foundation.bidding_object_manager import BiddingObjectManager
 from foundation.bidding_object import BiddingObject
+from foundation.id_source import IdSource
 
 from python_wrapper.ipap_message import IpapMessage
 from python_wrapper.ipap_template_container import IpapTemplateContainerSingleton
@@ -63,7 +64,10 @@ class HandleAuctionExecution(PeriodicTask):
             biddding_objects = self.auction_processor.execute_auction(self.auction.get_key(),
                                                                       self.start_datetime, next_start)
 
+            # Gets a unique execution id.
+            id_process = IdSource(True).new_id()
             for bidding_object in biddding_objects:
+                bidding_object.set_process_request_key(str(id_process))
                 await self.bidding_object_manager.add_bidding_object(bidding_object)
 
             # TODO: send the allocations to auction clients.
@@ -394,8 +398,6 @@ class HandleAddBiddingObjects(ScheduledTask):
         self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
-        print('receive HandleAddBiddingObjects message:', self.ipap_message.get_seqno())
-
     async def _run_specific(self):
         """
         Adds bidding objects sent from an agent.
@@ -407,6 +409,7 @@ class HandleAddBiddingObjects(ScheduledTask):
 
             # insert bidding objects to bidding object manager
             for bidding_object in bidding_objects:
+                self.logger.info("receiving bidding object with key: {0}".format(bidding_object.get_key()))
                 bidding_object.set_session(self.session.get_key())
                 self.bididing_manager.add_auctioning_object(bidding_object)
                 i = 0

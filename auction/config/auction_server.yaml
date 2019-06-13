@@ -35,11 +35,11 @@ DataBase:
   User: postgres
 DefaultLogFile: netaum
 Main:
-  AuctionFile: auction_psp.xml
+  AuctionFile: auction_basic.xml
   AuctionFileDtd: auctionfile.dtd
   BiddingObjectfileDtd: bidfile.dtd
   DefaultProtocol: 6
-  Domain: '103'
+  Domain: '106'
   ImmediateStart: true
   LifeTime: 60
   LocalAddr-V4: 127.0.0.1

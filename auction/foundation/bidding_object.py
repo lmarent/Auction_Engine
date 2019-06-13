@@ -19,7 +19,7 @@ class BiddingObject(AuctioningObject):
       2. A set of options which establish the duration of the bidding object. 
     """
     sql_hdr_insert = """INSERT INTO bidding_object_hdr( parent_key, key, session_id, bidding_object_type, 
-                        bidding_object_status) VALUES ($1, $2, $3, $4, $5 )"""
+                      bidding_object_status, resource_request_key, process_key) VALUES ($1, $2, $3, $4, $5, $6, $7 )"""
 
     sql_element_insert = """INSERT INTO bidding_object_element( parent_key, key, element_name) VALUES ($1, $2, $3 )"""
 
@@ -42,6 +42,8 @@ class BiddingObject(AuctioningObject):
         self.options = options
         self.parent_key = parent_key
         self.session_key = None
+        self.process_request_key = None
+        self.resource_request_key = None
         self.participating_auction_processes = []
 
     def get_parent_key(self):
@@ -127,6 +129,24 @@ class BiddingObject(AuctioningObject):
         """
         self.session_key = session_key
 
+    def set_resource_request_key(self, resource_request_key: str):
+        """
+        Sets the resource request key to whom this bidding object belogs to.
+
+        :param resource_request_key: key to be set
+        :return:
+        """
+        self.resource_request_key = resource_request_key
+
+    def set_process_request_key(self, process_request_key: str):
+        """
+        Sets the process request key to whom this bidding object belogs to.
+
+        :param process_request_key: key to be set
+        :return:
+        """
+        self.process_request_key = process_request_key
+
     def associate_auction_process(self, auction_process_key: str):
         """
         Attaches the bidding object to an auction process
@@ -159,6 +179,22 @@ class BiddingObject(AuctioningObject):
         """
         return self.session_key
 
+    def get_resource_request_key(self, resource_request_key: str):
+        """
+        Gets the resource request key to whom this bidding object belogs to.
+
+        :return: resource request key
+        """
+        return self.resource_request_key
+
+    def get_process_request_key(self, process_request_key: str):
+        """
+        Gets the process request key to whom this bidding object belogs to.
+
+        :return: process request key.
+        """
+        return self.process_request_key
+
     async def store(self, connection: Connection):
         """
         stores the bidding object in the database
@@ -167,7 +203,8 @@ class BiddingObject(AuctioningObject):
         """
         async with connection.transaction():
             await connection.execute(BiddingObject.sql_hdr_insert, self.get_parent_key(), self.get_key(),
-                        self.get_session(), self.get_type().value, self.get_state().value)
+                                     self.get_session(), self.get_type().value, self.get_state().value,
+                                     self.get_resource_request_key(), self.get_process_request_key())
 
             # Insert the elements within the bidding object
             for element_name in self.elements:
