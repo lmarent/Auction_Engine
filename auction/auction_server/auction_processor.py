@@ -5,6 +5,7 @@ from foundation.config import Config
 from foundation.ipap_message_parser import IpapMessageParser
 from foundation.module_loader import ModuleLoader
 from foundation.auctioning_object import AuctioningObjectType
+from foundation.auctioning_object import AuctioningObjectState
 from foundation.field_def_manager import FieldDefManager
 from foundation.module import Module
 from foundation.config_param import ConfigParam
@@ -89,7 +90,7 @@ class AuctionProcess(AuctionProcessObject):
 
     def get_bids(self) -> dict:
         """
-        Gets teh bids registered in the action process
+        Gets the bids registered in the action process
         :return: dictionary with all bids
         """
         return self.bids
@@ -222,7 +223,24 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
 
         action_process = self.auctions[key]
         module = action_process.get_module()
-        allocations = module.execute(action_process.get_config_params(), key, start, end, action_process.get_bids())
+
+        # Sends for auctioning only active bids
+        bids = action_process.get_bids()
+        active_bids = {}
+        for bidding_object_key in bids:
+            bidding_object: BiddingObject = bids[bidding_object_key]
+            if bidding_object.get_state() == AuctioningObjectState.ACTIVE:
+                active_bids[bidding_object_key] = bidding_object
+
+        allocations = module.execute(action_process.get_config_params(), key, start, end, active_bids)
+
+        # Updates the periods executed for the bidding object (include those inactive)
+        for bidding_object_key in bids:
+            bidding_object: BiddingObject = bids[bidding_object_key]
+            bidding_object.increase_execution_periods()
+            self.logger.info("bidding object key: {0} - number of periods:{1}".format(
+                bidding_object.get_key(), str(bidding_object.get_execution_periods())))
+
         return allocations
 
     def add_bidding_object_to_auction_process(self, key: str, bidding_object: BiddingObject):
@@ -237,6 +255,9 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
             raise ValueError("auction process with index:{0} was not found".format(key))
         action_process = self.auctions[key]
 
+        self.logger.info("auction process bids already included: {0} - bid to include: {1}".format(
+            str(len(action_process.get_bids())), bidding_object.get_key()))
+
         if bidding_object.get_parent_key() != action_process.key:
             raise ValueError("bidding object given {0} is not for the auction {1}".format(
                 bidding_object.get_key(), key))
@@ -246,6 +267,9 @@ class AuctionProcessor(IpapMessageParser, metaclass=Singleton):
             bidding_object.associate_auction_process(key)
         else:
             raise ValueError("bidding object is not BID type")
+
+        self.logger.info("auction process bids included after: {0} - bid to include: {1}".format(
+            str(len(action_process.get_bids())), bidding_object.get_key()))
 
     def delete_bidding_object_from_auction_process(self, key: str, bidding_object: BiddingObject):
         """

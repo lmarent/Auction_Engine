@@ -15,7 +15,7 @@
     <ACTION NAME="two_auction_perfect_information" DEFAULT="true">
     <PREF NAME="Bandwidth01" TYPE="Float32">10</PREF>
     <PREF NAME="Bandwidth02" TYPE="Float32">22</PREF>
-    <PREF NAME="ReservePrice01" TYPE="Float64">0.15</PREF>
+        <PREF NAME="ReservePrice01" TYPE="Float64">0.0</PREF>
     <PREF NAME="ReservePrice02" TYPE="Float64">0.5</PREF>
     <PREF NAME="MaxValue01" TYPE="Float64">0.5</PREF>
     <PREF NAME="MaxValue02" TYPE="Float64">0.9</PREF>

@@ -22,12 +22,15 @@ class DataBaseManager(metaclass=Singleton):
         self.pool = None
         self.logger = log().get_logger()
 
+        print('database manager in init')
+
     async def connect(self):
         """
         Create a connection pool.
         :return:
         """
         if self.pool is None:
+            self.logger.info("connecting to the database server")
             if self.db_type == 'postgres':
                 dsn = "postgres://{user}:{password}@{host}:{port}/{database}".format(user=self.user,
                                                                                      password=self.password,
@@ -35,8 +38,12 @@ class DataBaseManager(metaclass=Singleton):
                                                                                      port=self.port,
                                                                                      database=self.database_name)
 
-                self.logger.debug("dsn: {0}".format(dsn))
+                self.logger.info("dsn: {0}".format(dsn))
                 self.pool = await asyncpg.create_pool(dsn=dsn, command_timeout=60)
+                if self.pool is not None:
+                    self.logger.info("after connected pool was established")
+                else:
+                    self.logger.error("after connected pool was not established")
             else:
                 raise ValueError('Invalid database type provided')
         else:
@@ -47,9 +54,12 @@ class DataBaseManager(metaclass=Singleton):
         acquires a connection from the pool
         :return:
         """
+        self.logger.info("pool values is {0}".format(str(self.pool is None)))
         if self.pool is None:
             await self.connect()
+            self.logger.info("after database connection")
 
+        assert self.pool is not None, "Datebase pool is still none"
         return await self.pool.acquire()
 
     def release(self, con: asyncpg.Connection):
@@ -60,6 +70,7 @@ class DataBaseManager(metaclass=Singleton):
         if self.pool is None:
             raise ValueError("The pool is not defined")
         else:
+            self.logger.info("release connection")
             return self.pool.release(con)
 
     def close(self):

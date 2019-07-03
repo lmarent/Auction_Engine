@@ -56,12 +56,16 @@ class BiddingObjectManager(AuctioningObjectManager, metaclass=Singleton):
         (self.index_by_parent[bidding_object.get_parent_key()]).append(bidding_object.get_key())
 
         # stores the bidding object in the database.
-        self.logger.debug("store objects: {0}".format( self.store_objects))
+
         if self.store_objects:
+            self.logger.info("It is going to insert bidding object: {0}".format(bidding_object.get_key()))
             database_manager = DataBaseManager()
+            self.logger.info("database object created bididng object: {0}".format(id(database_manager)))
             connection = await database_manager.acquire()
+            self.logger.info("connection acquired")
             await bidding_object.store(connection)
             await database_manager.release(connection)
+            self.logger.info("It stored objects the object: {0}".format(bidding_object.get_key()))
 
     def delete_bidding_object(self, bidding_object_key: str):
         """

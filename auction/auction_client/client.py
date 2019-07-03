@@ -81,6 +81,7 @@ class AuctionClient(Agent):
 
             # add handler for shutdown the process.
             self.app.on_shutdown.append(self.on_shutdown)
+            self.app.on_startup.append(self.on_startup)
 
         except Exception as e:
             self.logger.error("Error during server initialization - message: {0}".format(str(e)))
@@ -97,6 +98,17 @@ class AuctionClient(Agent):
     #    :return:
     #    """
     #    app['websocket_task'] = self.app.loop.create_task(self.websocket())
+
+    async def on_startup(self, app):
+        """
+        Connects to the database,
+        :param app: application connecting the database
+        :return:
+        """
+        self.logger.debug("Starting On startup")
+        await self.database_manager.connect()
+        self.logger.debug("Ending On startup")
+
 
     def _load_main_data(self):
         """

@@ -46,11 +46,21 @@ class AuctionServer(Agent):
             self.app.add_routes([get('/websockets', self.message_processor.handle_web_socket)])
 
             self.app.on_shutdown.append(self.on_shutdown)
+            self.app.on_startup.append(self.on_startup)
             self.logger.debug('ending init')
 
         except Exception as e:
             self.logger.error("Error during server initialization - message:", str(e))
 
+    async def on_startup(self, app):
+        """
+        Connects to the database,
+        :param app: application connecting the database
+        :return:
+        """
+        self.logger.debug("Starting On startup")
+        await self.database_manager.connect()
+        self.logger.debug("Ending On startup")
 
     async def terminate(self, request):
         """
@@ -102,7 +112,7 @@ class AuctionServer(Agent):
         except ValueError:
             pass
 
-        self.logger.debug("shutdown ends")
+        self.logger.info("shutdown ends")
 
     async def remove_auctions(self):
         """
@@ -146,6 +156,7 @@ class AuctionServer(Agent):
         self.bidding_object_manager = BiddingObjectManager(self.domain)
         self.session_manager = SessionManager()
         self.resource_manager = ResourceManager(self.domain)
+        self.logger.info("database object created: {0}".format(id(self.database_manager)))
         self.logger.debug("Ending _initialize_managers")
 
     def _initilize_processors(self):

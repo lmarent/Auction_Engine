@@ -13,9 +13,9 @@
   </GLOBAL>
   <AUCTION ID="5" RESOURCE_SET="ResourceSet_1" RESOURCE_ID="router_1">
     <ACTION NAME="two_auction_generalized" DEFAULT="true">
-    <PREF NAME="Bandwidth01" TYPE="Float32">10</PREF>
-    <PREF NAME="Bandwidth02" TYPE="Float32">22</PREF>
-    <PREF NAME="ReservePrice01" TYPE="Float64">0.15</PREF>
+        <PREF NAME="Bandwidth01" TYPE="Float32">12.0</PREF>
+        <PREF NAME="Bandwidth02" TYPE="Float32">20.0</PREF>
+        <PREF NAME="ReservePrice01" TYPE="Float64">0.0</PREF>
     <PREF NAME="ReservePrice02" TYPE="Float64">0.5</PREF>
     <PREF NAME="MaxValue01" TYPE="Float64">0.5</PREF>
     <PREF NAME="MaxValue02" TYPE="Float64">0.9</PREF>

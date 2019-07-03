@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE RESOURCE_REQUEST_SET PUBLIC "SYSTEM" "resourcerequestfile.dtd">
+<RESOURCE_REQUEST_SET ID="UNIQUE">
+
+    <RESOURCE_REQUEST ID="SET1_202_207_26">
+        <FIELD NAME="quantity">6</FIELD>
+        <FIELD NAME="totalbudget">0.612</FIELD>
+        <FIELD NAME="maxvalue">0.635</FIELD>
+        <FIELD NAME="DstIPV4">8.8.8.8</FIELD>
+        <FIELD NAME="DstPort">80</FIELD>
+        <INTERVAL NAME="interval1">
+            <PREF NAME="Start">+10</PREF>
+            <PREF NAME="Duration">228</PREF>
+        </INTERVAL>
+    </RESOURCE_REQUEST>
+
+    <RESOURCE_REQUEST ID="SET1_202_149_11">
+        <FIELD NAME="quantity">3</FIELD>
+        <FIELD NAME="totalbudget">0.794</FIELD>
+        <FIELD NAME="maxvalue">0.281</FIELD>
+        <FIELD NAME="DstIPV4">8.8.8.8</FIELD>
+        <FIELD NAME="DstPort">80</FIELD>
+        <INTERVAL NAME="interval1">
+            <PREF NAME="Start">+10</PREF>
+            <PREF NAME="Duration">83</PREF>
+        </INTERVAL>
+
+        <INTERVAL NAME="interval2">
+            <PREF NAME="Start">+200</PREF>
+            <PREF NAME="Duration">83</PREF>
+        </INTERVAL>
+
+    </RESOURCE_REQUEST>
+
+    <RESOURCE_REQUEST ID="SET1_239_137_20">
+        <FIELD NAME="quantity">6</FIELD>
+        <FIELD NAME="totalbudget">0.791</FIELD>
+        <FIELD NAME="maxvalue">0.75</FIELD>
+        <FIELD NAME="DstIPV4">8.8.8.8</FIELD>
+        <FIELD NAME="DstPort">80</FIELD>
+        <INTERVAL NAME="interval1">
+            <PREF NAME="Start">+10</PREF>
+            <PREF NAME="Duration">200</PREF>
+        </INTERVAL>
+
+        <INTERVAL NAME="interval2">
+            <PREF NAME="Start">+300</PREF>
+            <PREF NAME="Duration">83</PREF>
+        </INTERVAL>
+
+
+    </RESOURCE_REQUEST>
+
+
+</RESOURCE_REQUEST_SET>

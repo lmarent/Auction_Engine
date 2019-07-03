@@ -10,6 +10,7 @@ from utils.auction_utils import log
 from datetime import datetime
 from asyncpg import Connection
 
+
 class BiddingObject(AuctioningObject):
     """
     This class respresents the bidding objects being interchanged between users and the auctionner. 
@@ -44,6 +45,7 @@ class BiddingObject(AuctioningObject):
         self.session_key = None
         self.process_request_key = None
         self.resource_request_key = None
+        self.execution_periods = 0
         self.participating_auction_processes = []
 
     def get_parent_key(self):
@@ -179,7 +181,7 @@ class BiddingObject(AuctioningObject):
         """
         return self.session_key
 
-    def get_resource_request_key(self, resource_request_key: str):
+    def get_resource_request_key(self):
         """
         Gets the resource request key to whom this bidding object belogs to.
 
@@ -187,13 +189,27 @@ class BiddingObject(AuctioningObject):
         """
         return self.resource_request_key
 
-    def get_process_request_key(self, process_request_key: str):
+    def get_process_request_key(self):
         """
         Gets the process request key to whom this bidding object belogs to.
 
         :return: process request key.
         """
         return self.process_request_key
+
+    def get_execution_periods(self):
+        """
+        Gets the periods that have been executed for the bidding object
+        :return:
+        """
+        return self.execution_periods
+
+    def increase_execution_periods(self):
+        """
+        Increases the number of periods that have been executed for the bidding object
+        :return:
+        """
+        self.execution_periods = self.execution_periods + 1
 
     async def store(self, connection: Connection):
         """

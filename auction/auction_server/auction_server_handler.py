@@ -1,4 +1,6 @@
 import yaml
+import asyncio
+
 from foundation.auction_task import ScheduledTask
 from foundation.auction_task import PeriodicTask
 from foundation.auction_task import ImmediateTask
@@ -8,6 +10,7 @@ from foundation.auction_parser import AuctionXmlFileParser
 from foundation.auction_manager import AuctionManager
 from foundation.auction import Auction
 from foundation.auctioning_object import AuctioningObjectState
+from foundation.auctioning_object import AuctioningObjectType
 from foundation.field_def_manager import FieldDefManager
 from foundation.bidding_object_manager import BiddingObjectManager
 from foundation.bidding_object import BiddingObject
@@ -26,6 +29,7 @@ from datetime import datetime
 from datetime import timedelta
 from utils.auction_utils import log
 import copy
+import math
 
 
 class HandleAuctionExecution(PeriodicTask):
@@ -61,12 +65,12 @@ class HandleAuctionExecution(PeriodicTask):
                 next_start = self.auction.get_stop()
 
             # Executes the algorithm
-            biddding_objects = self.auction_processor.execute_auction(self.auction.get_key(),
-                                                                      self.start_datetime, next_start)
+            bidding_objects = self.auction_processor.execute_auction(self.auction.get_key(),
+                                                                     self.start_datetime, next_start)
 
             # Gets a unique execution id.
             id_process = IdSource(True).new_id()
-            for bidding_object in biddding_objects:
+            for bidding_object in bidding_objects:
                 bidding_object.set_process_request_key(str(id_process))
                 await self.bidding_object_manager.add_bidding_object(bidding_object)
 
@@ -321,6 +325,7 @@ class HandleActivateBiddingObject(ScheduledTask):
 
     async def _run_specific(self):
         try:
+            self.logger.info("activating bidding_object with key: {0}".format(self.bidding_object.get_key()))
             auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 self.auction_processor.add_bidding_object_to_auction_process(auction.get_key(), self.bidding_object)
@@ -335,17 +340,30 @@ class HandleInactivateBiddingObject(ScheduledTask):
     """
     Handles the removal of a bidding object from the auction process.
     """
-    def __init__(self, session: AuctionSession, bidding_object: BiddingObject, seconds_to_start: float):
+
+    def __init__(self, session: AuctionSession, bidding_object: BiddingObject,
+                 periods_to_maintain: int, seconds_to_start: float):
         super(HandleInactivateBiddingObject, self).__init__(seconds_to_start)
         self.session = session
         self.bidding_object = bidding_object
         self.server_main_data = ServerMainData()
+        self.periods_to_maintain = periods_to_maintain
         self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
         self.auction_manager = AuctionManager(self.server_main_data.domain)
         self.auction_processor = AuctionProcessor(self.server_main_data.domain)
 
     async def _run_specific(self):
         try:
+            self.logger.info("bidding object inactivate key: {0}".format(self.bidding_object.get_key()))
+
+            # Wait for the bid to complete execution.
+            if self.bidding_object.get_type() == AuctioningObjectType.BID:
+                while self.bidding_object.get_execution_periods() <= self.periods_to_maintain:
+                    # we have to wait for the process request to execute
+                    self.logger.info("inactivate bidding object number of periods:{0}".format(
+                        str(self.bidding_object.get_execution_periods())))
+                    await asyncio.sleep(1)
+
             auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
                 self.auction_processor.delete_bidding_object_from_auction_process(auction.get_key(),
@@ -360,10 +378,13 @@ class HandleRemoveBiddingObject(ScheduledTask):
     """
     Handles the removal of a bidding object. This removes the bidding object from the auction for bidding.
     """
-    def __init__(self, session: AuctionSession, bidding_object: BiddingObject, seconds_to_start: float):
+
+    def __init__(self, session: AuctionSession, bidding_object: BiddingObject,
+                 periods_to_maintain: int, seconds_to_start: float):
         super(HandleRemoveBiddingObject, self).__init__(seconds_to_start)
         self.session = session
         self.bidding_object = bidding_object
+        self.periods_to_maintain = periods_to_maintain
         self.server_main_data = ServerMainData()
         self.bidding_manager = BiddingObjectManager(self.server_main_data.domain)
         self.auction_manager = AuctionManager(self.server_main_data.domain)
@@ -371,6 +392,15 @@ class HandleRemoveBiddingObject(ScheduledTask):
 
     async def _run_specific(self):
         try:
+            self.logger.info("bidding object remove key: {0}".format(self.bidding_object.get_key()))
+
+            # Wait for the bid to complete execution.
+            if self.bidding_object.get_type() == AuctioningObjectType.BID:
+                while self.bidding_object.get_execution_periods() <= self.periods_to_maintain:
+                    self.logger.info("inactivate bidding object number of periods:{0}".format(
+                        str(self.bidding_object.get_execution_periods())))
+                    # we have to wait for the process request to execute
+                    await asyncio.sleep(1)
 
             auction = self.auction_manager.get_auction(self.bidding_object.get_parent_key())
             if auction.get_state() == AuctioningObjectState.ACTIVE:
@@ -395,6 +425,7 @@ class HandleAddBiddingObjects(ScheduledTask):
         self.server_main_data = ServerMainData()
         self.server_message_processor = ServerMessageProcessor()
         self.bididing_manager = BiddingObjectManager(self.server_main_data.domain)
+        self.auction_manager = AuctionManager(self.server_main_data.domain)
         self.template_container = IpapTemplateContainerSingleton()
         self.logger = log().get_logger()
 
@@ -421,14 +452,20 @@ class HandleAddBiddingObjects(ScheduledTask):
                     handle_activate.start()
                     bidding_object.add_task(handle_activate)
 
+                    auction = self.auction_manager.get_auction(bidding_object.get_parent_key())
+
+                    when = (interval.stop - datetime.now()).total_seconds()
+                    # calculates the number of periods that should be active given the auction frequency
+                    periods = math.ceil(when / auction.interval.duration)
+
                     if i < num_options - 1:
-                        when = (interval.stop - datetime.now()).total_seconds()
-                        handle_inactivate = HandleInactivateBiddingObject(self.session, bidding_object, when)
+                        self.logger.info("scheduling bidding object inactivate when: {0}".format(str(when)))
+                        handle_inactivate = HandleInactivateBiddingObject(self.session, bidding_object, periods, when)
                         handle_inactivate.start()
                         bidding_object.add_task(handle_inactivate)
                     else:
-                        when = (interval.stop - datetime.now()).total_seconds()
-                        handle_inactivate = HandleRemoveBiddingObject(self.session, bidding_object, when)
+                        self.logger.info("scheduling bidding object remove when: {0}".format(str(when)))
+                        handle_inactivate = HandleRemoveBiddingObject(self.session, bidding_object, periods, when)
                         handle_inactivate.start()
                         bidding_object.add_task(handle_inactivate)
 

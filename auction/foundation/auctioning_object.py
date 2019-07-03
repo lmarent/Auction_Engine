@@ -17,6 +17,7 @@ class AuctioningObjectState(Enum):
     ACTIVE = 3
     DONE = 4
     ERROR = 5
+    EXECUTED = 6
 
 
 class AuctioningObjectType(Enum):
@@ -71,7 +72,7 @@ class TaskGenerator:
         try:
             self.active_tasks.remove(auction_task)
         except Exception as e:
-            print("task : {0} could not be removed - error:{2}".format(type(auction_task).__name__, str(e)))
+            print("task : {0} could not be removed - error:{1}".format(type(auction_task).__name__, str(e)))
 
     async def stop_tasks(self, tasks_to_maintain=[]):
         """

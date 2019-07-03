@@ -457,7 +457,10 @@ class HandleRequestProcessExecution(ScheduledTask):
     async def _run_specific(self, **kwargs):
         try:
             bids = self.agent_processor.execute_request(self.request_process_key)
-            self.logger.info("new bids created - nbr: {0}".format(str(len(bids))))
+
+            for bid in bids:
+                self.logger.info("new bid created : {0} - request_process_key: {1}".format(bid.get_key(),
+                                                                                           self.request_process_key))
 
             handle_add_generate_bidding_object = HandledAddGenerateBiddingObject(self.request_process_key, bids, 0)
             handle_add_generate_bidding_object.start()
@@ -577,9 +580,10 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
 
             # Inserts the objects in the bidding object container
             for bidding_object in self.bidding_objects:
+                self.logger.info("it is going to send bidding object: {0}".format(bidding_object.get_key()))
                 bidding_object.set_process_request_key(self.request_process_key)
-                bidding_object.set_resource_request_key(
-                    session.get_resource_request_interval().get_resource_request_key())
+                interval: ResourceRequestInterval = session.get_resource_request_interval()
+                bidding_object.set_resource_request_key(interval.get_resource_request_key())
 
                 await self.bidding_manager.add_bidding_object(bidding_object)
                 i = 0
@@ -614,6 +618,9 @@ class HandledAddGenerateBiddingObject(ScheduledTask):
             ipap_message.set_ack_seq_no(0)
             session.add_pending_message(ipap_message)
             await self.message_processor.send_message(session.get_server_connnection(), ipap_message.get_message())
+
+            for bidding_object in self.bidding_objects:
+                self.logger.info("after sending bidding object: {0}".format(bidding_object.get_key()))
 
         except Exception as e:
             self.logger.error(str(e))

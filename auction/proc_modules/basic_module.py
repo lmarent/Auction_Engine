@@ -56,6 +56,9 @@ class BasicModule(Module):
         """
         self.logger.debug("bas module: start execute num bids:{0}".format(str(len(bids))))
 
+        for bid_key in bids:
+            self.logger.info("Bid key in auction process:{0}".format(bid_key))
+
         tot_demand = self.proc_module.calculate_requested_quantities(bids)
         bandwidth_to_sell = self.proc_module.get_param_value('bandwidth', request_params)
         reserve_price = self.proc_module.get_param_value('reserveprice', request_params)
@@ -131,7 +134,10 @@ class BasicModule(Module):
         # Convert from the map to the final allocationDB result
         allocation_res = []
         for allocation_key in allocations:
-            allocation_res.append(allocations[allocation_key])
+            allocation = allocations[allocation_key]
+            allocation_res.append(allocation)
+            self.logger.info(
+                "allocation key: {0} - bidding object {1}".format(allocation_key, allocation.get_parent_key()))
 
         # Write a log with data of the auction
         self.logger.debug("starttime: {0} endtime:{1}".format(str(start), str(stop)))
@@ -139,7 +145,9 @@ class BasicModule(Module):
         self.logger.debug("qty_sell: {0}".format(str(bandwidth_to_sell - qty_available)))
         self.logger.debug("reservedPrice:{0} sell price:{1}".format(str(reserve_price), str(sell_price)))
 
-        self.logger.debug("bas module: end execute")
+        self.logger.info("bas module: end execute - nbr allocations: {0}".format(len(allocation_res)))
+
+
 
         return allocation_res
 
